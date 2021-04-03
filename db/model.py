@@ -61,7 +61,7 @@ class Account(Base):
                        is_sending_emails, is_sending_li_messages, is_receiving_dte,
                        effective_start_date, effective_end_date, data_enrichment_start_date,
                        data_enrichment_end_date, time_zone_id, updated_by, account_type_id):
-        self.account_id = account_id,
+        self.account_id = account_id
         self.account_group_id = account_group_id
         self.email_config_id = email_config_id
         self.is_sending_emails = is_sending_emails
