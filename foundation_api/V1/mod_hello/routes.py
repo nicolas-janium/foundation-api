@@ -10,7 +10,7 @@ from foundation_api import db
 from foundation_api import app
 from foundation_api.V1.mod_hello.models import Action
 
-mod_hello = Blueprint('hello', __name__, url_prefix='/V1')
+mod_hello = Blueprint('hello', __name__, url_prefix='/api/v1')
 
 @mod_hello.route('/', methods=['GET'])
 def hello_world():
