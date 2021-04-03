@@ -5,6 +5,7 @@ cachetools==4.2.1
 certifi==2020.12.5
 chardet==4.0.0
 click==7.1.2
+cryptography
 Flask==1.1.2
 Flask-JWT-Extended==4.0.2
 Flask-Mail==0.9.1

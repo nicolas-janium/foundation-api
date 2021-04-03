@@ -15,7 +15,7 @@ db = SQLAlchemy(app)
 
 jwt = JWTManager(app)
 
-from foundation.mod_hello.routes import mod_hello as hello_module
+from foundation_api.V1.mod_hello.routes import mod_hello as hello_module
 
 # Register blueprint(s)
 app.register_blueprint(hello_module)
