@@ -148,6 +148,9 @@ class User(Base):
     phone = Column(String(256), nullable=True)
     additional_contact_info = Column(JSON, nullable=True)
 
+    username = Column(String(256), nullable=False, unique=True)
+    password = Column(String(256), nullable=False)
+
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
     updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
@@ -267,6 +270,8 @@ class Login_credential(Base):
     
     user_id = Column(String(36), ForeignKey('user.user_id'), nullable=False)
     login_credential = Column(String(45), nullable=False)
+    # login_username = Column(String(64), nullable=False)
+    # login_password = Column()
 
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
