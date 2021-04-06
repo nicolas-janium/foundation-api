@@ -11,6 +11,7 @@ Flask-Bcrypt==0.7.1
 Flask-JWT-Extended==4.0.2
 Flask-Mail==0.9.1
 flask-marshmallow==0.14.0
+Flask-Sendgrid==0.7.1
 Flask-SQLAlchemy==2.4.4
 google==3.0.0
 google-api-core==1.26.0

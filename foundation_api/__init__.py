@@ -1,7 +1,8 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager
+from flask_sendgrid import SendGrid
+from flask_sqlalchemy import SQLAlchemy
 
 # Define the WSGI application object
 app = Flask(__name__)
@@ -18,8 +19,10 @@ db.create_all()
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
 
-from foundation_api.V1.mod_hello.routes import mod_hello as hello_module
+mail = SendGrid(app)
+
 from foundation_api.V1.mod_auth.routes import mod_auth as auth_module
+from foundation_api.V1.mod_hello.routes import mod_hello as hello_module
 
 # Register blueprint(s)
 app.register_blueprint(hello_module)

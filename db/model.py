@@ -123,7 +123,7 @@ class User(Base):
     unassigned_user_id = '9d34bb21-7037-4709-bb0f-e1e8b1491506'
     system_user_id = 'a0bcc7a2-5e2b-41c6-9d5c-ba8ebb01c03d'
 
-    def __init__(self, user_id, first_name, last_name, title, company, location, primary_email, campaign_management_email, alternate_dte_email, phone, updated_by):
+    def __init__(self, user_id, first_name, last_name, title, company, location, primary_email, additional_contact_info, phone, updated_by, username, password):
         self.user_id = user_id
         self.first_name = first_name
         self.last_name = last_name
@@ -131,10 +131,11 @@ class User(Base):
         self.company = company
         self.location = location
         self.primary_email = primary_email
-        self.campaign_management_email = campaign_management_email
-        self.alternate_dte_email = alternate_dte_email
+        self.additional_contact_info = additional_contact_info
         self.phone = phone
         self.updated_by = updated_by
+        self.username = username
+        self.password = password
     
     user_id = Column(String(36), primary_key=True)
 
