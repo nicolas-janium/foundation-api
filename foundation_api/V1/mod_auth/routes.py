@@ -21,4 +21,4 @@ def hello_auth():
 def create_user():
     json_body = request.get_json()
 
-    if existing_user := db.session.query(User).filter(User.)
+    # if existing_user := db.session.query(User).filter(User.)
