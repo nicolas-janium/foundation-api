@@ -132,9 +132,10 @@ def update_user():
     return jsonify({"message": "User created successfully", "access_token": access_token})
 
 
-@mod_auth.route('/get_user/<user_id>', methods=['GET'])
+@mod_auth.route('/get_user', methods=['GET'])
 @jwt_required()
-def get_user(user_id):
+def get_user():
+    user_id = get_jwt_identity() # Get user_id value directly from the jwt
     if user := db.session.query(User).filter(User.user_id == user_id).first():
         return jsonify({
             "user_id": user_id,
