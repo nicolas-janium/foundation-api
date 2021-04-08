@@ -1,1 +1,1 @@
-from db.model import User
+from foundation_api.db.model import User

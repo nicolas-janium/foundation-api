@@ -1,1 +1,1 @@
-from db.model import Action
+from foundation_api.db.model import Action
