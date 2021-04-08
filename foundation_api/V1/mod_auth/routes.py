@@ -35,8 +35,8 @@ def create_user():
     password = json_body['password']
 
     if existing_user := db.session.query(User).filter(User.username == username).first(): # Returns None or User object
-        return make_response(jsonify({"message": "A user with that username already exists"}), 401)
-    
+        return jsonify({"message": "Username taken"})
+
     new_user_id = str(uuid4())
     new_user = User(
         new_user_id,
