@@ -15,7 +15,7 @@ app.config.from_object('config')
 # by modules and controllers
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://nicolas:nicolas113112@localhost/dev"
 db = SQLAlchemy(app)
-db.create_all()
+# db.create_all()
 
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
@@ -23,8 +23,6 @@ bcrypt = Bcrypt(app)
 mail = SendGrid(app)
 
 from foundation_api.V1.mod_auth.routes import mod_auth as auth_module
-from foundation_api.V1.mod_hello.routes import mod_hello as hello_module
 
 # Register blueprint(s)
-app.register_blueprint(hello_module)
 app.register_blueprint(auth_module)

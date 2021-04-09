@@ -18,9 +18,12 @@ __pycache__/
 # Ignored by the build system
 /setup.cfg
 venv
-ref_routes
+ref_routes.py
 foundation_api.egg-info
 alembic
+alembic.ini
 .vscode
 Janium-API.V1
 node_modules
+deploy
+README.md

@@ -13,44 +13,44 @@ from sqlalchemy.sql import false, func, text, true
 Base = declarative_base()
 
 
-def get_session(is_remote=False, environment=None):
-    if not os.getenv('LOCAL_DEV'):
-        db_url = engine.url.URL(
-            drivername='mysql+pymysql',
-            username= os.getenv('DB_USER'),
-            password= os.getenv('DB_PASSWORD'),
-            database= os.getenv('DB_DATABASE'),
-            host= os.getenv('DB_PRIVATE_HOST')
-        )
-    else:
-        if is_remote:
-            if environment == 'staging':
-                db_url = engine.url.URL(
-                    drivername='mysql+pymysql',
-                    username= os.getenv('STAGING_DB_USER'),
-                    password= os.getenv('STAGING_DB_PASSWORD'),
-                    database= os.getenv('STAGING_DB_DATABASE'),
-                    host= os.getenv('STAGING_DB_PUBLIC_HOST'),
-                )
-            elif environment == 'production':
-                db_url = engine.url.URL(
-                    drivername='mysql+pymysql',
-                    username= os.getenv('PROD_DB_USER'),
-                    password= os.getenv('PROD_DB_PASSWORD'),
-                    database= os.getenv('PROD_DB_DATABASE'),
-                    host= os.getenv('PROD_DB_PUBLIC_HOST'),
-                )
-        else:
-            db_url = engine.url.URL(
-                drivername='mysql+pymysql',
-                username= os.getenv('LOCAL_DB_USER'),
-                password= os.getenv('LOCAL_DB_PASSWORD'),
-                database= os.getenv('LOCAL_DB_DATABASE'),
-                host= os.getenv('LOCAL_DB_HOST'),
-                port= os.getenv('LOCAL_DB_PORT')
-            )
-    sql_engine = create_engine(db_url)
-    return sessionmaker(bind=sql_engine)()
+# def get_session(is_remote=False, environment=None):
+#     if not os.getenv('LOCAL_DEV'):
+#         db_url = engine.url.URL(
+#             drivername='mysql+pymysql',
+#             username= os.getenv('DB_USER'),
+#             password= os.getenv('DB_PASSWORD'),
+#             database= os.getenv('DB_DATABASE'),
+#             host= os.getenv('DB_PRIVATE_HOST')
+#         )
+#     else:
+#         if is_remote:
+#             if environment == 'staging':
+#                 db_url = engine.url.URL(
+#                     drivername='mysql+pymysql',
+#                     username= os.getenv('STAGING_DB_USER'),
+#                     password= os.getenv('STAGING_DB_PASSWORD'),
+#                     database= os.getenv('STAGING_DB_DATABASE'),
+#                     host= os.getenv('STAGING_DB_PUBLIC_HOST'),
+#                 )
+#             elif environment == 'production':
+#                 db_url = engine.url.URL(
+#                     drivername='mysql+pymysql',
+#                     username= os.getenv('PROD_DB_USER'),
+#                     password= os.getenv('PROD_DB_PASSWORD'),
+#                     database= os.getenv('PROD_DB_DATABASE'),
+#                     host= os.getenv('PROD_DB_PUBLIC_HOST'),
+#                 )
+#         else:
+#             db_url = engine.url.URL(
+#                 drivername='mysql+pymysql',
+#                 username= os.getenv('LOCAL_DB_USER'),
+#                 password= os.getenv('LOCAL_DB_PASSWORD'),
+#                 database= os.getenv('LOCAL_DB_DATABASE'),
+#                 host= os.getenv('LOCAL_DB_HOST'),
+#                 port= os.getenv('LOCAL_DB_PORT')
+#             )
+#     sql_engine = create_engine(db_url)
+#     return sessionmaker(bind=sql_engine)()
 
 
 class Account(Base):

@@ -7,10 +7,3 @@ runtime_config:
 
 vpc_access_connector:
   name: projects/foundation-staging-305217/locations/us-central1/connectors/staging-vpc-connector
-
-env_variables:
-  DB_USER: 'gcf'
-  DB_PASSWORD: 'gcf113112'
-  DB_DATABASE: 'staging'
-  DB_HOST: '10.63.160.3'
-  DB_PORT: 3306

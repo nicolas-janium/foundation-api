@@ -1,12 +1,11 @@
 steps:
 - name: 'bash'
   args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET ']
-  # args: ['bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET']
   secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET']
   
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
-  args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy']
+  args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml']
 timeout: '1600s'
 
 availableSecrets:
