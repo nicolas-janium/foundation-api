@@ -3,6 +3,7 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_sendgrid import SendGrid
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 # Define the WSGI application object
 app = Flask(__name__)

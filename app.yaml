@@ -14,4 +14,3 @@ env_variables:
   DB_DATABASE: 'staging'
   DB_HOST: '10.63.160.3'
   DB_PORT: 3306
-  

@@ -1,0 +1,2 @@
+FLASK_APP=foundation_api
+FLASK_ENV=development
