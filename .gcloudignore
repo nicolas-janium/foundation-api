@@ -20,8 +20,6 @@ __pycache__/
 venv
 ref_routes.py
 foundation_api.egg-info
-alembic
-alembic.ini
 .vscode
 Janium-API.V1
 node_modules

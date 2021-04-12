@@ -14,7 +14,7 @@ SQLALCHEMY_DATABASE_URI = engine.url.URL(
     password= os.getenv('DB_PASSWORD'),
     database= os.getenv('DB_NAME'),
     host= os.getenv('DB_HOST'),
-    port= os.getenv('DB_PORT') if os.getenv('DB_PORT') else 3306
+    port= os.getenv('DB_PORT', 3306)
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
