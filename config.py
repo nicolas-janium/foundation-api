@@ -2,15 +2,21 @@ import os
 from datetime import timedelta
 
 from sqlalchemy import engine
+from dotenv import load_dotenv
+
+load_dotenv()
+
+FLASK_HOST = os.getenv('FLASK_HOST')
 
 SQLALCHEMY_DATABASE_URI = engine.url.URL(
     drivername='mysql+pymysql',
     username= os.getenv('DB_USER'),
     password= os.getenv('DB_PASSWORD'),
-    database= os.getenv('DB_DATABASE'),
+    database= os.getenv('DB_NAME'),
     host= os.getenv('DB_HOST'),
-    port= os.getenv('DB_PORT') if os.getenv('DB_PORT') else 3306
+    port= os.getenv('DB_PORT', 3306)
 )
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 SECRET_KEY = 'super_secret_key'
 

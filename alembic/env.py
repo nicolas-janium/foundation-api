@@ -5,9 +5,18 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from db.model import Base
+from foundation_api.sa_db.model import Base
+from dotenv import load_dotenv
 
-db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(os.getenv('DB_USER'), os.getenv('DB_PASSWORD'), os.getenv('DB_HOST'), os.getenv('LOCAL_DB_PORT'), os.getenv('DB_DATABASE'))
+load_dotenv()
+
+db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
+        os.getenv('DB_USER'),
+        os.getenv('DB_PASSWORD'),
+        os.getenv('DB_PUBLIC_HOST') if os.getenv('IS_BUILD') else os.getenv('DB_HOST'),
+        os.getenv('DB_PORT', 3306),
+        os.getenv('DB_NAME')
+    )
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -48,8 +48,8 @@ def create_user():
         '',
         None,
         None,
-        '1c914a6c-6168-47a8-8460-93c865b1888a', # What should the updated_by value be for new users?
-        # new_user_id,
+        # '1c914a6c-6168-47a8-8460-93c865b1888a', # What should the updated_by value be for new users?
+        new_user_id,
         username,
         bcrypt.generate_password_hash(password).decode("utf-8")
     )

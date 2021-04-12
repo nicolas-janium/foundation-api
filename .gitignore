@@ -1,3 +1,4 @@
 venv
 foundation_api.egg*
 env
+node_modules

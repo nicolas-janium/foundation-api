@@ -1,0 +1,9 @@
+runtime: python38
+entrypoint: gunicorn -b :$PORT foundation_api:app
+service: backend
+
+runtime_config:
+  python_version: 3
+
+vpc_access_connector:
+  name: projects/foundation-production/locations/us-central1/connectors/prod-vpc-connector
