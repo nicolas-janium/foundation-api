@@ -57,13 +57,11 @@ class Account(Base):
     __tablename__ = 'account'
     unassigned_account_id = '8acafb6b-3ce5-45b5-af81-d357509ba457'
 
-    def __init__(self, account_id, account_group_id, email_config_id,
-                       is_sending_emails, is_sending_li_messages, is_receiving_dte,
-                       effective_start_date, effective_end_date, data_enrichment_start_date,
+    def __init__(self, account_id, account_group_id, is_sending_emails, is_sending_li_messages,
+                       is_receiving_dte,effective_start_date, effective_end_date, data_enrichment_start_date,
                        data_enrichment_end_date, time_zone_id, updated_by, account_type_id):
         self.account_id = account_id
         self.account_group_id = account_group_id
-        self.email_config_id = email_config_id
         self.is_sending_emails = is_sending_emails
         self.is_sending_li_messages = is_sending_li_messages
         self.is_receiving_dte = is_receiving_dte
@@ -96,7 +94,7 @@ class Account(Base):
     updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
     # SQLAlchemy Relationships and Backreferences
-    # users = relationship('User_account_map', back_populates='account')
+    users = relationship('User_account_map', back_populates='account')
     # users = relationship('User_account_map')
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_account', uselist=False), uselist=True, lazy='dynamic')
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_campaign_account', uselist=False), uselist=True, lazy='dynamic')
@@ -156,7 +154,7 @@ class User(Base):
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
     updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
-    # accounts = relationship('User_account_map', back_populates='account_user')
+    accounts = relationship('User_account_map', back_populates='user')
     # permissions = relationship('User_permission_map', back_populates='permission_user')
     # accounts = relationship('User_account_map')
     # permissions = relationship('User_permission_map')
@@ -176,10 +174,10 @@ class User_account_map(Base):
 
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-    updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
+    # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
-    # user = relationship('User', back_populates='user_accounts', foreign_keys=[user_id])
-    # account = relationship('Account', back_populates='account_users', foreign_keys=[account_id])
+    user = relationship('User', back_populates='accounts')
+    account = relationship('Account', back_populates='users')
     # user = relationship('User', foreign_keys=[user_id])
     # user = relationship('User', foreign_keys='User_account_map.user_id')
     # account = relationship('Account', foreign_keys=[account_id])
@@ -225,11 +223,13 @@ class User_permission_map(Base):
 
 class Permission(Base):
     __tablename__ = 'permission'
+    default_permission_id = '2e9b5679-134d-4b6e-9a4d-6e14138eab22'
 
-    def __init__(self, permission_id, permission_name, permission_description):
+    def __init__(self, permission_id, permission_name, permission_description, updated_by):
         self.permission_id = permission_id
         self.permission_name = permission_name
         self.permission_description = permission_description
+        self.updated_by = updated_by
     
     permission_id = Column(String(36), primary_key=True, nullable=False)
     permission_name = Column(String(64), nullable=False)

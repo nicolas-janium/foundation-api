@@ -23,6 +23,8 @@ bcrypt = Bcrypt(app)
 mail = SendGrid(app)
 
 from foundation_api.V1.mod_auth.routes import mod_auth as auth_module
+from foundation_api.V1.mod_account.routes import mod_account as account_module
 
 # Register blueprint(s)
 app.register_blueprint(auth_module)
+app.register_blueprint(account_module)

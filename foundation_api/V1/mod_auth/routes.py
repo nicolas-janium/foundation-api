@@ -6,12 +6,12 @@ from uuid import uuid4
 from threading import Thread
 
 from flask import Blueprint, jsonify, request, make_response
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt, get_jwt_identity, create_refresh_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt, get_jwt_identity, create_refresh_token, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 from flask_mail import Message
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_auth.models import User
+from foundation_api.V1.mod_auth.models import User, Account, User_account_map, Account_group, Time_zone, Permission
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/api/v1')
 
@@ -21,46 +21,76 @@ send request to /refresh_access_token. If both are expired, requires new user lo
 """
 ### We are using the `refresh=True` option in jwt_required to only allow ###
 ### refresh tokens to access this route. ###
-@mod_auth.route("/refresh_access_token", methods=["POST"])
+@mod_auth.route("/refresh_token", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
-    identity = get_jwt_identity()
-    access_token = create_access_token(identity=identity)
-    return jsonify({"message": "Access token refreshed", "access_token": access_token})
+    access_token = create_access_token(identity=new_user_id)
+    response = make_response(jsonify({"message": "Access token refreshed"}), 200)
+    set_access_cookies(response, access_token)
+    return response
 
-@mod_auth.route('/sign_up', methods=['POST'])
+@mod_auth.route('/signup', methods=['POST'])
 def create_user():
     json_body = request.get_json(force=True)
     username = json_body['username']
     password = json_body['password']
 
     if existing_user := db.session.query(User).filter(User.username == username).first(): # Returns None or User object
-        return jsonify({"message": "Username taken"})
+        return make_response(jsonify({"message": "Username taken"}), 401)
+    
+    time_zone_id = db.session.query(Time_zone).filter(Time_zone.time_zone_code == json_body['time_zone_code']).first().time_zone_id
 
     new_user_id = str(uuid4())
     new_user = User(
         new_user_id,
-        '',
-        '',
+        json_body['first_name'],
+        json_body['last_name'],
+        json_body['title'],
+        json_body['company'],
         None,
-        None,
-        None,
-        '',
+        username,
         None,
         None,
         # '1c914a6c-6168-47a8-8460-93c865b1888a', # What should the updated_by value be for new users?
-        new_user_id,
+        User.system_user_id,
         username,
         bcrypt.generate_password_hash(password).decode("utf-8")
     )
     db.session.add(new_user)
+
+    new_account_id = str(uuid4())
+    new_account = Account(
+        new_account_id,
+        Account_group.unassigned_account_group_id,
+        False,
+        False,
+        False,
+        datetime.utcnow(),
+        datetime.utcnow(),
+        datetime.utcnow(),
+        datetime.utcnow(),
+        time_zone_id,
+        User.system_user_id,
+        1
+    )
+    db.session.add(new_account)
+
+    user_account_map = User_account_map(
+        new_user_id, 
+        new_account_id,
+        Permission.default_permission_id
+    )
+    db.session.add(user_account_map)
     db.session.commit()
 
     access_token = create_access_token(identity=new_user_id)
     refresh_token = create_refresh_token(identity=new_user_id)
-    return jsonify({"message": "User created successfully", "access_token": access_token, "refresh_token": refresh_token})
+    response = make_response(jsonify({"message": "User created successfully"}), 200)
+    set_access_cookies(response, access_token)
+    set_refresh_cookies(response, refresh_token)
+    return response
 
-@mod_auth.route('/login_user', methods=['POST'])
+@mod_auth.route('/login', methods=['POST'])
 def login_user():
     json_body = request.get_json()
     auth = request.authorization
@@ -72,11 +102,23 @@ def login_user():
         if bcrypt.check_password_hash(existing_user.password, auth.password):
             access_token = create_access_token(identity=existing_user.user_id)
             refresh_token = create_refresh_token(identity=existing_user.user_id)
-            return jsonify({"message": "User logged in", "access_token": access_token, "refresh_token": refresh_token})
+            response = make_response(jsonify({"message": "Login successfull"}), 200)
+            set_access_cookies(response, access_token)
+            set_refresh_cookies(response, refresh_token)
+            return response
         else:
             return make_response(jsonify({"message": "Incorrect Password"}), 401)
     else:
         return make_response(jsonify({"message": "User does not exist"}), 401)
+
+@mod_auth.route('/logout', methods=['DELETE'])
+@jwt_required()
+def logout_user():
+    user_id = get_jwt_identity() # Get user_id value directly from the jwt
+
+    response = make_response(jsonify({"message": "User logged out successfully"}), 302)
+    unset_jwt_cookies(response)
+    return response
 
 @mod_auth.route('/update_user', methods=['PUT'])
 @jwt_required()
