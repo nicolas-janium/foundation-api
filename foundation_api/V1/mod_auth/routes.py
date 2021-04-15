@@ -24,7 +24,7 @@ send request to /refresh_access_token. If both are expired, requires new user lo
 @mod_auth.route("/refresh_token", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
-    access_token = create_access_token(identity=new_user_id)
+    access_token = create_access_token(identity=get_jwt_identity())
     response = make_response(jsonify({"message": "Access token refreshed"}), 200)
     set_access_cookies(response, access_token)
     return response
@@ -98,11 +98,12 @@ def login_user():
     if not auth or not auth.username or not auth.password:
         return make_response(jsonify({"message": "Could not verify"}), 401)
 
-    if existing_user := db.session.query(User).filter(User.username == auth.username).first():
-        if bcrypt.check_password_hash(existing_user.password, auth.password):
-            access_token = create_access_token(identity=existing_user.user_id)
-            refresh_token = create_refresh_token(identity=existing_user.user_id)
+    if user := db.session.query(User).filter(User.username == auth.username).first():
+        if bcrypt.check_password_hash(user.password, auth.password):
+            access_token = create_access_token(identity=user.user_id)
+            refresh_token = create_refresh_token(identity=user.user_id)
             response = make_response(jsonify({"message": "Login successfull"}), 200)
+            # response = set_csrf_token(response)
             set_access_cookies(response, access_token)
             set_refresh_cookies(response, refresh_token)
             return response

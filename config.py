@@ -20,9 +20,13 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 SECRET_KEY = 'super_secret_key'
 
+# WTF_CSRF_ENABLED = False # Set to False because the flask app does not render and serve the forms in templates
+
 JWT_SECRET_KEY = 'super_secret_jwt_key'
-# JWT_COOKIE_SECURE = True
-# JWT_TOKEN_LOCATION = ["cookies"]
+JWT_COOKIE_SECURE = True if os.getenv('FLASK_ENV') == 'production' else False
+JWT_TOKEN_LOCATION = ['cookies']
+JWT_COOKIE_CSRF_PROTECT = False
+JWT_CSRF_IN_COOKIES = False
 JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 

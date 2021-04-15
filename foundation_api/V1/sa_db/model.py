@@ -99,7 +99,7 @@ class Account(Base):
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_account', uselist=False), uselist=True, lazy='dynamic')
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_campaign_account', uselist=False), uselist=True, lazy='dynamic')
     contacts = relationship('Contact', backref=backref('contact_account', uselist=False), uselist=True, lazy='dynamic')
-    # email_config = relationship('Email_config', backref=backref('email_config_account', uselist=False), uselist=False, lazy=True)
+    email_configs = relationship('Email_config', backref=backref('email_config_account', uselist=False), uselist=True, lazy=True)
     ulinc_configs = relationship('Ulinc_config', backref=backref('ulinc_config_account', uselist=False), uselist=True, lazy=True)
     time_zone = relationship('Time_zone', backref=backref('tz_account', uselist=True), uselist=False, lazy=True)
 
@@ -796,8 +796,9 @@ class Email_config(Base):
     janium_email_config_id = '709f79b3-7a20-43ff-844a-4f014fa4e406'
     unassigned_email_config_id = '7c5c4aa2-2c6e-4e3d-947e-6efdae4366a1'
 
-    def __init__(self, email_config_id, credentials_id, email_server_id, is_sendgrid, sendgrid_sender_id, is_email_forward, updated_by, from_full_name, reply_to_address):
+    def __init__(self, email_config_id, account_id, credentials_id, email_server_id, is_sendgrid, sendgrid_sender_id, is_email_forward, updated_by, from_full_name, reply_to_address):
         self.email_config_id = email_config_id
+        self.account_id = account_id
         self.credentials_id = credentials_id
         self.email_server_id = email_server_id
         self.is_sendgrid = is_sendgrid
@@ -811,6 +812,7 @@ class Email_config(Base):
     email_config_id = Column(String(36), primary_key=True)
 
     # Foreign Keys
+    account_id = Column(String(36), ForeignKey('account.account_id'))
     credentials_id = Column(String(36), ForeignKey('credentials.credentials_id'))
     email_server_id = Column(String(36), ForeignKey('email_server.email_server_id'))
 

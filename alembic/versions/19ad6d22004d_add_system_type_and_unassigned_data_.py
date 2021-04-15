@@ -12,7 +12,7 @@ import uuid
 
 import sqlalchemy as sa
 from alembic import op
-from foundation_api.sa_db import model
+from foundation_api.V1.sa_db import model
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, PrimaryKeyConstraint, String, Table, Text,
                         create_engine, engine)
