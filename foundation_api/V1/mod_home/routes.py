@@ -5,8 +5,8 @@ from flask import Blueprint, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 
 from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_home.models import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action
-from foundation_api.V1.utils.get_ulinc import get_ulinc_client_info
+from foundation_api.V1.mod_home.models import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action, Janium_campaign, Ulinc_campaign
+from foundation_api.V1.utils.ulinc import get_ulinc_client_info, get_ulinc_tasks_count
 
 mod_home = Blueprint('home', __name__, url_prefix='/api/v1')
 
@@ -27,11 +27,15 @@ def get_ulinc_configs():
         ulinc_configs = []
 
         for ulinc_config in janium_account.ulinc_configs:
+            summary_data = ulinc_config.get_summary_data()
+            # print(summary_data)
             ulinc_configs.append(
                 {
                     "ulinc_config_id": ulinc_config.ulinc_config_id,
                     "ulinc_li_email": ulinc_config.ulinc_li_email,
-                    "ulinc_is_active": ulinc_config.ulinc_is_active
+                    "ulinc_is_active": ulinc_config.ulinc_is_active,
+                    "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
+                    "summary_data": summary_data
                 }
             )
 

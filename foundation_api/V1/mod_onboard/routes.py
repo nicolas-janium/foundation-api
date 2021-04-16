@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 
 from foundation_api import app, bcrypt, db, mail
 from foundation_api.V1.mod_onboard.models import User, Account, Ulinc_config, Credentials, Cookie, Email_config, Email_server
-from foundation_api.V1.utils.get_ulinc import get_ulinc_client_info
+from foundation_api.V1.utils.ulinc import get_ulinc_client_info
 
 mod_onboard = Blueprint('onboard', __name__, url_prefix='/api/v1')
 
@@ -21,7 +21,7 @@ def create_ulinc_config():
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
     if janium_accounts := user.accounts:
-        janium_account = janium_accounts[0] # Users are only associated with one Janium Campaign
+        janium_account = janium_accounts[0].account # Users are only associated with one Janium Campaign
 
         if db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_li_email == json_body['ulinc_li_email']).first():
             return jsonify({"message": "Ulinc config with that LI email already exists"})
@@ -85,11 +85,16 @@ def create_email_config():
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    if db.session.query(Email_config).filter(Email_config.credentials.username == json_body['email_app_username']).first(): # This don't workkkkkk
-        return jsonify({"message": "Email config with {} email app username already exists".format(json_body['email_app_username'])})
+    if credentials_list := db.session.query(Credentials).filter(Credentials.username == json_body['email_app_username']).all():
+        for credentials in credentials_list:
+            if credentials.email_config:
+                return jsonify({"message": "Email config with {} email app username already exists".format(json_body['email_app_username'])})
+
+    # if db.session.query(Email_config).filter(Email_config.credentials.username == json_body['email_app_username']).first(): # This don't workkkkkk
+    #     return jsonify({"message": "Email config with {} email app username already exists".format(json_body['email_app_username'])})
 
     if janium_accounts := user.accounts:
-        janium_account = janium_accounts[0] # Users are only associated with one Janium Campaign
+        janium_account = janium_accounts[0].account # Users are only associated with one Janium Campaign
 
         email_server = db.session.query(Email_server).filter(Email_server.email_server_name == json_body['email_server_name']).first()
 
@@ -146,18 +151,14 @@ def get_email_configs():
     """
     Required JSON keys: None
     """
-    json_body = request.get_json(force=True)
-    user_id = get_jwt_identity()
-
-    json_body = request.get_json(force=True)
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
     if janium_accounts := user.accounts:
-        janium_account = janium_accounts[0] # Users are only associated with one Janium Campaign
+        janium_account = janium_accounts[0].account
 
         email_configs = []
-        for email_config in user.email_configs:
+        for email_config in janium_account.email_configs:
             email_configs.append(
                 {
                     "email_config_id": email_config.email_config_id,
@@ -169,4 +170,4 @@ def get_email_configs():
                 }
             )
 
-    
+        return jsonify(email_configs)

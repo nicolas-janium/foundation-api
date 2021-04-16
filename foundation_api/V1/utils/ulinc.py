@@ -143,6 +143,32 @@ def get_ulinc_client_info(username, password, li_email):
         "webhooks_activated": webhooks_activated
     }
 
+def get_ulinc_tasks_count(ulinc_client_id, cookie):
+    url = 'https://ulinc.co/{}/tasks/?do=tasks&act=upcoming'.format(ulinc_client_id)
+
+    jar = requests.cookies.RequestsCookieJar()
+    jar.set('usr', cookie.cookie_json_value['usr'])
+    jar.set('pwd', cookie.cookie_json_value['pwd'])
+
+    headers = {
+        "Accept": "application/json"
+    }
+
+    res = requests.get(url=url, cookies=jar, headers=headers)
+    # print(res.text)
+    if res.ok:
+        if len(res.text) > 100:
+            soup = Soup(res.text, 'html.parser')
+            showing = soup.find('div', **{'class': 'showing'})
+            strongs = showing.find_all('strong')
+            return strongs[2].text
+        else:
+            return None
+    else:
+        return None
+
+
+
 def main(request):
     if os.getenv('LOCAL_DEV'):
         request_json = request

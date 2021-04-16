@@ -1,0 +1,9 @@
+# cron:
+# - description: "retry demo"
+#   url: /retry
+#   schedule: every 10 mins from 10:00 to 14:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 5 # Max is 5 and min is 0
+#     min_backoff_seconds: 2.5
+#     max_doublings: 5

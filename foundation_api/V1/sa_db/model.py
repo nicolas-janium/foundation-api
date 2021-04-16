@@ -10,6 +10,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy.sql import false, func, text, true
 
+from foundation_api import db
+
 Base = declarative_base()
 
 
@@ -392,6 +394,78 @@ class Janium_campaign(Base):
         start_date = pytz.utc.localize(self.queue_start_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         end_date = pytz.utc.localize(self.queue_end_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         return {"start": start_date, "end": end_date}
+    
+    def get_summary_data(self):
+        sql_statement = text(
+            "   select 'new_connections' as action_type, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 1 then co.contact_id end) as total \
+            from janium_campaign jca \
+            inner join contact co on co.janium_campaign_id = jca.janium_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where jca.janium_campaign_id = '{janium_campaign_id}' \
+            UNION \
+            select 'li_responses' as action_type, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 2 then co.contact_id end) as total \
+            from janium_campaign jca \
+            inner join contact co on co.janium_campaign_id = jca.janium_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where jca.janium_campaign_id = '{janium_campaign_id}' \
+            UNION \
+            select 'li_messages_sent' as action_type, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 3 then co.contact_id end) as total \
+            from janium_campaign jca \
+            inner join contact co on co.janium_campaign_id = jca.janium_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where jca.janium_campaign_id = '{janium_campaign_id}' \
+            UNION \
+            select 'email_responses' as action_type, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 6 then co.contact_id end) as total \
+            from janium_campaign jca \
+            inner join contact co on co.janium_campaign_id = jca.janium_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where jca.janium_campaign_id = '{janium_campaign_id}' \
+            UNION \
+            select 'email_messages_sent' as action_type, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 4 then co.contact_id end) as total \
+            from janium_campaign jca \
+            inner join contact co on co.janium_campaign_id = jca.janium_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where jca.janium_campaign_id = '{janium_campaign_id}';".format(janium_campaign_id=self.janium_campaign_id)
+        )
+
+        summary_data = {}
+        result = db.engine.execute(sql_statement)
+        for line in result:
+            summary_data[line[0]] = {
+                "24h": line[1],
+                "72h": line[2],
+                "week": line[3],
+                "month": line[4],
+                "total": line[5]
+            }
+        # print(summary_data)
+        return summary_data
+
 
 class Janium_campaign_step(Base):
     __tablename__ = 'janium_campaign_step'
@@ -908,6 +982,26 @@ class Ulinc_config(Base):
     account = relationship('Account', uselist=False)
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_ulinc_config', uselist=False), uselist=True)
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
+
+    def get_summary_data(self):
+        summary_data = {
+            "new_connections": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
+            "li_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
+            "li_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
+            "email_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
+            "email_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}
+        }
+
+        for janium_campaign in self.janium_campaigns:
+            janium_campaign_summary_data = janium_campaign.get_summary_data()
+            for key, value in janium_campaign_summary_data.items():
+                summary_data[key]['24h'] += value['24h']
+                summary_data[key]['72h'] += value['72h']
+                summary_data[key]['week'] += value['week']
+                summary_data[key]['month'] += value['month']
+                summary_data[key]['total'] += value['total']
+
+        return summary_data
 
 
 class Credentials(Base):
