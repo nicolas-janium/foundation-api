@@ -40,6 +40,7 @@ def get_ulinc_configs():
             )
 
         return jsonify(ulinc_configs)
+    return jsonify({"message": "No Janium Account for user"})
 
 @mod_home.route('/ulinc_config', methods=['GET'])
 @jwt_required()
