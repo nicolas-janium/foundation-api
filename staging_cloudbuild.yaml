@@ -21,6 +21,10 @@ steps:
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
   args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml']
+
+- name: bash
+  args: ['-c', './bash_scripts/remove_prev_app_versions.bash backend 3'] # Keep only the 3 latest versions of the backend service
+
 timeout: '1600s'
 
 availableSecrets:
