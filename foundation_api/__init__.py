@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 # Define the WSGI application object
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 
 # Configurations
 app.config.from_object('config')

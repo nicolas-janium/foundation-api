@@ -453,7 +453,7 @@ class Janium_campaign(Base):
             where jca.janium_campaign_id = '{janium_campaign_id}';".format(janium_campaign_id=self.janium_campaign_id)
         )
 
-        summary_data = {}
+        summary_data = []
         result = db.engine.execute(sql_statement)
         for line in result:
             summary_data[line[0]] = {
@@ -984,6 +984,13 @@ class Ulinc_config(Base):
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
 
     def get_summary_data(self):
+        # summary_data = [
+        #     {"new_connections": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
+        #     {"li_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
+        #     {"li_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
+        #     {"email_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
+        #     {"email_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}}
+        # ]
         summary_data = {
             "new_connections": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
             "li_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},

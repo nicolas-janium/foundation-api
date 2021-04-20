@@ -83,12 +83,15 @@ def create_user():
     db.session.add(user_account_map)
     db.session.commit()
 
-    access_token = create_access_token(identity=new_user_id)
-    refresh_token = create_refresh_token(identity=new_user_id)
-    response = make_response(jsonify({"message": "User created successfully"}), 200)
-    set_access_cookies(response, access_token)
-    set_refresh_cookies(response, refresh_token)
-    return response
+    return jsonify({"message": "User created successfully"})
+
+    # access_token = create_access_token(identity=new_user_id)
+    # refresh_token = create_refresh_token(identity=new_user_id)
+
+    # response = make_response(jsonify({"message": "User created successfully", "access_token": access_token, "refresh_token": refresh_token}), 200)
+    # # set_access_cookies(response, access_token)
+    # # set_refresh_cookies(response, refresh_token)
+    # return response
 
 @mod_auth.route('/login', methods=['POST'])
 def login_user():
@@ -102,10 +105,11 @@ def login_user():
         if bcrypt.check_password_hash(user.password, auth.password):
             access_token = create_access_token(identity=user.user_id)
             refresh_token = create_refresh_token(identity=user.user_id)
-            response = make_response(jsonify({"message": "Login successfull"}), 200)
+            # response = make_response(jsonify({"message": "Login successfull"}), 200)
+            response = make_response(jsonify({"message": "Login successfull", "access_token": access_token, "refresh_token": refresh_token}), 200)
             # response = set_csrf_token(response)
-            set_access_cookies(response, access_token)
-            set_refresh_cookies(response, refresh_token)
+            # set_access_cookies(response, access_token)
+            # set_refresh_cookies(response, refresh_token)
             return response
         else:
             return make_response(jsonify({"message": "Incorrect Password"}), 401)
