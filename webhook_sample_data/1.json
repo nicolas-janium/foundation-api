@@ -1,0 +1,51 @@
+[
+    {
+        "id": 563138718018,
+        "email": "brandon.rice@clarivate.com",
+        "title": "Global Head of Inside Sales",
+        "company": "Clarivate Analytics",
+        "profile": "https://www.linkedin.com/in/brandonrice7",
+        "location": "Greater Phoenix Area",
+        "last_name": "Rice",
+        "first_name": "Brandon",
+        "campaign_id": 101
+    },
+    {
+        "id": 563138717982,
+        "email": "steve@bacommunication.com",
+        "phone": "336-880-4496",
+        "title": "VP Market Expansion",
+        "company": "Cable ONE",
+        "profile": "https://www.linkedin.com/in/steve-pozil-9109aa19",
+        "location": "Phoenix, Arizona, United States",
+        "last_name": "Pozil",
+        "first_name": "Steve",
+        "campaign_id": 102
+    },
+    {
+        "id": 563138716151,
+        "email": "pmodrich@akaes.com",
+        "phone": "701-371-4424",
+        "title": "Vice President, Client Success",
+        "company": "HSO",
+        "profile": "https://www.linkedin.com/in/pammodrich",
+        "location": "Scottsdale, Arizona, United States",
+        "last_name": "Modrich",
+        "messenger": "SKYPE:pmodrich@addinge.com",
+        "first_name": "Pam",
+        "campaign_id": 103
+    },
+    {
+        "id": 563138716152,
+        "email": "pmodrich@akaes.com",
+        "phone": "701-371-4424",
+        "title": "Vice President, Client Success",
+        "company": "HSO",
+        "profile": "https://www.linkedin.com/in/pammodrich",
+        "location": "Scottsdale, Arizona, United States",
+        "last_name": "Williams",
+        "messenger": "SKYPE:pmodrich@addinge.com",
+        "first_name": "Pamela",
+        "campaign_id": 13
+    }
+]

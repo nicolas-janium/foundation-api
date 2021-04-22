@@ -471,8 +471,8 @@ class Janium_campaign_step(Base):
     __tablename__ = 'janium_campaign_step'
 
     def __init__(self, janium_campaign_step_id, janium_campaign_id, janium_campaign_step_type_id,
-                       janium_campaign_step_delay, janium_campaign_step_body,
-                       janium_campaign_step_subject):
+                       janium_campaign_step_delay, janium_campaign_step_body,janium_campaign_step_subject,
+                       queue_start_time, queue_end_time, updated_by):
         self.janium_campaign_step_id = janium_campaign_step_id
         self.janium_campaign_id = janium_campaign_id
         self.janium_campaign_step_type_id = janium_campaign_step_type_id
@@ -480,6 +480,9 @@ class Janium_campaign_step(Base):
         self.janium_campaign_step_delay = janium_campaign_step_delay
         self.janium_campaign_step_body = janium_campaign_step_body
         self.janium_campaign_step_subject = janium_campaign_step_subject
+        self.queue_start_time = queue_start_time
+        self.queue_end_time = queue_end_time
+        self.updated_by = updated_by
 
     # Primary Keys
     janium_campaign_step_id = Column(String(36), primary_key=True, nullable=False)
@@ -542,7 +545,7 @@ class Ulinc_campaign(Base):
         self.ulinc_campaign_name = ulinc_campaign_name
         self.ulinc_is_active = ulinc_is_active
         self.ulinc_ulinc_campaign_id = ulinc_ulinc_campaign_id
-        self.ulinc_is_messenger = ulinc_is_mJessenger
+        self.ulinc_is_messenger = ulinc_is_messenger
         self.ulinc_messenger_origin_message = ulinc_messenger_origin_message
         self.updated_by = updated_by
 
