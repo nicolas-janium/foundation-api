@@ -72,7 +72,7 @@ def add_tracker(email_html):
     soup = Soup(email_html, 'html.parser')
     div = soup.new_tag('div')
     # img = soup.new_tag('img', attrs={'height': '0', 'width': '0', 'alt': 'janium12345'})
-    img = soup.new_tag('img', attrs={'height': '0', 'width': '0', 'id': 'janium12345'})
+    img = soup.new_tag('img', attrs={'height': '0', 'width': '0', 'id': os.getenv('JANIUM_EMAIL_ID')})
     div.append(img)
     soup.append(div)
     return str(soup)
@@ -92,7 +92,7 @@ def add_footer(email_html, contact_id, contact_email):
 
     return str(soup).replace(r'{opt_out_url}', opt_out_url)
 
-def send_email_with_sendgrid(details, account_local_time):
+def send_email_with_sendgrid(details, account_local_time, janium_campaign_id):
     url = "https://api.sendgrid.com/v3/mail/send"
 
     action_id = str(uuid4())
@@ -103,7 +103,7 @@ def send_email_with_sendgrid(details, account_local_time):
     # message = add_footer(details['email_body'], details['contact_id'], details['contact_email'])
     message = details['email_body']
     message = add_tracker(message)
-    message_id = make_msgid(idstring='janium12345', domain=from_email[from_email.index('@') + 1 : ])
+    message_id = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
 
     if sender:
         payload = {
@@ -136,7 +136,7 @@ def send_email_with_sendgrid(details, account_local_time):
                     "value": message
                 }
             ],
-            "headers": {"janium_action_id": action_id, "janium_identifier": "janium12345", "Message-ID": message_id},
+            "headers": {"j_a_id": action_id, "Message-ID": message_id, "j_c_id": janium_campaign_id}, # Janium Action Id and Janium Campaign Id
             "tracking_settings": {
                 "click_tracking": {
                     "enable": False,
@@ -176,9 +176,8 @@ def send_email_with_smtp(details, account_local_time):
     main_email['Subject'] = details['email_subject']
     main_email['From'] = str(Header('{} <{}>')).format(details['from_full_name'], username)
     main_email['To'] = recipient
-    main_email['Message-ID'] = make_msgid('janium12345')
-    main_email['Janium-Identifier'] = 'janium12345'
-    main_email.add_header('Action-ID', action_id) 
+    main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
+    main_email.add_header('j_a_id', action_id) 
     main_email['MIME-Version'] = '1.0'
 
     # email_html = add_tracker(details['email_body'], contactid, messageid)
