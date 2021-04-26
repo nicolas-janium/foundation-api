@@ -121,7 +121,7 @@ def login_user():
 def logout_user():
     user_id = get_jwt_identity() # Get user_id value directly from the jwt
 
-    response = make_response(jsonify({"message": "User logged out successfully"}), 302)
+    response = make_response(jsonify({"message": "User logged out successfully"}), 200)
     unset_jwt_cookies(response)
     return response
 
