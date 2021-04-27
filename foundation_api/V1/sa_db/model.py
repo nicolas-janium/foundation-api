@@ -5,10 +5,12 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, PrimaryKeyConstraint, String, Table, Text,
-                        create_engine, engine)
+                        create_engine, engine, or_, and_)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy.sql import false, func, text, true
+from workdays import networkdays
+
 
 from foundation_api import db
 
@@ -394,6 +396,68 @@ class Janium_campaign(Base):
         start_date = pytz.utc.localize(self.queue_start_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         end_date = pytz.utc.localize(self.queue_end_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         return {"start": start_date, "end": end_date}
+    
+    def get_dte_new_connections(self):
+        new_connections_list = []
+
+        contacts = [
+            contact
+            for contact
+            in self.contacts
+            if not contact.actions.filter(Action.action_type_id.in_([2,3,4,6,8,9,11])).first() and contact.actions.filter(Action.action_type_id == 1).first()
+        ]
+        for contact in contacts:
+            cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
+
+            if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
+                new_connections_list.append(
+                    {
+                        "full_name": contact.contact_info['ulinc']['first_name'] + contact.contact_info['ulinc']['last_name'],
+                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                        "title": contact.contact_info['ulinc']['title'],
+                        "company": contact.contact_info['ulinc']['company'],
+                        "location": contact.contact_info['ulinc']['location'],
+                        "janium_campaign_id": self.janium_campaign_id,
+                        "janium_campaign_name": self.janium_campaign_name,
+                        "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
+                        "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
+                        "connection_date": cnxn_action.action_timestamp
+                    }
+                )
+        return new_connections_list
+    
+    def get_dte_new_messages(self):
+        new_messages_list = []
+
+        contacts = [
+            contact
+            for contact
+            in self.contacts
+            if not contact.actions.filter(Action.action_type_id.in_([11])).first() and contact.actions.filter(Action.action_type_id.in_([2,6])).first()
+        ]
+        for contact in contacts:
+            msg_action = contact.actions.filter(Action.action_type_id.in_([2,6])).order_by(Action.action_timestamp.desc()).first()
+
+            if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
+                new_messages_list.append(
+                    {
+                        "full_name": contact.contact_info['ulinc']['first_name'] + contact.contact_info['ulinc']['last_name'],
+                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                        "title": contact.contact_info['ulinc']['title'],
+                        "company": contact.contact_info['ulinc']['company'],
+                        "location": contact.contact_info['ulinc']['location'],
+                        "janium_campaign_id": self.janium_campaign_id,
+                        "janium_campaign_name": self.janium_campaign_name,
+                        "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
+                        "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
+                        "msg_timestamp": msg_action.action_timestamp
+                    }
+                )
+        return new_messages_list
+    
+    def get_dte_vm_tasks(self):
+        vm_tasks_list = []
+
     
     def get_summary_data(self):
         sql_statement = text(
@@ -1014,6 +1078,25 @@ class Ulinc_config(Base):
                 summary_data[key]['total'] += value['total']
 
         return summary_data
+    
+    def get_dte_new_connections(self):
+        new_connections_list = []
+        for janium_campaign in self.janium_campaigns:
+            new_connections_list += janium_campaign.get_dte_new_connections()
+        return new_connections_list
+    
+    def get_dte_new_messages(self):
+        new_messages_list = []
+        for janium_campaign in self.janium_campaigns:
+            new_messages_list += janium_campaign.get_dte_new_messages()
+        return new_messages_list
+    
+    def get_dte_vm_tasks(self):
+        vm_tasks_list = []
+        for janium_campaign in self.janium_campaigns:
+            vm_tasks_list += janium_campaign.get_dte_vm_tasks()
+        return vm_tasks_list
+
 
 
 class Credentials(Base):
