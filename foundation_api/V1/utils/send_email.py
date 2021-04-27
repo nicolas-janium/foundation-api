@@ -92,7 +92,7 @@ def add_footer(email_html, contact_id, contact_email):
 
     return str(soup).replace(r'{opt_out_url}', opt_out_url)
 
-def send_email_with_sendgrid(details, account_local_time, janium_campaign_id):
+def send_email_with_sendgrid(details, account_local_time):
     url = "https://api.sendgrid.com/v3/mail/send"
 
     action_id = str(uuid4())
@@ -136,7 +136,7 @@ def send_email_with_sendgrid(details, account_local_time, janium_campaign_id):
                     "value": message
                 }
             ],
-            "headers": {"j_a_id": action_id, "Message-ID": message_id, "j_c_id": janium_campaign_id}, # Janium Action Id and Janium Campaign Id
+            "headers": {"j_a_id": action_id, "Message-ID": message_id, "j_c_id": details['janium_campaign_id']}, # Janium Action Id and Janium Campaign Id
             "tracking_settings": {
                 "click_tracking": {
                     "enable": False,
@@ -153,7 +153,7 @@ def send_email_with_sendgrid(details, account_local_time, janium_campaign_id):
     try:
         res = requests.post(url=url, json=payload, headers=get_sendgrid_headers())
         if res.ok:
-            action = Action(action_id, details["contact_id"], 4, datetime.utcnow(), message, to_email_addr=details['contact_email'])
+            action = Action(action_id, details["contact_id"], 4, datetime.utcnow(), message, to_email_addr=details['contact_email'], email_message_id=message_id)
             db.session.add(action)
             db.session.commit()
             return details['contact_email']
@@ -316,6 +316,7 @@ def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
                     "smtp_address": None if is_sendgrid else janium_campaign.email_config.email_server.smtp_address,
                     "smtp_port": None if is_sendgrid else janium_campaign.email_config.email_server.smtp_tls_port,
                     "email_creds": None if is_sendgrid else (janium_campaign.email_config.credentials.username, janium_campaign.email_config.credentials.password),
+                    "janium_campaign_id": janium_campaign.janium_campaign_id,
                     "contact_id": contact.contact_id,
                     "contact_first_name": contact.contact_info['ulinc']['first_name'],
                     "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),

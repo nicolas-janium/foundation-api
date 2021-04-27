@@ -658,13 +658,14 @@ class Contact(Base):
 class Action(Base):
     __tablename__ = 'action'
 
-    def __init__(self, action_id, contact_id, action_type_id, action_timestamp, action_message, to_email_addr=None):
+    def __init__(self, action_id, contact_id, action_type_id, action_timestamp, action_message, to_email_addr=None, email_message_id=None):
         self.action_id = action_id
         self.contact_id = contact_id
         self.action_type_id = action_type_id
         self.action_timestamp = action_timestamp
         self.action_message = action_message
         self.to_email_addr = to_email_addr
+        self.email_message_id = email_message_id
 
     # Primary Keys
     action_id = Column(String(36), primary_key=True, nullable=False)
@@ -677,6 +678,7 @@ class Action(Base):
     action_timestamp = Column(DateTime, nullable=True)
     action_message = Column(Text, nullable=True)
     to_email_addr = Column(String(64), nullable=True)
+    email_message_id = Column(String(512), nullable=True)
 
     # Table Metadata
     date_added = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
