@@ -17,7 +17,7 @@ mod_campaign = Blueprint('campaign', __name__, url_prefix='/api/v1')
 @jwt_required()
 def get_janium_campaigns():
     """
-    Required JSON keys: None
+    Required query params: None
     """
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
@@ -55,16 +55,18 @@ def get_janium_campaigns():
 @jwt_required()
 def get_janium_campaign():
     """
-    Required JSON keys: janium_campaign_id
+    Required query params: janium_campaign_id
     """
     json_body = request.get_json(force=True)
+    janium_campaign_id = request.args.get('janium_campaign_id')
     user_id = get_jwt_identity()
     # user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    janium_campaign = db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first()
+    janium_campaign = db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == janium_campaign_id).first()
 
     return jsonify(
         {
+            "janium_campaign_id": janium_campaign_id,
             "janium_campaign_name": janium_campaign.janium_campaign_name,
             "janium_campaign_description": janium_campaign.janium_campaign_description,
             "email_config_id": janium_campaign.email_config_id,
@@ -159,7 +161,7 @@ def create_janium_campaign_step():
 @jwt_required()
 def get_ulinc_campaigns():
     """
-    Required JSON keys: None
+    Required query params: None
     """
     json_body = request.get_json(force=True)
     user_id = get_jwt_identity()

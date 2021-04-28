@@ -127,16 +127,17 @@ def create_email_config():
 @jwt_required()
 def get_email_config():
     """
-    Required JSON keys: email_config_id
+    Required query params: email_config_id
     """
     json_body = request.get_json(force=True)
+    email_config_id = request.args.get('email_config_id')
     user_id = get_jwt_identity()
 
-    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == json_body['email_config_id']).first()
+    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
 
     return jsonify(
         {
-            "email_config_id": email_config.email_config_id,
+            "email_config_id": email_config_id,
             "email_app_username": email_config.credentials.username,
             "email_server_name": email_config.email_server.email_server_name,
             "from_full_name": email_config.from_full_name,
@@ -149,7 +150,7 @@ def get_email_config():
 @jwt_required()
 def get_email_configs():
     """
-    Required JSON keys: None
+    Required query params: None
     """
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()

@@ -15,7 +15,7 @@ mod_home = Blueprint('home', __name__, url_prefix='/api/v1')
 @jwt_required()
 def get_ulinc_configs():
     """
-    Required JSON keys: None
+    Required query params: None
     """
     # json_body = request.get_json(force=True)
     user_id = get_jwt_identity()
@@ -47,13 +47,15 @@ def get_ulinc_configs():
 @jwt_required()
 def get_ulinc_config():
     """
-    Required JSON keys: ulinc_config_id
+    Required query params: ulinc_config_id
     """
-    json_body = request.get_json(force=True)
+    # return "hello"
+    # json_body = request.get_json(force=True)
+    ulinc_config_id = request.args.get('ulinc_config_id')
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
+    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == ulinc_config_id).first()
 
     janium_campaigns = []
     for janium_campaign in ulinc_config.janium_campaigns:

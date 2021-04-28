@@ -5,7 +5,7 @@ steps:
 
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
-  args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET"]
+  args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET set"]
   secretEnv: ["DB_INSTANCE_ID_SECRET"]
 
 - name: python
@@ -22,8 +22,13 @@ steps:
   entrypoint: 'bash'
   args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml']
 
-- name: bash
-  args: ['-c', './bash_scripts/remove_prev_app_versions.bash backend 3'] # Keep only the 3 latest versions of the backend service
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET reset"]
+  secretEnv: ["DB_INSTANCE_ID_SECRET"]
+
+# - name: bash
+#   args: ['-c', './bash_scripts/remove_prev_app_versions.bash backend 3'] # Keep only the 3 latest versions of the backend service
 
 timeout: '1600s'
 
