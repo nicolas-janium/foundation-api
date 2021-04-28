@@ -404,7 +404,7 @@ class Janium_campaign(Base):
             contact
             for contact
             in self.contacts
-            if not contact.actions.filter(Action.action_type_id.in_([2,3,4,6,8,9,11])).first() and contact.actions.filter(Action.action_type_id == 1).first()
+            if not contact.actions.filter(Action.action_type_id.in_([2,6,8,9,11])).first() and contact.actions.filter(Action.action_type_id == 1).first()
         ]
         for contact in contacts:
             cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
@@ -412,7 +412,7 @@ class Janium_campaign(Base):
             if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
                 new_connections_list.append(
                     {
-                        "full_name": contact.contact_info['ulinc']['first_name'] + contact.contact_info['ulinc']['last_name'],
+                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
                         "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
                         "title": contact.contact_info['ulinc']['title'],
                         "company": contact.contact_info['ulinc']['company'],
@@ -441,7 +441,7 @@ class Janium_campaign(Base):
             if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
                 new_messages_list.append(
                     {
-                        "full_name": contact.contact_info['ulinc']['first_name'] + contact.contact_info['ulinc']['last_name'],
+                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
                         "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
                         "title": contact.contact_info['ulinc']['title'],
                         "company": contact.contact_info['ulinc']['company'],
@@ -457,6 +457,34 @@ class Janium_campaign(Base):
     
     def get_dte_vm_tasks(self):
         vm_tasks_list = []
+        if janium_campaign_steps := self.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
+            if last_step := janium_campaign_steps[0]:
+                contacts = [
+                    contact
+                    for contact
+                    in self.contacts
+                    if not contact.actions.filter(Action.action_type_id.in_([2,6,11])).first() and contact.contact_info['ulinc']['phone']
+                ]
+                for contact in contacts:
+                    cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
+                    if last_step.janium_campaign_sted_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_sted_delay + 5:
+                        vm_tasks_list.append(
+                            {
+                                "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
+                                "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                                "title": contact.contact_info['ulinc']['title'],
+                                "company": contact.contact_info['ulinc']['company'],
+                                "location": contact.contact_info['ulinc']['location'],
+                                "phone": contact.contact_info['ulinc']['phone'],
+                                "janium_campaign_id": self.janium_campaign_id,
+                                "janium_campaign_name": self.janium_campaign_name,
+                                "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
+                                "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
+                                "connection_date": cnxn_action.action_timestamp
+                            }
+                        )
+        return vm_tasks_list
+
 
     
     def get_summary_data(self):
@@ -517,7 +545,7 @@ class Janium_campaign(Base):
             where jca.janium_campaign_id = '{janium_campaign_id}';".format(janium_campaign_id=self.janium_campaign_id)
         )
 
-        summary_data = []
+        summary_data = {}
         result = db.engine.execute(sql_statement)
         for line in result:
             summary_data[line[0]] = {

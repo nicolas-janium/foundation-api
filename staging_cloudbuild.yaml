@@ -1,6 +1,6 @@
 steps:
 - name: bash
-  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET']
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217']
   secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET']
 
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
