@@ -46,12 +46,6 @@ def parse_email():
                 break # Default to html body
     else:
         body = email_message.get_payload(decode=True)
-    
-    # print(body)
-    # from_addr = email.utils.parseaddr(req_dict['from']) # Contact email addr
-    # to_addr = email.utils.parseaddr(req_dict['to']) # Contact email addr
-    # print(from_addr)
-    # print(to_addr)
 
     # Gmail get original email message id
     # print(email_message.get('In-Reply-To'))
@@ -68,15 +62,5 @@ def parse_email():
                 new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
                 db.session.add(new_action)
                 db.session.commit()
-    # original_message_id = references.split(',')
-    # print(original_message_id)
-    # print(type(original_message_id))
-
-    
-
-    # email_message = email.message_from_bytes(body)
-    # body = email_message.get_payload(decode=True)
-    # print(email_message.get('From'))
-
 
     return jsonify({"message": 'text'})
