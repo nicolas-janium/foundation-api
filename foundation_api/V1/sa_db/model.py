@@ -412,6 +412,7 @@ class Janium_campaign(Base):
             if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
                 new_connections_list.append(
                     {
+                        "contact_id": contact.contact_id,
                         "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
                         "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
                         "title": contact.contact_info['ulinc']['title'],
@@ -421,7 +422,9 @@ class Janium_campaign(Base):
                         "janium_campaign_name": self.janium_campaign_name,
                         "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
                         "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                        "connection_date": cnxn_action.action_timestamp
+                        "connection_date": cnxn_action.action_timestamp,
+                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
+                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
                     }
                 )
         return new_connections_list
@@ -441,6 +444,7 @@ class Janium_campaign(Base):
             if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
                 new_messages_list.append(
                     {
+                        "contact_id": contact.contact_id,
                         "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
                         "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
                         "title": contact.contact_info['ulinc']['title'],
@@ -450,7 +454,9 @@ class Janium_campaign(Base):
                         "janium_campaign_name": self.janium_campaign_name,
                         "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
                         "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                        "msg_timestamp": msg_action.action_timestamp
+                        "msg_timestamp": msg_action.action_timestamp,
+                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
+                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
                     }
                 )
         return new_messages_list
@@ -470,6 +476,7 @@ class Janium_campaign(Base):
                     if last_step.janium_campaign_sted_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_sted_delay + 5:
                         vm_tasks_list.append(
                             {
+                                "contact_id": contact.contact_id,
                                 "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
                                 "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
                                 "title": contact.contact_info['ulinc']['title'],
@@ -480,7 +487,9 @@ class Janium_campaign(Base):
                                 "janium_campaign_name": self.janium_campaign_name,
                                 "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
                                 "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                                "connection_date": cnxn_action.action_timestamp
+                                "connection_date": cnxn_action.action_timestamp,
+                                "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
+                                "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
                             }
                         )
         return vm_tasks_list
@@ -723,29 +732,6 @@ class Contact(Base):
                     emails.append(private_email['value'])
         return emails
 
-# class Contact_info(Base):
-#     __tablename__ = 'contact_info'
-
-#     def __init__(self, contact_info_id, contact_id, contact_info_type_id, contact_info_json):
-#         self.contact_info_id = contact_info_id
-#         self.contact_id = contact_id
-#         self.contact_info_type_id = contact_info_type_id
-#         self.contact_info_json = contact_info_json
-    
-#     contact_info_id = Column(String(36), primary_key=True, nullable=False)
-
-#     contact_id = Column(String(36), ForeignKey('contact.contact_id'), nullable=False)
-#     # contact_info_type_id = Column(Integer, ForeignKey('contact_info_type.contact_info_type_id'), nullable=False)
-
-#     contact_info_json = Column(JSON, nullable=False)
-
-#     # Table Metadata
-#     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-#     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-#     updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
-
-#     # SQLAlchemy Relationships and Backreferences
-
 
 class Action(Base):
     __tablename__ = 'action'
@@ -850,62 +836,6 @@ class Contact_source_type(Base):
 
     # SQLAlchemy Relationships and Backreferences
 
-
-# class Webhook_response(Base):
-#     __tablename__ = 'webhook_response'
-#     unassigned_webhook_response_id = 'b753f6f0-311a-411d-b761-3e17035bf4a6'
-
-#     def __init__(self, webhook_response_id, client_id, webhook_response_value, webhook_response_type_id):
-#         self.webhook_response_id = webhook_response_id
-#         self.client_id = client_id
-#         self.webhook_response_value = webhook_response_value
-#         self.webhook_response_type_id = webhook_response_type_id
-    
-#     # Primary Keys
-#     webhook_response_id = Column(String(36), primary_key=True, nullable=False)
-
-#     # Primary Keys
-#     client_id = Column(String(36), ForeignKey('client.client_id'))
-#     webhook_response_type_id = Column(Integer, ForeignKey('webhook_response_type.webhook_response_type_id'))
-
-#     # Primary Keys
-#     webhook_response_value = Column(JSON, nullable=False)
-
-#     # Table Metadata
-#     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-#     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-#     effective_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-#     effective_end_date = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-#     updated_by = Column(String(36), server_default=text("'45279d74-b359-49cd-bb94-d75e06ae64bc'"))
-
-#     # SQLAlchemy Relationships and Backreferences
-#     contacts = relationship('Contact', backref=backref('webhook_response', uselist=False), lazy=False)
-
-# class Webhook_response_type(Base):
-#     __tablename__ = 'webhook_response_type'
-
-#     def __init__(self, webhook_response_type_id, webhook_response_type, webhook_response_type_description):
-#         self.webhook_response_type_id = webhook_response_type_id
-#         self.webhook_response_type = webhook_response_type
-#         self.webhook_response_type_description = webhook_response_type_description
-
-#     # Primary Keys
-#     webhook_response_type_id = Column(Integer, primary_key=True, nullable=False)
-
-#     # Foreign Keys
-
-#     # Common Columns
-#     webhook_response_type = Column(String(64), nullable=False)
-#     webhook_response_type_description = Column(String(512), nullable=False)
-
-#     # Table Metadata
-#     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-#     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-#     effective_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-#     effective_end_date = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-#     updated_by = Column(String(36), server_default=text("'45279d74-b359-49cd-bb94-d75e06ae64bc'"))
-
-#     # SQLAlchemy Relationships and Backreferences
 
 class Dte_sender(Base):
     __tablename__ = 'dte_sender'
@@ -1124,7 +1054,6 @@ class Ulinc_config(Base):
         for janium_campaign in self.janium_campaigns:
             vm_tasks_list += janium_campaign.get_dte_vm_tasks()
         return vm_tasks_list
-
 
 
 class Credentials(Base):

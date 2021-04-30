@@ -85,6 +85,7 @@ def get_ulinc_config():
                 "janium_campaigns": janium_campaigns,
                 "new_connections": [
                     {
+                        "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
                         "company": "Insightly",
                         "connection_date": "Wed, 28 Apr 2021 16:21:16 GMT",
                         "full_name": "Libby Mayer",
@@ -95,10 +96,41 @@ def get_ulinc_config():
                         "title": "Senior Account Executive, Growth Sales",
                         "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
                         "ulinc_campaign_name": "IT+ - 50-500 - CO"
+                    },
+                    {
+                        "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284d",
+                        "company": "Facebook",
+                        "connection_date": "Wed, 29 Apr 2021 16:21:16 GMT",
+                        "full_name": "Lenny Mar",
+                        "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
+                        "janium_campaign_name": "Test Campaign 1",
+                        "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
+                        "location": "Denver, Colorado, United States",
+                        "title": "Lawyer",
+                        "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
+                        "ulinc_campaign_name": "IT+ - 50-500 - CO",
+                        "is_clicked": True,
+                        "is_dqd": False
+                    },
+                    {
+                        "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284e",
+                        "company": "Parks and Rec",
+                        "connection_date": "Wed, 29 Apr 2021 16:21:16 GMT",
+                        "full_name": "Jonny Karate",
+                        "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
+                        "janium_campaign_name": "Test Campaign 1",
+                        "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
+                        "location": "Denver, Colorado, United States",
+                        "title": "Entertainer",
+                        "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
+                        "ulinc_campaign_name": "IT+ - 50-500 - CO",
+                        "is_clicked": True,
+                        "is_dqd": True
                     }
                 ],
                 "new_messages": [
                     {
+                        "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
                         "company": "Insightly",
                         "full_name": "Libby Mayer",
                         "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
@@ -113,6 +145,7 @@ def get_ulinc_config():
                 ],
                 "vm_tasks": [
                     {
+                        "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
                         "company": "Insightly",
                         "connection_date": "Wed, 28 Apr 2021 16:21:16 GMT",
                         "full_name": "Libby Mayer",
@@ -137,3 +170,22 @@ def get_ulinc_config():
             "vm_tasks": ulinc_config.get_dte_vm_tasks()
         }
     )
+
+@mod_home.route('/dte_click', methods=['POST'])
+@jwt_required()
+def dte_click():
+    """
+    Required JSON keys: click_type (new_connection, dq, continue), contact_id
+    """
+    json_body = request.get_json(force=True)
+
+    if json_body['click_type'] == 'new_connection':
+        new_action = Action(str(uuid4()), json_body['contact_id'], 8, datetime.utcnow(), None)
+    elif json_body['click_type'] == 'dq':
+        new_action = Action(str(uuid4()), json_body['contact_id'], 11, datetime.utcnow(), None)
+    elif json_body['click_type'] == 'continue':
+        new_action = Action(str(uuid4()), json_body['contact_id'], 14, datetime.utcnow(), None)
+    
+    db.session.add(new_action)
+    db.session.commit()
+    return jsonify({"message": "Action recorded successfully"})
