@@ -82,7 +82,17 @@ def get_ulinc_config():
         return jsonify(
             {
                 "ulinc_config_id": ulinc_config.ulinc_config_id,
-                "janium_campaigns": janium_campaigns,
+                "janium_campaigns": [
+                    {
+                        "janium_campaign_id": "1234",
+                        "janium_campaign_name": "Test Janium Campaign 1",
+                        "janium_campaign_type": "connector",
+                        "janium_campaign_is_active": True,
+                        "janium_campaign_contacts": 300,
+                        "janium_campaign_connected": 20,
+                        "janium_campaign_replied": 2
+                    }
+                ],
                 "new_connections": [
                     {
                         "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
@@ -95,7 +105,9 @@ def get_ulinc_config():
                         "location": "Denver, Colorado, United States",
                         "title": "Senior Account Executive, Growth Sales",
                         "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-                        "ulinc_campaign_name": "IT+ - 50-500 - CO"
+                        "ulinc_campaign_name": "IT+ - 50-500 - CO",
+                        "is_clicked": False,
+                        "is_dqd": False
                     },
                     {
                         "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284d",
