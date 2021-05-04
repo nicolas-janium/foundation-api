@@ -17,6 +17,8 @@ import math
 
 import requests
 from bs4 import BeautifulSoup as Soup
+import boto3
+from botocore.exceptions import ClientError
 from html2text import html2text
 from sqlalchemy import or_, and_
 from workdays import networkdays
@@ -30,7 +32,7 @@ logHandler.setLevel(logging.INFO)
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
 
-PROJECT_ID = os.getenv('PROJECT_ID')
+PROJECT_ID = os.getenv('PROJECT_ID')    
 
 def get_sendgrid_key():
     if os.getenv('IS_CLOUD') == 'True':
@@ -160,6 +162,51 @@ def send_email_with_sendgrid(details, account_local_time):
     except Exception as err:
         logger.error(str("There was an error while sending an email to {} for account {}. Error: {}".format(details['contact_email'], sender['from_name'], err)))
         return None
+
+def send_email_with_ses(details):
+    from foundation_api.V1.utils.test import body
+    action_id = str(uuid4())
+    main_email = EmailMessage()
+    main_email.make_alternative()
+
+    # main_email['Subject'] = details['email_subject']
+    main_email['Subject'] = "Amazon SES Test (SDK for Python)"
+    main_email['From'] = str(Header('{} <{}>')).format('Nic Arnold', 'nic@janium.io')
+    main_email['To'] = 'nic@janium.io'
+    # main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
+    main_email.add_header('j_a_id', action_id)
+    main_email['MIME-Version'] = '1.0'
+
+    # email_html = details['email_body']
+    # email_html = email_html.replace(r"{FirstName}", details['contact_first_name'])
+    # email_html = add_tracker(email_html)
+    email_html = body
+    # email_html = add_tracker(email_html)
+
+    # main_email.add_alternative(html2text(email_html), 'plain')
+    main_email.add_alternative(email_html, 'html')
+
+    client = boto3.client(
+        'ses',
+        region_name="us-east-2",
+        aws_access_key_id=os.getenv('SES_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('SES_SECRET_ACCESS_KEY')
+    )
+    try:
+        response = client.send_raw_email(
+            Source=main_email['From'],
+            Destinations=[main_email['To']],
+            RawMessage={
+                "Data": main_email.as_string()
+            }
+        )
+    # Display an error if something goes wrong.	
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        print("Email sent! Message ID:"),
+        print(response['MessageId'])
+
 
 def send_email_with_smtp(details, account_local_time):
     username, password = details['email_creds']
@@ -354,7 +401,7 @@ if __name__ == '__main__':
     event = {
         "data": payload
     }
-    main(event, 1)
+    # main(event, 1)
     # session = get_session()
     # action1 = session.query(Action).filter(Action.action_type_id == 1).first()
     # action2 = session.query(Action).filter(Action.action_type_id == 11).first()
@@ -362,3 +409,5 @@ if __name__ == '__main__':
     # print(networkdays(action1.action_timestamp, datetime.now(), holidays=[]))
     # print(networkdays(action1.action_timestamp, action2.action_timestamp, holidays=[]))
     # get_sendgrid_sender('123')
+
+    send_email_with_ses(123)

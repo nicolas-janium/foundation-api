@@ -922,8 +922,11 @@ class Email_config(Base):
     from_address = Column(String(64), nullable=False)
     reply_to_address = Column(String(64), nullable=False)
     is_sendgrid = Column(Boolean, nullable=False, server_default=false())
+    is_sendgrid_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_smtp = Column(Boolean, nullable=False, server_default=false())
     is_ses = Column(Boolean, nullable=False, server_default=false())
+    is_ses_dkim_verified = Column(Boolean, nullable=False, server_default=false())
+    is_ses_domain_verified = Column(Boolean, nullable=False, server_default=false())
     sendgrid_sender_id = Column(String(36), nullable=True)
     is_email_forward = Column(Boolean, nullable=False, server_default=false())
 
