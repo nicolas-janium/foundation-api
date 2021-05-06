@@ -897,17 +897,30 @@ class Email_config(Base):
     janium_email_config_id = '709f79b3-7a20-43ff-844a-4f014fa4e406'
     unassigned_email_config_id = '7c5c4aa2-2c6e-4e3d-947e-6efdae4366a1'
 
-    def __init__(self, email_config_id, account_id, credentials_id, email_server_id, is_sendgrid, sendgrid_sender_id, is_email_forward, updated_by, from_full_name, reply_to_address):
+    def __init__(
+        self,
+        email_config_id, account_id, credentials_id, email_server_id,
+        sendgrid_sender_id, updated_by, from_full_name, from_address, reply_to_address,
+        is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False, is_ses_dkim_verified=False,
+        is_ses_domain_verified=False, is_email_forward=False, is_reply_proxy=False):
         self.email_config_id = email_config_id
         self.account_id = account_id
         self.credentials_id = credentials_id
         self.email_server_id = email_server_id
-        self.is_sendgrid = is_sendgrid
         self.sendgrid_sender_id = sendgrid_sender_id
         self.is_email_forward = is_email_forward
         self.updated_by = updated_by
         self.from_full_name = from_full_name
+        self.from_address = from_address
         self.reply_to_address = reply_to_address
+        self.is_sendgrid = is_sendgrid
+        self.is_sendgrid_domain_verified = is_sendgrid_domain_verified 
+        self.is_smtp = is_smtp
+        self.is_ses = is_ses
+        self.is_ses_dkim_verified = is_ses_dkim_verified
+        self.is_ses_domain_verified = is_ses_domain_verified
+        self.is_reply_proxy = is_reply_proxy
+        
 
     # Primary Keys
     email_config_id = Column(String(36), primary_key=True)
@@ -927,8 +940,8 @@ class Email_config(Base):
     is_ses = Column(Boolean, nullable=False, server_default=false())
     is_ses_dkim_verified = Column(Boolean, nullable=False, server_default=false())
     is_ses_domain_verified = Column(Boolean, nullable=False, server_default=false())
-    sendgrid_sender_id = Column(String(36), nullable=True)
     is_email_forward = Column(Boolean, nullable=False, server_default=false())
+    is_reply_proxy = Column(Boolean, nullable=False, server_default=false())
 
     # Table Metadata
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
