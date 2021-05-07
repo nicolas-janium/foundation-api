@@ -172,7 +172,10 @@ def send_email_with_ses(details):
     # main_email['Subject'] = details['email_subject']
     main_email['Subject'] = "Amazon SES Test (SDK for Python)"
     main_email['From'] = str(Header('{} <{}>')).format('Nic Arnold', 'nic@janium.io')
-    main_email['To'] = 'nic@janium.io'
+    # main_email['To'] = 'nic@janium.io'
+    # main_email['To'] = 'success@simulator.amazonses.com'
+    # main_email['To'] = 'bounce@simulator.amazonses.com'
+    main_email['To'] = 'complaint@simulator.amazonses.com'
     # main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
     main_email.add_header('j_a_id', action_id)
     main_email['MIME-Version'] = '1.0'
@@ -411,3 +414,4 @@ if __name__ == '__main__':
     # get_sendgrid_sender('123')
 
     send_email_with_ses(123)
+    # print(123)

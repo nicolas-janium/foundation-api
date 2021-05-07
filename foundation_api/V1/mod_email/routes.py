@@ -118,3 +118,39 @@ def parse_email():
                 db.session.commit()
 
     return jsonify({"message": 'text'})
+
+@mod_email.route('/sns', methods=['POST'])
+def catch_sns():
+    json_body = request.get_json(force=True)
+    # print('\n')
+    # print(request.headers)
+    # print(json_body)
+
+    notif_message = json.loads(json_body['Message'])
+    notif_type = notif_message['notificationType']
+    if notif_type == 'Complaint':
+        notif_recipient = notif_message['complaint']['complainedRecipients'][0]['emailAddress']
+    elif notif_type == 'Bounce':
+        notif_recipient = notif_message['bounce']['bouncedRecipients'][0]['emailAddress']
+    print(notif_type)
+    print(notif_recipient)
+
+    contacts = [
+        contact for contact in db.session.query(contacts).all()
+        if contact.actions.filter(Action.action_type_id == 4).first()
+    ]
+    for contact in contacts:
+        if notif_recipient in contact.get_emails():
+            action = Action(
+                str(uuid4()),
+                contact.contact_id,
+                15 if notif_type == 'Bounce' else 7,
+                datetime.utcnow(),
+                None,
+                None,
+                json_body['MessageId']
+            )
+            db.session.add(action)
+            db.session.commit()
+
+    return "Message received"
