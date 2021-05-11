@@ -8,6 +8,7 @@ chardet==4.0.0
 click==7.1.2
 colorama==0.4.4
 cryptography
+css-inline==0.6.2
 Flask==1.1.2
 Flask-Bcrypt==0.7.1
 Flask-CORS==3.0.10
@@ -34,6 +35,7 @@ Jinja2==2.11.3
 libcst==0.3.17
 MarkupSafe==1.1.1
 marshmallow==3.10.0
+minify-html==0.4.10
 mypy-extensions==0.4.3
 mysql-connector-python==8.0.23
 nameparser==1.0.6

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+from threading import Thread
 
 from flask import Blueprint, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
@@ -7,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from foundation_api import app, bcrypt, db, mail
 from foundation_api.V1.mod_onboard.models import User, Account, Ulinc_config, Credentials, Cookie, Email_config, Email_server
 from foundation_api.V1.utils.ulinc import get_ulinc_client_info
+from foundation_api.V1.utils.ses import send_forwarding_verification_email, verify_ses_dkim
 
 mod_onboard = Blueprint('onboard', __name__, url_prefix='/api/v1')
 
@@ -71,57 +73,60 @@ def create_ulinc_config():
         db.session.commit()
         return jsonify({"message": "Ulinc config successfully created"})
 
+# def send_forwarding_verification_email(recipient='nic@janium.io'):
+#     with app.app_context():
+#         mail.send_email(
+#             from_email='noreply@janium.io',
+#             to_email=recipient,
+#             subject="Janium Forwarding Verification",
+#             text="Test. Please ignore or delete"
+#         )
+
 @mod_onboard.route('/email_config', methods=['POST'])
 @jwt_required()
 def create_email_config():
     """
-    Required JSON keys: email_app_username, email_app_password, email_server_name, from_full_name, reply_to_address and is_sendgrid.
-
-    If is_sendgrid is true, required JSON keys: from_email_address, company_address_line_1, company_address_line_1, city, state, zip_code and country.
-
-    I suggest that every user sends emails through sendgrid and we read email inboxes with app passcodes
+    Required JSON keys: from_address, from_full_name, reply_to_address
     """
     json_body = request.get_json(force=True)
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    if credentials_list := db.session.query(Credentials).filter(Credentials.username == json_body['email_app_username']).all():
-        for credentials in credentials_list:
-            if credentials.email_config:
-                return jsonify({"message": "Email config with {} email app username already exists".format(json_body['email_app_username'])})
-
-    # if db.session.query(Email_config).filter(Email_config.credentials.username == json_body['email_app_username']).first(): # This don't workkkkkk
-    #     return jsonify({"message": "Email config with {} email app username already exists".format(json_body['email_app_username'])})
-
     if janium_accounts := user.accounts:
         janium_account = janium_accounts[0].account # Users are only associated with one Janium Campaign
+        if existing_email_config := db.session.query(Email_config).filter(Email_config.from_address == json_body['from_address']).first():
+            return jsonify({"message": "Email config already exists"})
 
-        email_server = db.session.query(Email_server).filter(Email_server.email_server_name == json_body['email_server_name']).first()
+        try:
+            new_email_config = Email_config(
+                str(uuid4()),
+                janium_account.account_id,
+                user.user_id,
+                json_body['from_full_name'],
+                json_body['from_address'],
+                json_body['reply_to_address']
+            )
+            db.session.add(new_email_config)
 
-        new_credentials = Credentials(
-            str(uuid4()),
-            json_body['email_app_username'],
-            json_body['email_app_password'],
-            user.user_id
-        )
-        db.session.add(new_credentials)
+            # send_forwarding_verification_email(json_body['from_address'])
 
-        new_email_config = Email_config(
-            str(uuid4()),
-            janium_account.account_id,
-            new_credentials.credentials_id,
-            email_server.email_server_id,
-            json_body['is_sendgrid'],
-            None,
-            False,
-            user.user_id,
-            json_body['from_full_name'],
-            json_body['reply_to_address']
-        )
-        db.session.add(new_email_config)
-        db.session.commit()
+            return jsonify({"message": "Email config created successfully and forward verification email sent"})
+        except Exception as err:
+            return make_response(jsonify({"error": "{}".format(err)}), 502)
+        finally:
+            db.session.commit()
 
-        return jsonify({"message": "Email config created successfully"})
+@mod_onboard.route('/send_forwarding_verification_email', methods=['GET'])
+@jwt_required()
+def send_forwarding_verification_email_route():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
+
+    send_forwarding_verification_email(email_config.from_address)
+    return jsonify({'message': 'Email sent'})
 
 @mod_onboard.route('/email_config', methods=['GET'])
 @jwt_required()
@@ -129,7 +134,6 @@ def get_email_config():
     """
     Required query params: email_config_id
     """
-    json_body = request.get_json(force=True)
     email_config_id = request.args.get('email_config_id')
     user_id = get_jwt_identity()
 
@@ -137,12 +141,12 @@ def get_email_config():
 
     return jsonify(
         {
-            "email_config_id": email_config_id,
-            "email_app_username": email_config.credentials.username,
-            "email_server_name": email_config.email_server.email_server_name,
+            "email_config_id": email_config.email_config_id,
+            "from_address": email_config.from_address,
             "from_full_name": email_config.from_full_name,
-            "reply_to_address": email_config.reply_to_address,
-            "is_sendgrid": email_config.is_sendgrid
+            "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
+            "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
+            "is_email_forward_verified": email_config.is_email_forward_verified
         }
     )
 
@@ -163,12 +167,73 @@ def get_email_configs():
             email_configs.append(
                 {
                     "email_config_id": email_config.email_config_id,
-                    "email_app_username": email_config.credentials.username,
-                    "email_server_name": email_config.email_server.email_server_name,
+                    "from_address": email_config.from_address,
                     "from_full_name": email_config.from_full_name,
-                    "reply_to_address": email_config.reply_to_address,
-                    "is_sendgrid": email_config.is_sendgrid
+                    "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
+                    "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
+                    "is_email_forward_verified": email_config.is_email_forward_verified
                 }
             )
 
         return jsonify(email_configs)
+
+@mod_onboard.route('/verify_forwarding', methods=['GET'])
+@jwt_required()
+def verify_forwarding():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
+    if email_config.is_email_forward_verified:
+        return jsonify({"message": "Email forwarding is verified"})
+    return jsonify({"message": "Email forwarding is not verified"})
+
+@mod_onboard.route('/verify_dkim', methods=['GET'])
+@jwt_required()
+def verify_dkim():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
+    from_address = email_config.from_address
+
+    verify_dkim_response = verify_ses_dkim(from_address)
+
+    if verify_dkim_response['status'] == 'success':
+        email_config.is_ses_dkim_verified = 1
+        db.session.commit()
+        return jsonify({'message': 'Dkim verified'})
+    elif verify_dkim_response['status'] == 'pending':
+        email_config.is_ses_dkim_requested = 1
+        db.session.commit()
+        return jsonify(
+            {
+                'message': 'Dkim verification pending',
+                'data': [
+                    {
+                        'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
+                        'type': 'CNAME',
+                        'value': '{}.dkim.amazonses.com'.format(token)
+                    }
+                    for token in verify_dkim_response['dkim_tokens']
+                ]
+            }
+        )
+    elif verify_dkim_response['status'] == 'started':
+        email_config.is_ses_dkim_requested = 1
+        db.session.commit()
+        return jsonify(
+            {
+                'message': 'Dkim verification started',
+                'data': [
+                    {
+                        'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
+                        'type': 'CNAME',
+                        'value': '{}.dkim.amazonses.com'.format(token)
+                    }
+                    for token in verify_dkim_response['dkim_tokens']
+                ]
+            }
+        )

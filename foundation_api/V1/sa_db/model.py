@@ -899,16 +899,19 @@ class Email_config(Base):
 
     def __init__(
         self,
-        email_config_id, account_id, credentials_id, email_server_id,
-        sendgrid_sender_id, updated_by, from_full_name, from_address, reply_to_address,
-        is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False, is_ses_dkim_verified=False,
-        is_ses_domain_verified=False, is_email_forward=False, is_reply_proxy=False):
+        email_config_id, account_id, updated_by, from_full_name, from_address, reply_to_address,
+        credentials_id='264f534f-d36e-4c3c-9614-9760f47ee0e3',
+        email_server_id='936dce84-b50f-4b72-824f-b01989b20500',
+        is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False,
+        is_ses_dkim_requested=False, is_ses_dkim_verified=False,
+        is_ses_domain_requested=False, is_ses_domain_verified=False,
+        is_email_forward=False, is_email_forward_verified=False, is_reply_proxy=False):
         self.email_config_id = email_config_id
         self.account_id = account_id
         self.credentials_id = credentials_id
         self.email_server_id = email_server_id
-        self.sendgrid_sender_id = sendgrid_sender_id
         self.is_email_forward = is_email_forward
+        self.is_email_forward_verified = is_email_forward_verified
         self.updated_by = updated_by
         self.from_full_name = from_full_name
         self.from_address = from_address
@@ -917,7 +920,9 @@ class Email_config(Base):
         self.is_sendgrid_domain_verified = is_sendgrid_domain_verified 
         self.is_smtp = is_smtp
         self.is_ses = is_ses
+        self.is_ses_dkim_requested = is_ses_dkim_requested
         self.is_ses_dkim_verified = is_ses_dkim_verified
+        self.is_ses_domain_requested = is_ses_domain_requested
         self.is_ses_domain_verified = is_ses_domain_verified
         self.is_reply_proxy = is_reply_proxy
         
@@ -938,9 +943,11 @@ class Email_config(Base):
     is_sendgrid_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_smtp = Column(Boolean, nullable=False, server_default=false())
     is_ses = Column(Boolean, nullable=False, server_default=false())
+    is_ses_dkim_requested = Column(Boolean, nullable=False, server_default=false())
     is_ses_dkim_verified = Column(Boolean, nullable=False, server_default=false())
     is_ses_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_email_forward = Column(Boolean, nullable=False, server_default=false())
+    is_email_forward_verified = Column(Boolean, nullable=False, server_default=false())
     is_reply_proxy = Column(Boolean, nullable=False, server_default=false())
 
     # Table Metadata

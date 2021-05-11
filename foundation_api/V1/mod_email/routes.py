@@ -8,13 +8,14 @@ from threading import Thread
 from uuid import uuid4
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
+from pprint import pprint
 
 import requests
 from bs4 import BeautifulSoup as Soup
 from flask import Blueprint, jsonify, make_response, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_email.models import Action
+from foundation_api.V1.mod_email.models import Action, Email_config
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
@@ -68,17 +69,8 @@ def parse_email():
     """
     Required JSON keys: None
     """
-    # envelope = json.loads(request.form.get('envelope'))
-
-    # to_address = envelope['to'][0]
-    # from_address = envelope['from']
-
-    # text = request.form.get('text')
-    # html = request.form.get('html')
-    # subject = request.form.get('subject')
-
     req_dict = request.form.to_dict()
-
+    # pprint(req_dict)
     email_message = email.message_from_string(req_dict['email'])
 
     body = ''
@@ -95,29 +87,25 @@ def parse_email():
     else:
         body = email_message.get_payload(decode=True)
 
-    # Gmail get original email message id
-    # print(email_message.get('In-Reply-To'))
-    # print(email_message.get('References'))
-    if 'Single Sender' in email_message.get('Subject'):
-        print("Single Sender verify request from sendgrid")
-        if verify_single_sender(email_message):
-            print("Sengrid Sender verified")
-        else:
-            print("Sendgrid Sender not verified")
-
-    # O365 get original email message id
-    references = str(email_message.get('References')).split(',')
-    for reference in references:
-        # print(reference)
-        if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
-            if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
-                pass
-            else:
-                new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
-                db.session.add(new_action)
+    if os.getenv('JANIUM_EMAIL_ID') in json.dumps(req_dict):
+        if 'Janium Forwarding Verification' in json.dumps(req_dict):
+            recipient_address = str(email_message.get('To'))
+            recipient_address = recipient_address[recipient_address.index('<') + 1: recipient_address.index('>')] if '<' in recipient_address else recipient_address
+            if email_config := db.session.query(Email_config).filter(Email_config.from_address == recipient_address).first():
+                email_config.is_email_forward_verified = 1
                 db.session.commit()
+        else:
+            references = str(email_message.get('References')).split(',')
+            for reference in references:
+                if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
+                    if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
+                        pass
+                    else:
+                        new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
+                        db.session.add(new_action)
+                        db.session.commit()
 
-    return jsonify({"message": 'text'})
+    return jsonify({"message": "text"})
 
 @mod_email.route('/sns', methods=['POST'])
 def catch_sns():

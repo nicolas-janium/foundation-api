@@ -72,11 +72,10 @@ def get_sendgrid_sender(sender_id):
 
 def add_tracker(email_html):
     soup = Soup(email_html, 'html.parser')
-    div = soup.new_tag('div')
-    # img = soup.new_tag('img', attrs={'height': '0', 'width': '0', 'alt': 'janium12345'})
-    img = soup.new_tag('img', attrs={'height': '0', 'width': '0', 'id': os.getenv('JANIUM_EMAIL_ID')})
-    div.append(img)
-    soup.append(div)
+    html_tag = soup.find('html')
+    div = soup.new_tag('div', attrs={'style': 'opacity:0'})
+    div.string = os.getenv('JANIUM_EMAIL_ID')
+    html_tag.insert(1000, div)
     return str(soup)
 
 def add_footer(email_html, contact_id, contact_email):
@@ -176,7 +175,6 @@ def send_email_with_ses(details):
     # main_email['To'] = 'success@simulator.amazonses.com'
     # main_email['To'] = 'bounce@simulator.amazonses.com'
     main_email['To'] = 'complaint@simulator.amazonses.com'
-    # main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
     main_email.add_header('j_a_id', action_id)
     main_email['MIME-Version'] = '1.0'
 
@@ -184,7 +182,7 @@ def send_email_with_ses(details):
     # email_html = email_html.replace(r"{FirstName}", details['contact_first_name'])
     # email_html = add_tracker(email_html)
     email_html = body
-    # email_html = add_tracker(email_html)
+    email_html = add_tracker(email_html)
 
     # main_email.add_alternative(html2text(email_html), 'plain')
     main_email.add_alternative(email_html, 'html')
