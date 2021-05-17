@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from threading import Thread
 
-from flask import Blueprint, jsonify, request, make_response
+from flask import Blueprint, json, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 
 from foundation_api import app, bcrypt, db, mail
@@ -110,7 +110,7 @@ def create_email_config():
 
             # send_forwarding_verification_email(json_body['from_address'])
 
-            return jsonify({"message": "Email config created successfully and forward verification email sent"})
+            return jsonify({"message": "Email config created successfully"})
         except Exception as err:
             return make_response(jsonify({"error": "{}".format(err)}), 502)
         finally:
@@ -137,18 +137,19 @@ def get_email_config():
     email_config_id = request.args.get('email_config_id')
     user_id = get_jwt_identity()
 
-    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        return jsonify(
+            {
+                "email_config_id": email_config.email_config_id,
+                "from_address": email_config.from_address,
+                "from_full_name": email_config.from_full_name,
+                "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
+                "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
+                "is_email_forward_verified": email_config.is_email_forward_verified
+            }
+        )
 
-    return jsonify(
-        {
-            "email_config_id": email_config.email_config_id,
-            "from_address": email_config.from_address,
-            "from_full_name": email_config.from_full_name,
-            "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
-            "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
-            "is_email_forward_verified": email_config.is_email_forward_verified
-        }
-    )
+    return jsonify({'message': 'Invalid email_config_id'})
 
 @mod_onboard.route('/email_configs', methods=['GET'])
 @jwt_required()

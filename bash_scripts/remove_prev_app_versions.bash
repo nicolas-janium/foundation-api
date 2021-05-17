@@ -6,8 +6,7 @@ echo "Keeping the $2 latest versions of the $1 service"
 for VERSION in $VERSIONS
 do
     ((COUNT++))
-    if [ $COUNT -gt $2 ]
-    then
+    if [ $COUNT -gt $2 ]; then
       echo "Going to delete version $VERSION of the $1 service."
       gcloud app versions delete $VERSION --service $1 -q
     else

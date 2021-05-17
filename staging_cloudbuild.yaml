@@ -1,7 +1,7 @@
 steps:
 - name: bash
-  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217']
-  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET']
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217 $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY']
+  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY']
 
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
@@ -27,8 +27,10 @@ steps:
   args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET reset"]
   secretEnv: ["DB_INSTANCE_ID_SECRET"]
 
-# - name: bash
-#   args: ['-c', './bash_scripts/remove_prev_app_versions.bash backend 3'] # Keep only the 3 latest versions of the backend service
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args: ["-c", "./bash_scripts/remove_prev_app_versions.bash backend 3"]
+  secretEnv: ["DB_INSTANCE_ID_SECRET"]
 
 timeout: '1600s'
 
@@ -48,3 +50,7 @@ availableSecrets:
     env: 'DB_INSTANCE_ID_SECRET'
   - versionName: projects/foundation-staging-305217/secrets/sendgrid-api-key/versions/latest
     env: 'SENDGRID_API_KEY_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/ses-access-key-id/versions/latest
+    env: 'SES_ACCESS_KEY_ID'
+  - versionName: projects/foundation-staging-305217/secrets/ses-secret-access-key/versions/latest
+    env: 'SES_SECRET_ACCESS_KEY'

@@ -11,3 +11,5 @@ echo "DB_NAME=$5" >> .env
 echo "SENDGRID_API_KEY=$6" >> .env
 echo "PROJECT_ID=$7" >> .env
 echo "JANIUM_EMAIL_ID=7cb8e90c-2c64-4e48-ba0f-afe6405bec04" >> .env
+echo "SES_ACCESS_KEY_ID=$8" >> .env
+echo "SES_SECRET_ACCESS_KEY=$9" >> .env
