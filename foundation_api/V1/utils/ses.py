@@ -17,6 +17,26 @@ client = boto3.client(
     aws_secret_access_key=os.getenv('SES_SECRET_ACCESS_KEY')
 )
 
+def send_simple_email(recipient, body, subject):
+    main_email = EmailMessage()
+    main_email.make_alternative()
+
+    main_email['Subject'] = subject
+    main_email['From'] = str(Header('{} <{}>')).format('Nic Arnold', 'nic@janium.io')
+    main_email['To'] = recipient
+    main_email['MIME-Version'] = '1.0'
+
+    main_email.add_alternative(body, 'plain')
+
+    response = client.send_raw_email(
+        Source=main_email['From'],
+        Destinations=[main_email['To']],
+        RawMessage={
+            "Data": main_email.as_string()
+        }
+    )
+    return response
+
 def create_custom_verification_email_template():
     response = client.create_custom_verification_email_template(
         TemplateName='janium-sender-verification',

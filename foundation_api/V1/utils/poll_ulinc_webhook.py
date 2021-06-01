@@ -217,4 +217,4 @@ def poll_ulinc_webhooks(account, ulinc_config):
 
 if __name__ == '__main__':
     account_id = "ccddacca-2106-46ea-911a-41c46040e60a"
-    main(account_id)
+    # main(account_id)

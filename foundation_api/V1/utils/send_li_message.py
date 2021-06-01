@@ -2,16 +2,23 @@ import base64
 import json
 import logging
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from pprint import pprint
+from typing import final
+from uuid import uuid4
 import pytz
+import math
 
 import requests
 import urllib3
+from urllib import parse
 from bs4 import BeautifulSoup as Soup
+from html2text import html2text
 from sqlalchemy import or_, and_
 from workdays import networkdays
-from html2text import html2text
+from foundation_api import db
+from foundation_api.V1.sa_db.model import *
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -36,21 +43,20 @@ def send_li_message(details):
     }
 
     message = str(details['message_text'])
-    if message.__contains__('<p>'):
-        soup = Soup(message, 'html.parser')
-        bs = ''
-        for p in soup.find_all('p'):
-            bs += str(str(p.text).rstrip() + '\n')
-        message = bs.rstrip()
-    elif message.__contains__('<div>'):
-        message = html2text(message)
-        message = message.rstrip()
-    else:
-        pass
+    soup = Soup(message, 'html.parser')
+    final_message = ''
+    for i, p in enumerate(soup.find_all('p')):
+        if i == 0:
+            final_message += p.get_text('\n')
+        else:
+            final_message += "\n\n"
+            final_message += p.get_text('\n')
+
+    # final_message = parse.quote_plus(final_message)
 
     payload = {
         "message[contact_id]": details['contact_ulinc_id'],
-        "message[text]": message
+        "message[text]": final_message
     }
 
     res = req_session.post(url=url, cookies=jar, headers=headers, data=payload, verify=False)
@@ -74,7 +80,7 @@ def send_li_message(details):
         print("Li message to contact {} failed at request level. Response: {}".format(details['contact_id'], res.text))
         return None
 
-def get_li_message_targets(account, janium_campaign, account_local_time):
+def get_li_message_targets(account, ulinc_config, janium_campaign, account_local_time):
     # steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 1).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
     steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id != 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
 
@@ -93,7 +99,7 @@ def get_li_message_targets(account, janium_campaign, account_local_time):
                     continue
             else:
                 continue
-        
+
         if cnxn_action := contact.actions.filter(Action.action_type_id == 1).order_by(Action.action_timestamp.desc()).first():
             li_messages = contact.actions.filter(Action.action_type_id == 3).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
             num_li_messages = len(li_messages) if li_messages else 0
@@ -112,7 +118,7 @@ def get_li_message_targets(account, janium_campaign, account_local_time):
                     days_to_add -= 1
             else:
                 cnxn_timestamp = cnxn_action.action_timestamp
-            
+
             cnxn_timestamp = pytz.utc.localize(cnxn_timestamp).astimezone(pytz.timezone(account.time_zone.time_zone_code)).replace(tzinfo=None)
             day_diff = networkdays(cnxn_timestamp, account_local_time) - 1
 
@@ -144,39 +150,45 @@ def get_li_message_targets(account, janium_campaign, account_local_time):
         if add_contact:
             li_message_targets_list.append(
                 {
-                    "ulinc_client_id": account.ulinc_config.ulinc_client_id,
+                    "ulinc_client_id": ulinc_config.ulinc_client_id,
                     "contact_id": contact.contact_id,
                     "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                    "contact_ulinc_id": str(contact.ulinc_id).replace(str(account.ulinc_config.ulinc_client_id), ''),
-                    "message_text": body,
+                    "contact_ulinc_id": str(contact.ulinc_id).replace(str(ulinc_config.ulinc_client_id), ''),
+                    "message_text": str(body).replace(r"{FirstName}", contact.contact_info['ulinc']['first_name']),
                     "ulinc_campaign_id": contact.ulinc_ulinc_campaign_id,
-                    "cookie_usr": account.ulinc_config.cookie.cookie_json_value['usr'],
-                    "cookie_pwd": account.ulinc_config.cookie.cookie_json_value['pwd']
+                    "cookie_usr": ulinc_config.cookie.cookie_json_value['usr'],
+                    "cookie_pwd": ulinc_config.cookie.cookie_json_value['pwd']
                 }
             )
     return li_message_targets_list
 
-def send_li_message_function(account, janium_campaign, account_local_time, queue_times_dict):
-    li_message_targets_list = get_li_message_targets(account, janium_campaign, account_local_time)
-    pprint(li_message_targets_list)
+def send_li_message_function(account, ulinc_config, janium_campaign, account_local_time, queue_times_dict):
+    # print("inside send_li_message_function")
+    li_message_targets_list = get_li_message_targets(account, ulinc_config, janium_campaign, account_local_time)
+    # pprint(li_message_targets_list)
 
     ### Divide the email targets list to evenly distribute over the queue start and end time ###
     queue_intervals = int((queue_times_dict['end'].hour - queue_times_dict['start'].hour) / 0.5)
     queue_max = math.ceil(len(li_message_targets_list) / queue_intervals)
 
     recipient_list = []
-    for li_message_target in li_message_targets_list[0:xx]:
+    for li_message_target in li_message_targets_list[0:queue_max]:
         res = send_li_message(li_message_target)
-        recipient_list.append({"contact_id": res})
+        if res:
+            recipient_list.append({"contact_id": res})
+            action = Action(str(uuid4()), res, 3, datetime.utcnow(), li_message_target['message_text'])
+            db.session.add(action)
+            db.session.commit()
+    return recipient_list
 
 
 if __name__ == '__main__':
     payload = {
-        "account_id": "ee4c4be2-14ac-43b2-9a2d-8cd49cd534f3"
+        "account_id": "ccddacca-2106-46ea-911a-41c46040e60a"
     }
     payload = json.dumps(payload)
     payload = base64.b64encode(str(payload).encode("utf-8"))
     event = {
         "data": payload
     }
-    main(event, 1)
+    send_li_message_function(event, 1)

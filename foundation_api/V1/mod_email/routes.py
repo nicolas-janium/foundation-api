@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup as Soup
 from flask import Blueprint, jsonify, make_response, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_email.models import Action, Email_config
+from foundation_api.V1.mod_email.models import Action, Email_config, User
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
@@ -63,6 +63,22 @@ def verify_single_sender(email_message):
                     return None
     return None
 
+@mod_email.route('/email_config', methods=['PUT'])
+def update_email_config():
+    """
+    Required JSON keys: email_config_id, from_full_name
+    """
+
+    json_body = request.get_json(force=True)
+    user_id = get_jwt_identity()
+    user = db.session.query(User).filter(User.user_id == user_id).first()
+
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == json_body['email_config_id']).first():
+        email_config.from_full_name = json_body['from_full_name']
+        db.session.commit()
+        return jsonify({"message": "Email config updated successfully"})
+
+    return jsonify({"message": "Invalid email_config_id"})
 
 @mod_email.route('/parse_email', methods=['POST'])
 def parse_email():
