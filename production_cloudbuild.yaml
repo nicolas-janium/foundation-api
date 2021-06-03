@@ -1,0 +1,61 @@
+steps:
+- name: bash
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-production $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY']
+  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY']
+
+- name: ubuntu
+  args: ['-c', 'sudo apt-get install dos2unix']
+
+- name: bash
+  args: ['-c', 'cat ./.env']
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: bash
+#   args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET set"]
+#   secretEnv: ["DB_INSTANCE_ID_SECRET"]
+
+# - name: python
+#   entrypoint: pip
+#   args: ["install", "-r", "requirements.txt", "--user"]
+
+# - name: python
+#   entrypoint: python
+#   args: ["-m","alembic", "upgrade", "head"]
+#   env:
+#   - 'IS_BUILD=1'
+  
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: 'bash'
+#   args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./production_app.yaml ./cron.yaml ./dispatch.yaml']
+
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: bash
+#   args: ["-c", "./bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET reset"]
+#   secretEnv: ["DB_INSTANCE_ID_SECRET"]
+
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: bash
+#   args: ["-c", "./bash_scripts/remove_prev_app_versions.bash backend 3"]
+#   secretEnv: ["DB_INSTANCE_ID_SECRET"]
+
+timeout: '1600s'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/foundation-production/secrets/db_password/versions/latest
+    env: 'DB_PASSWORD_SECRET'
+  - versionName: projects/foundation-production/secrets/db_host/versions/latest
+    env: 'DB_HOST_SECRET'
+  - versionName: projects/foundation-production/secrets/db_public_host/versions/latest
+    env: 'DB_PUBLIC_HOST_SECRET'
+  - versionName: projects/foundation-production/secrets/db_user/versions/latest
+    env: 'DB_USER_SECRET'
+  - versionName: projects/foundation-production/secrets/db_name/versions/latest
+    env: 'DB_NAME_SECRET'
+  # - versionName: projects/foundation-production/secrets/db_instance_id/versions/latest
+  #   env: 'DB_INSTANCE_ID_SECRET'
+  - versionName: projects/foundation-production/secrets/sendgrid-api-key/versions/latest
+    env: 'SENDGRID_API_KEY_SECRET'
+  - versionName: projects/foundation-production/secrets/ses-access-key-id/versions/latest
+    env: 'SES_ACCESS_KEY_ID'
+  - versionName: projects/foundation-production/secrets/ses-secret-access-key/versions/latest
+    env: 'SES_SECRET_ACCESS_KEY'
