@@ -385,6 +385,11 @@ class Janium_campaign(Base):
     janium_campaign_steps = relationship('Janium_campaign_step', backref=backref('parent_janium_campaign', uselist=False), uselist=True, lazy='dynamic')
     email_config = relationship('Email_config', backref=backref('email_config_janium_campaign', uselist=False), uselist=False, lazy=True)
 
+    def is_active(self):
+        if self.effective_start_date <= datetime.utcnow() <= self.effective_end_date:
+            return True
+        return False
+
     def get_effective_dates(self, timezone):
         start_date = pytz.utc.localize(self.effective_start_date).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         end_date = pytz.utc.localize(self.effective_end_date).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
@@ -396,6 +401,42 @@ class Janium_campaign(Base):
         start_date = pytz.utc.localize(self.queue_start_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         end_date = pytz.utc.localize(self.queue_end_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         return {"start": start_date, "end": end_date}
+
+    def get_steps(self):
+        steps = []
+        for step in self.janium_campaign_steps:
+            steps.append(
+                {
+                    "janium_campaign_step_id": step.janium_campaign_step_id,
+                    "janium_campaign_id": step.janium_campaign_id,
+                    "janium_campaign_step_type_id": step.janium_campaign_step_type_id,
+                    "janium_campaign_step_delay": step.janium_campaign_step_delay,
+                    "janium_campaign_step_body": step.janium_campaign_step_body,
+                    "janium_campaign_step_subject": step.janium_campaign_step_subject
+                }
+            )
+        steps = sorted(steps, key = lambda item: item['janium_campaign_step_delay'])
+        return steps
+    
+    def get_ulinc_campaigns(self):
+        ulinc_campaigns = []
+        for uc in self.ulinc_campaigns:
+            ulinc_campaigns.append(
+                {
+                    "ulinc_campaign_id": uc.ulinc_campaign_id,
+                    "ulinc_campaign_name": uc.ulinc_campaign_name,
+                    "ulinc_ulinc_campaign_id": uc.ulinc_ulinc_campaign_id,
+                    "ulinc_is_active": uc.ulinc_is_active
+                }
+            )
+        return sorted(ulinc_campaigns, key = lambda item: item['ulinc_campaign_name'])
+    
+    def get_contacts(self):
+        contacts_list = []
+        for ulinc_campaign in self.ulinc_campaigns:
+            contacts_list += ulinc_campaign.get_contacts()
+        contact_list = sorted(contacts_list, key = lambda item: item['full_name'])
+        return contact_list
     
     def get_dte_new_connections(self):
         new_connections_list = []
@@ -671,6 +712,30 @@ class Ulinc_campaign(Base):
 
     # SQLAlchemy Relationships and Backreferences
     contacts = relationship('Contact', backref=backref('contact_ulinc_campaign', uselist=False), lazy=False)
+
+    def get_contacts(self):
+        contacts_list = []
+        for contact in self.contacts:
+            contact_info = contact.contact_info['ulinc']
+            contacts_list.append(
+                {
+                    "contact_id": contact.contact_id,
+                    "first_name": contact_info['first_name'],
+                    "scrubbed_first_name": None if "scrubbed_first_name" not in contact_info else contact_info['scrubbed_first_name'],
+                    "last_name": contact_info['last_name'],
+                    "full_name": str(contact_info['first_name'] + " " + contact_info['last_name']),
+                    "title": contact_info['title'],
+                    "company": contact_info['company'],
+                    "scrubbed_company": None if "scrubbed_company" not in contact_info else contact_info['scrubbed_company'],
+                    "location": contact_info['location'],
+                    "scrubbed_location": None if "scrubbed_location" not in contact_info else contact_info['scrubbed_location'],
+                    "email": contact_info['email'],
+                    "phone": contact_info['phone'],
+                    "li_profile_url": contact_info['li_profile_url'] if contact_info['li_profile_url'] else contact_info['li_salesnav_profile_url'],
+                    "ulinc_campaign_name": self.ulinc_campaign_name
+                }
+            )
+        return contacts_list
 
 class Contact(Base):
     __tablename__ = 'contact'
@@ -1035,6 +1100,19 @@ class Ulinc_config(Base):
     account = relationship('Account', uselist=False)
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_ulinc_config', uselist=False), uselist=True)
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
+
+    def get_ulinc_campaigns(self):
+        ulinc_campaigns = []
+        for uc in self.ulinc_campaigns:
+            ulinc_campaigns.append(
+                {
+                    "ulinc_campaign_id": uc.ulinc_campaign_id,
+                    "ulinc_campaign_name": uc.ulinc_campaign_name,
+                    "ulinc_ulinc_campaign_id": uc.ulinc_ulinc_campaign_id,
+                    "ulinc_is_active": uc.ulinc_is_active
+                }
+            )
+        return sorted(ulinc_campaigns, key = lambda item: item['ulinc_campaign_name'])
 
     def get_summary_data(self):
         # summary_data = [

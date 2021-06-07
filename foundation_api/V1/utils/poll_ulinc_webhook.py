@@ -66,14 +66,15 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
     )
 
 def poll_webhook(wh_url, webhook_type):
-    try:
-        if not os.getenv('FLASK_ENV') == 'development':
-            return requests.get(wh_url, verify=False).json()
-        else:
-            f = open('./webhook_sample_data/{}.json'.format(webhook_type), 'r')
-            return json.loads(f.read())
-    except Exception as err:
-        print('Error in polling this webhook url: {} \nError: {}'.format(wh_url, err))
+    return requests.get(wh_url, verify=False).json()
+    # try:
+    #     if not os.getenv('FLASK_ENV') == 'development':
+    #         return requests.get(wh_url, verify=False).json()
+    #     else:
+    #         f = open('./webhook_sample_data/{}.json'.format(webhook_type), 'r')
+    #         return json.loads(f.read())
+    # except Exception as err:
+    #     print('Error in polling this webhook url: {} \nError: {}'.format(wh_url, err))
 
 def handle_webhook_response(account, contact_source_id):
     webhook_response = db.session.query(Contact_source).filter(Contact_source.contact_source_id == contact_source_id).first()

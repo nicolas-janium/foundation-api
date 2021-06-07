@@ -38,7 +38,7 @@ def check_cron_header(f):
     return decorated
 
 @mod_tasks.route('/poll_ulinc_webhooks', methods=['GET'])
-@check_cron_header
+# @check_cron_header
 def poll_ulinc_webhooks_route_function():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),

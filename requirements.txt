@@ -3,7 +3,7 @@ beautifulsoup4==4.9.3
 blinker==1.4
 boto3==1.17.62
 cachetools==4.2.1
-certifi==2020.12.5
+certifi==2021.5.30
 chardet==4.0.0
 click==7.1.2
 colorama==0.4.4

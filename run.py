@@ -1,6 +1,7 @@
 from foundation_api import app
 import os
 from dotenv import load_dotenv
+import foundation_api.V1.utils.demoji_module as demoji
 
 load_dotenv()
 
