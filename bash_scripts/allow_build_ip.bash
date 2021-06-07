@@ -4,5 +4,5 @@ if [ "$2" == "set" ]; then
     gcloud sql instances patch $1 --authorized-networks="67.176.4.32","${ip}"
 else
     echo "Resetting db server's authorized networks"
-    gcloud sql instances patch $1 --authorized-networks="67.176.4.32"
+    gcloud sql instances patch $1 --authorized-networks="67.176.83.65"
 fi 
