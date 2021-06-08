@@ -535,8 +535,6 @@ class Janium_campaign(Base):
                         )
         return vm_tasks_list
 
-
-    
     def get_summary_data(self):
         sql_statement = text(
             "   select 'new_connections' as action_type, \
@@ -713,6 +711,76 @@ class Ulinc_campaign(Base):
     # SQLAlchemy Relationships and Backreferences
     contacts = relationship('Contact', backref=backref('contact_ulinc_campaign', uselist=False), lazy=False)
 
+    def get_summary_data(self):
+        sql_statement = text(
+            "   select 'new_connections' as action_type, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 1 and datediff(now(), act.date_added) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 1 then co.contact_id end) as total \
+            from ulinc_campaign uc \
+            inner join contact co on co.ulinc_campaign_id = uc.ulinc_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where uc.ulinc_campaign_id = '{ulinc_campaign_id}' \
+            UNION \
+            select 'li_responses' as action_type, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 2 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 2 then co.contact_id end) as total \
+            from ulinc_campaign uc \
+            inner join contact co on co.ulinc_campaign_id = uc.ulinc_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where uc.ulinc_campaign_id = '{ulinc_campaign_id}' \
+            UNION \
+            select 'li_messages_sent' as action_type, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 3 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 3 then co.contact_id end) as total \
+            from ulinc_campaign uc \
+            inner join contact co on co.ulinc_campaign_id = uc.ulinc_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where uc.ulinc_campaign_id = '{ulinc_campaign_id}' \
+            UNION \
+            select 'email_responses' as action_type, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 6 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 6 then co.contact_id end) as total \
+            from ulinc_campaign uc \
+            inner join contact co on co.ulinc_campaign_id = uc.ulinc_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where uc.ulinc_campaign_id = '{ulinc_campaign_id}' \
+            UNION \
+            select 'email_messages_sent' as action_type, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 2 then co.contact_id end) as 24h, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 4 then co.contact_id end) as 72h, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 8 then co.contact_id end) as week, \
+                count(distinct case when act.action_type_id = 4 and datediff(now(), act.action_timestamp) < 32 then co.contact_id end) as month, \
+                count(distinct case when act.action_type_id = 4 then co.contact_id end) as total \
+            from ulinc_campaign uc \
+            inner join contact co on co.ulinc_campaign_id = uc.ulinc_campaign_id \
+            inner join action act on act.contact_id = co.contact_id \
+            where uc.ulinc_campaign_id = '{ulinc_campaign_id}';".format(ulinc_campaign_id=self.ulinc_campaign_id)
+        )
+
+        summary_data = {}
+        result = db.engine.execute(sql_statement)
+        for line in result:
+            summary_data[line[0]] = {
+                "24h": line[1],
+                "72h": line[2],
+                "week": line[3],
+                "month": line[4],
+                "total": line[5]
+            }
+        return summary_data
+
     def get_contacts(self):
         contacts_list = []
         for contact in self.contacts:
@@ -803,35 +871,37 @@ class Ulinc_campaign(Base):
     
     def get_dte_vm_tasks(self):
         vm_tasks_list = []
-        if janium_campaign_steps := self.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
-            if last_step := janium_campaign_steps[0]:
-                contacts = [
-                    contact
-                    for contact
-                    in self.contacts
-                    if not contact.actions.filter(Action.action_type_id.in_([2,6,11])).first() and contact.contact_info['ulinc']['phone']
-                ]
-                for contact in contacts:
-                    cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
-                    if last_step.janium_campaign_sted_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_sted_delay + 5:
-                        vm_tasks_list.append(
-                            {
-                                "contact_id": contact.contact_id,
-                                "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                                "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                                "title": contact.contact_info['ulinc']['title'],
-                                "company": contact.contact_info['ulinc']['company'],
-                                "location": contact.contact_info['ulinc']['location'],
-                                "phone": contact.contact_info['ulinc']['phone'],
-                                "ulinc_campaign_id": self.ulinc_campaign_id,
-                                "ulinc_campaign_name": self.ulinc_campaign_name,
-                                "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                                "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
-                                "connection_date": cnxn_action.action_timestamp,
-                                "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
-                                "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                            }
-                        )
+        janium_campaign = self.parent_janium_campaign
+        if janium_campaign.janium_campaign_id != Janium_campaign.unassigned_janium_campaign_id:
+            if janium_campaign_steps := janium_campaign.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
+                if last_step := janium_campaign_steps[0]:
+                    contacts = [
+                        contact
+                        for contact
+                        in self.contacts
+                        if not contact.actions.filter(Action.action_type_id.in_([2,6,11])).first() and contact.contact_info['ulinc']['phone']
+                    ]
+                    for contact in contacts:
+                        cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
+                        if last_step.janium_campaign_sted_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_sted_delay + 5:
+                            vm_tasks_list.append(
+                                {
+                                    "contact_id": contact.contact_id,
+                                    "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
+                                    "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                                    "title": contact.contact_info['ulinc']['title'],
+                                    "company": contact.contact_info['ulinc']['company'],
+                                    "location": contact.contact_info['ulinc']['location'],
+                                    "phone": contact.contact_info['ulinc']['phone'],
+                                    "ulinc_campaign_id": self.ulinc_campaign_id,
+                                    "ulinc_campaign_name": self.ulinc_campaign_name,
+                                    "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
+                                    "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                                    "connection_date": cnxn_action.action_timestamp,
+                                    "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
+                                    "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+                                }
+                            )
         return vm_tasks_list
 
 class Contact(Base):
@@ -1212,13 +1282,6 @@ class Ulinc_config(Base):
         return sorted(ulinc_campaigns, key = lambda item: item['ulinc_campaign_name'])
 
     def get_summary_data(self):
-        # summary_data = [
-        #     {"new_connections": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
-        #     {"li_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
-        #     {"li_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
-        #     {"email_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}},
-        #     {"email_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}}
-        # ]
         summary_data = {
             "new_connections": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
             "li_responses": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0},
@@ -1227,9 +1290,9 @@ class Ulinc_config(Base):
             "email_messages_sent": {"24h": 0, "72h": 0, "week": 0, "month": 0, "total": 0}
         }
 
-        for janium_campaign in self.janium_campaigns:
-            janium_campaign_summary_data = janium_campaign.get_summary_data()
-            for key, value in janium_campaign_summary_data.items():
+        for ulinc_campaign in self.ulinc_campaigns:
+            ulinc_campaign_summary_data = ulinc_campaign.get_summary_data()
+            for key, value in ulinc_campaign_summary_data.items():
                 summary_data[key]['24h'] += value['24h']
                 summary_data[key]['72h'] += value['72h']
                 summary_data[key]['week'] += value['week']
