@@ -1024,11 +1024,12 @@ class Contact_source(Base):
     __tablename__ = 'contact_source'
     unassigned_contact_source_id = '950e964d-29bd-4ac6-96c4-8b27fadd8dee'
 
-    def __init__(self, contact_source_id, account_id, contact_source_type_id, contact_source_json):
+    def __init__(self, contact_source_id, account_id, contact_source_type_id, contact_source_json, is_processed=False):
         self.contact_source_id = contact_source_id
         self.account_id = account_id
         self.contact_source_type_id = contact_source_type_id
         self.contact_source_json = contact_source_json
+        self.is_processed = is_processed
     
     # Primary Keys
     contact_source_id = Column(String(36), primary_key=True, nullable=False)
@@ -1039,6 +1040,7 @@ class Contact_source(Base):
 
     # Common Columns
     contact_source_json = Column(JSON, nullable=False)
+    is_processed = Column(Boolean, nullable=False, server_default=false())
 
     # Table Metadata
     date_added = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
