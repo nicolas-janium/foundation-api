@@ -1,1 +1,1 @@
-from foundation_api.V1.sa_db.model import Action, Email_config, User
+from foundation_api.V1.sa_db.model import Action, Email_config, User, Contact

@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup as Soup
 from flask import Blueprint, jsonify, make_response, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_email.models import Action, Email_config, User
+from foundation_api.V1.mod_email.models import Action, Email_config, User, Contact
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
@@ -140,7 +140,7 @@ def catch_sns():
     print(notif_recipient)
 
     contacts = [
-        contact for contact in db.session.query(contacts).all()
+        contact for contact in db.session.query(Contact).all()
         if contact.actions.filter(Action.action_type_id == 4).first()
     ]
     for contact in contacts:

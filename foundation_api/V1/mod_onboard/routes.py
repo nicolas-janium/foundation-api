@@ -123,10 +123,10 @@ def send_forwarding_verification_email_route():
     Required query params: email_config_id
     """
     email_config_id = request.args.get('email_config_id')
-    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
-
-    send_forwarding_verification_email(email_config.from_address)
-    return jsonify({'message': 'Email sent'})
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        send_forwarding_verification_email(email_config.from_address)
+        return jsonify({'message': 'Email sent'})
+    return jsonify({"message": "Email config not found"})
 
 @mod_onboard.route('/email_config', methods=['GET'])
 @jwt_required()
@@ -148,8 +148,7 @@ def get_email_config():
                 "is_email_forward_verified": email_config.is_email_forward_verified
             }
         )
-
-    return jsonify({'message': 'Invalid email_config_id'})
+    return jsonify({"message": "Email config not found"})
 
 @mod_onboard.route('/email_configs', methods=['GET'])
 @jwt_required()
@@ -185,10 +184,11 @@ def verify_forwarding():
     Required query params: email_config_id
     """
     email_config_id = request.args.get('email_config_id')
-    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
-    if email_config.is_email_forward_verified:
-        return jsonify({"message": "Email forwarding is verified"})
-    return jsonify({"message": "Email forwarding is not verified"})
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        if email_config.is_email_forward_verified:
+            return jsonify({"message": "Email forwarding is verified"})
+        return jsonify({"message": "Email forwarding is not verified"})
+    return jsonify({"message": "Email config not found"})
 
 @mod_onboard.route('/verify_dkim', methods=['GET'])
 @jwt_required()
@@ -197,44 +197,43 @@ def verify_dkim():
     Required query params: email_config_id
     """
     email_config_id = request.args.get('email_config_id')
-    email_config = db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first()
-    from_address = email_config.from_address
-
-    verify_dkim_response = verify_ses_dkim(from_address)
-
-    if verify_dkim_response['status'] == 'success':
-        email_config.is_ses_dkim_verified = 1
-        db.session.commit()
-        return jsonify({'message': 'Dkim verified'})
-    elif verify_dkim_response['status'] == 'pending':
-        email_config.is_ses_dkim_requested = 1
-        db.session.commit()
-        return jsonify(
-            {
-                'message': 'Dkim verification pending',
-                'data': [
-                    {
-                        'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
-                        'type': 'CNAME',
-                        'value': '{}.dkim.amazonses.com'.format(token)
-                    }
-                    for token in verify_dkim_response['dkim_tokens']
-                ]
-            }
-        )
-    elif verify_dkim_response['status'] == 'started':
-        email_config.is_ses_dkim_requested = 1
-        db.session.commit()
-        return jsonify(
-            {
-                'message': 'Dkim verification started',
-                'data': [
-                    {
-                        'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
-                        'type': 'CNAME',
-                        'value': '{}.dkim.amazonses.com'.format(token)
-                    }
-                    for token in verify_dkim_response['dkim_tokens']
-                ]
-            }
-        )
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        from_address = email_config.from_address
+        verify_dkim_response = verify_ses_dkim(from_address)
+        if verify_dkim_response['status'] == 'success':
+            email_config.is_ses_dkim_verified = 1
+            db.session.commit()
+            return jsonify({'message': 'Dkim verified'})
+        elif verify_dkim_response['status'] == 'pending':
+            email_config.is_ses_dkim_requested = 1
+            db.session.commit()
+            return jsonify(
+                {
+                    'message': 'Dkim verification pending',
+                    'data': [
+                        {
+                            'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
+                            'type': 'CNAME',
+                            'value': '{}.dkim.amazonses.com'.format(token)
+                        }
+                        for token in verify_dkim_response['dkim_tokens']
+                    ]
+                }
+            )
+        elif verify_dkim_response['status'] == 'started':
+            email_config.is_ses_dkim_requested = 1
+            db.session.commit()
+            return jsonify(
+                {
+                    'message': 'Dkim verification started',
+                    'data': [
+                        {
+                            'name': '{}._domainkey.{}'.format(token, from_address[from_address.index('@') + 1 : ]),
+                            'type': 'CNAME',
+                            'value': '{}.dkim.amazonses.com'.format(token)
+                        }
+                        for token in verify_dkim_response['dkim_tokens']
+                    ]
+                }
+            )
+    return jsonify({"message": "Email config not found"})

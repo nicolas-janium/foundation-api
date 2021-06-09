@@ -55,133 +55,38 @@ def get_ulinc_config():
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == ulinc_config_id).first()
+    if ulinc_config := db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == ulinc_config_id).first():
+        janium_campaigns = []
+        for janium_campaign in ulinc_config.janium_campaigns:
+            janium_contacts = janium_campaign.contacts
+            contacts_count = janium_contacts.count()
+            connections_count = 0
+            replies_count = 0
+            for contact in janium_contacts:
+                connections_count += contact.actions.filter(Action.action_type_id == 1).count()
+                replies_count += contact.actions.filter(Action.action_type_id.in_([2,6])).count()
 
-    janium_campaigns = []
-    for janium_campaign in ulinc_config.janium_campaigns:
-        janium_contacts = janium_campaign.contacts
-        contacts_count = janium_contacts.count()
-        connections_count = 0
-        replies_count = 0
-        for contact in janium_contacts:
-            connections_count += contact.actions.filter(Action.action_type_id == 1).count()
-            replies_count += contact.actions.filter(Action.action_type_id.in_([2,6])).count()
 
-
-        janium_campaigns.append(
+            janium_campaigns.append(
+                {
+                    "janium_campaign_id": janium_campaign.janium_campaign_id,
+                    "janium_campaign_name": janium_campaign.janium_campaign_name,
+                    "janium_campaign_type": "Messenger" if janium_campaign.is_messenger else "Connector",
+                    "janium_campaign_contacts": contacts_count,
+                    "janium_campaign_connected": connections_count,
+                    "janium_campaign_replied": replies_count
+                }
+            )
+        return jsonify(
             {
-                "janium_campaign_id": janium_campaign.janium_campaign_id,
-                "janium_campaign_name": janium_campaign.janium_campaign_name,
-                "janium_campaign_type": "Messenger" if janium_campaign.is_messenger else "Connector",
-                "janium_campaign_contacts": contacts_count,
-                "janium_campaign_connected": connections_count,
-                "janium_campaign_replied": replies_count
+                "ulinc_config_id": ulinc_config.ulinc_config_id,
+                "janium_campaigns": janium_campaigns,
+                "new_connections": ulinc_config.get_dte_new_connections(),
+                "new_messages": ulinc_config.get_dte_new_messages(),
+                "vm_tasks": ulinc_config.get_dte_vm_tasks()
             }
         )
-    # if os.getenv('PROJECT_ID') == 'foundation-staging-305217':
-    #     return jsonify(
-    #         {
-    #             "ulinc_config_id": ulinc_config.ulinc_config_id,
-    #             "janium_campaigns": [
-    #                 {
-    #                     "janium_campaign_id": "1234",
-    #                     "janium_campaign_name": "Test Janium Campaign 1",
-    #                     "janium_campaign_type": "connector",
-    #                     "janium_campaign_is_active": True,
-    #                     "janium_campaign_contacts": 300,
-    #                     "janium_campaign_connected": 20,
-    #                     "janium_campaign_replied": 2
-    #                 }
-    #             ],
-    #             "new_connections": [
-    #                 {
-    #                     "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
-    #                     "company": "Insightly",
-    #                     "connection_date": "Wed, 28 Apr 2021 16:21:16 GMT",
-    #                     "full_name": "Libby Mayer",
-    #                     "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
-    #                     "janium_campaign_name": "Test Campaign 1",
-    #                     "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
-    #                     "location": "Denver, Colorado, United States",
-    #                     "title": "Senior Account Executive, Growth Sales",
-    #                     "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-    #                     "ulinc_campaign_name": "IT+ - 50-500 - CO",
-    #                     "is_clicked": False,
-    #                     "is_dqd": False
-    #                 },
-    #                 {
-    #                     "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284d",
-    #                     "company": "Facebook",
-    #                     "connection_date": "Wed, 29 Apr 2021 16:21:16 GMT",
-    #                     "full_name": "Lenny Mar",
-    #                     "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
-    #                     "janium_campaign_name": "Test Campaign 1",
-    #                     "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
-    #                     "location": "Denver, Colorado, United States",
-    #                     "title": "Lawyer",
-    #                     "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-    #                     "ulinc_campaign_name": "IT+ - 50-500 - CO",
-    #                     "is_clicked": True,
-    #                     "is_dqd": False
-    #                 },
-    #                 {
-    #                     "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284e",
-    #                     "company": "Parks and Rec",
-    #                     "connection_date": "Wed, 29 Apr 2021 16:21:16 GMT",
-    #                     "full_name": "Jonny Karate",
-    #                     "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
-    #                     "janium_campaign_name": "Test Campaign 1",
-    #                     "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
-    #                     "location": "Denver, Colorado, United States",
-    #                     "title": "Entertainer",
-    #                     "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-    #                     "ulinc_campaign_name": "IT+ - 50-500 - CO",
-    #                     "is_clicked": True,
-    #                     "is_dqd": True
-    #                 }
-    #             ],
-    #             "new_messages": [
-    #                 {
-    #                     "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
-    #                     "company": "Insightly",
-    #                     "full_name": "Libby Mayer",
-    #                     "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
-    #                     "janium_campaign_name": "Test Campaign 1",
-    #                     "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
-    #                     "location": "Denver, Colorado, United States",
-    #                     "msg_timestamp": "Wed, 28 Apr 2021 10:22:28 GMT",
-    #                     "title": "Senior Account Executive, Growth Sales",
-    #                     "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-    #                     "ulinc_campaign_name": "IT+ - 50-500 - CO"
-    #                 }
-    #             ],
-    #             "vm_tasks": [
-    #                 {
-    #                     "contact_id": "0014fa87-24d4-4b53-b2d7-a95b6fb3284c",
-    #                     "company": "Insightly",
-    #                     "connection_date": "Wed, 28 Apr 2021 16:21:16 GMT",
-    #                     "full_name": "Libby Mayer",
-    #                     "janium_campaign_id": "9085776a-8a5e-4943-bc3d-d40b39b08130",
-    #                     "janium_campaign_name": "Test Campaign 1",
-    #                     "li_profile_url": "https://www.linkedin.com/sales/profile/ACwAAAngxzsBaMSwSyxiYRC7kC9GBX74NnKlT00,o3ZF,NAME_SEARCH",
-    #                     "location": "Denver, Colorado, United States",
-    #                     "phone": "555-5555",
-    #                     "title": "Senior Account Executive, Growth Sales",
-    #                     "ulinc_campaign_id": "4720c3c8-4fc4-405c-96dd-3ce73197d4b8",
-    #                     "ulinc_campaign_name": "IT+ - 50-500 - CO"
-    #                 }
-    #             ]
-    #         }
-    #     )
-    return jsonify(
-        {
-            "ulinc_config_id": ulinc_config.ulinc_config_id,
-            "janium_campaigns": janium_campaigns,
-            "new_connections": ulinc_config.get_dte_new_connections(),
-            "new_messages": ulinc_config.get_dte_new_messages(),
-            "vm_tasks": ulinc_config.get_dte_vm_tasks()
-        }
-    )
+    return jsonify({"message": "Ulinc config not found"})
 
 @mod_home.route('/dte_click', methods=['POST'])
 @jwt_required()
