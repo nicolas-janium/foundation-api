@@ -66,7 +66,7 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
     )
 
 
-def poll_and_save_csv(ulinc_client_id, ulinc_campaign_id, ulinc_cookie_json_value, account_id):
+def poll_and_save_csv(ulinc_config, ulinc_campaign):
     header = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
@@ -75,23 +75,26 @@ def poll_and_save_csv(ulinc_client_id, ulinc_campaign_id, ulinc_cookie_json_valu
         "Connection": "keep-alive",
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    usr = ulinc_cookie_json_value['usr']
-    pwd = ulinc_cookie_json_value['pwd']
+    cookie = ulinc_config.cookie.cookie_json_value
+    usr = cookie['usr']
+    pwd = cookie['pwd']
     jar = requests.cookies.RequestsCookieJar()
     jar.set('usr', usr)
     jar.set('pwd', pwd)
 
-    data = {"status": "1", "id": "{}".format(ulinc_campaign_id)}
+    data = {"status": "1", "id": "{}".format(ulinc_campaign.ulinc_campaign_id)}
 
-    res = requests.post(url='https://ulinc.co/{}/campaigns/{}/?do=campaigns&act=export'.format(ulinc_client_id, ulinc_campaign_id), headers=header, data=data, cookies=jar)
-    # print(res.text)
+    res = requests.post(url='https://ulinc.co/{}/campaigns/{}/?do=campaigns&act=export'.format(ulinc_config.ulinc_client_id, ulinc_campaign.ulinc_ulinc_campaign_id), headers=header, data=data, cookies=jar)
     if res.ok:
         reader = csv.DictReader(io.StringIO(res.content.decode('utf-8')))
         contact_source_id = str(uuid4())
-        contact_source = Contact_source(contact_source_id, account_id, 4, list(reader))
+        contact_source = Contact_source(contact_source_id, ulinc_config.account_id, 4, list(reader))
         db.session.add(contact_source)
         db.session.commit()
-        return contact_source_id
+        return 1
+    else:
+        return None
+
 
 
 def handle_csv_data(account, ulinc_config):

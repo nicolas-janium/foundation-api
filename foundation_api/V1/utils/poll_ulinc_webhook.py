@@ -65,6 +65,13 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
         User.system_user_id
     )
 
+def poll_and_save_webhook(account, wh_url, wh_type):
+    res = requests.get(wh_url, verify=False).json()
+
+    contact_source = Contact_source(str(uuid4()), account.account_id, wh_type, res)
+    db.session.add(contact_source)
+    db.session.commit()
+
 def poll_webhook(wh_url, webhook_type):
     return requests.get(wh_url, verify=False).json()
     # try:

@@ -13,8 +13,9 @@ from foundation_api import app, bcrypt, db, mail
 from foundation_api.V1.mod_tasks.models import Account, Ulinc_config
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
-from foundation_api.V1.utils.poll_ulinc_webhook import poll_ulinc_webhooks
-from foundation_api.V1.utils.poll_ulinc_csv import handle_csv_data
+from foundation_api.V1.utils.poll_ulinc_webhook import poll_ulinc_webhooks, poll_and_save_webhook
+from foundation_api.V1.utils.poll_ulinc_csv import handle_csv_data, poll_and_save_csv
+from foundation_api.V1.utils.process_contact_sources import process_contact_sources_function
 from foundation_api.V1.utils.send_email import send_email_function
 from foundation_api.V1.utils.send_li_message import send_li_message_function
 from foundation_api.V1.utils.ses import send_simple_email
@@ -51,7 +52,9 @@ def poll_ulinc_webhooks_route_function():
         for ulinc_config in account.ulinc_configs:
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
                 try:
-                    poll_ulinc_webhooks(account, ulinc_config)
+                    poll_and_save_webhook(account, ulinc_config.new_connection_webhook, 1)
+                    poll_and_save_webhook(account, ulinc_config.new_message_webhook, 2)
+                    poll_and_save_webhook(account, ulinc_config.send_message_webhook, 3)
                     success_list.append(account.account_id)
                 except Exception as err:
                     logger.error("Poll Ulinc webhook error for account {}: {}".format(account.account_id, err))
@@ -74,14 +77,47 @@ def poll_ulinc_csv_route_function():
     success_list = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
+            campaign_success_list = []
+            campaign_fail_list = []
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
-                try:
-                    handle_csv_data(account, ulinc_config)
-                    success_list.append(account.account_id)
-                except Exception as err:
-                    logger.error("Poll Ulinc csv error for account {}: {}".format(account.account_id, err))
-                    fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id})
-    return jsonify({"poll_ulinc_csv_fail_list": fail_list, "poll_ulinc_csv_success_list": success_list})
+                for ulinc_campaign in ulinc_config.ulinc_campaigns:
+                    try:
+                        if poll_and_save_csv(ulinc_config, ulinc_campaign):
+                            campaign_success_list.append(ulinc_campaign.ulinc_campaign_id)
+                        else:
+                            campaign_fail_list.append(ulinc_campaign.ulinc_campaign_id)
+                    except Exception as err:
+                        logger.error("Poll Ulinc csv error for ulinc_campaign {}: {}".format(ulinc_campaign.ulinc_campaign_id, err))
+                        campaign_fail_list.append(ulinc_campaign.ulinc_campaign_id)
+
+                fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_fail_list})
+                success_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_success_list})
+    return jsonify({"poll_ulinc_csv_fail_list": fail_list if campaign_fail_list else [], "poll_ulinc_csv_success_list": success_list})
+
+@mod_tasks.route('/process_contact_sources', methods=['GET'])
+@check_cron_header
+def process_contact_sources():
+    accounts = db.session.query(Account).filter(and_(
+        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+        Account.account_id != Account.unassigned_account_id
+    )).all()
+
+    fail_list = []
+    success_list = []
+    for account in accounts:
+        for ulinc_config in account.ulinc_configs:
+            task_fail_list = []
+            try:
+                task_res = process_contact_sources_function(account, ulinc_config)
+                if task_res_fail_list := task_res['fail_list']:
+                    task_fail_list = task_res_fail_list
+                    fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "contact_sources_fail_list": task_fail_list})
+                success_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id})
+            except Exception as err:
+                logger.error("Process contact sources error for account {}: {}".format(account.account_id, err))
+                fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "contact_sources_fail_list": task_fail_list})
+    return jsonify({"process_contact_sources_fail_list": fail_list, "process_contact_sources_success_list": success_list})
+
 
 
 @mod_tasks.route('/refresh_ulinc_data', methods=['GET'])
