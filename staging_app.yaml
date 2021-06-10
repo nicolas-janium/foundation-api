@@ -7,3 +7,5 @@ runtime_config:
 
 vpc_access_connector:
   name: projects/foundation-staging-305217/locations/us-central1/connectors/staging-vpc-connector
+
+instance_class: F2

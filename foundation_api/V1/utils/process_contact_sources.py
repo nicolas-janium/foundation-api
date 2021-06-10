@@ -343,7 +343,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
     db.session.commit()
 
 def process_contact_sources_function(account, ulinc_config):
-    contact_sources = db.session.query(Contact_source).filter(Contact_source.account_id == account.account_id).filter(Contact_source.is_processed != 1).order_by(Contact_source.date_added.asc()).all()
+    contact_sources = db.session.query(Contact_source).filter(Contact_source.account_id == account.account_id).filter(Contact_source.is_processed != 1).order_by(Contact_source.date_added.asc()).limit(5).all()
     success_list = []
     fail_list = []
     for contact_source in contact_sources:
