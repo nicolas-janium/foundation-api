@@ -436,7 +436,7 @@ class Janium_campaign(Base):
         for ulinc_campaign in self.ulinc_campaigns:
             contacts_list += ulinc_campaign.get_contacts()
         contact_list = sorted(contacts_list, key = lambda item: item['full_name'])
-        return contact_list
+        return contact_list[0:100] # Just for the demo
     
     def get_dte_new_connections(self):
         new_connections_list = []
