@@ -39,7 +39,7 @@ def check_cron_header(f):
     return decorated
 
 @mod_tasks.route('/poll_ulinc_webhooks', methods=['GET'])
-# @check_cron_header
+@check_cron_header
 def poll_ulinc_webhooks_route_function():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
@@ -118,8 +118,6 @@ def process_contact_sources():
                 fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "contact_sources_fail_list": task_fail_list})
     return jsonify({"process_contact_sources_fail_list": fail_list, "process_contact_sources_success_list": success_list})
 
-
-
 @mod_tasks.route('/refresh_ulinc_data', methods=['GET'])
 @check_cron_header
 def refresh_ulinc_data():
@@ -127,7 +125,6 @@ def refresh_ulinc_data():
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
-
     fail_list = []
     success_list = []
     for account in accounts:
