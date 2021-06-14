@@ -215,13 +215,29 @@ def update_ulinc_campaign():
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
-    if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
-        if ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first():
-            ulinc_campaign.janium_campaign_id = json_body['janium_campaign_id']
-            db.session.commit()
-            return jsonify({"message": "Ulinc campaign associated to Janium campaign successfully"})
-        return jsonify({"message": "Ulinc campaign not found"})
-    return jsonify({"message": "Janium campaign not found"})
+    # return_list = []
+    for ulinc_campaign_id in json_body["ulinc_campaign_ids"]:
+        if ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == ulinc_campaign_id).first():
+            if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
+                ulinc_campaign.janium_campaign_id = janium_campaign.janium_campaign_id
+                ulinc_config = ulinc_campaign.ulinc_config
+                db.session.commit()
+                # return_list.append(
+                #     {
+                #         "ulinc_campaign_id": ulinc_campaign.ulinc_campaign_id,
+                #         "ulinc_campaign_name": ulinc_campaign.ulinc_campaign_name,
+                #         "ulinc_ulinc_campaign_id": ulinc_campaign.ulinc_ulinc_campaign_id,
+                #         "ulinc_campaign_is_active": ulinc_campaign.ulinc_is_active,
+                #         "parent_janium_campaign_id": ulinc_campaign.parent_janium_campaign.janium_campaign_id,
+                #         "parent_janium_campaign_name": ulinc_campaign.parent_janium_campaign.janium_campaign_name
+                #     }
+                # )
+            else:
+                return jsonify({"message": "Janium campaign not found"})
+        else:
+            return jsonify({"message": "Ulinc campaign not found"})
+
+    return jsonify(ulinc_config.get_ulinc_campaigns())
 
 @mod_campaign.route('/janium_campaign_contacts', methods=['GET'])
 @jwt_required()

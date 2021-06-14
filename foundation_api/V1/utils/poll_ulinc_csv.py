@@ -88,10 +88,13 @@ def poll_and_save_csv(ulinc_config, ulinc_campaign):
     if res.ok:
         reader = csv.DictReader(io.StringIO(res.content.decode('utf-8')))
         contact_source_id = str(uuid4())
-        contact_source = Contact_source(contact_source_id, ulinc_config.account_id, 4, list(reader))
-        db.session.add(contact_source)
-        db.session.commit()
-        return 1
+        if csv_data := list(reader):
+            contact_source = Contact_source(contact_source_id, ulinc_config.account_id, 4, csv_data)
+            db.session.add(contact_source)
+            db.session.commit()
+            return contact_source_id
+        print(res.text)
+        return None
     else:
         return None
 

@@ -342,33 +342,24 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                 db.session.add(new_action)
     db.session.commit()
 
-def process_contact_sources_function(account, ulinc_config):
-    contact_sources = db.session.query(Contact_source).filter(Contact_source.account_id == account.account_id).filter(Contact_source.is_processed != 1).order_by(Contact_source.date_added.asc()).limit(5).all()
-    success_list = []
-    fail_list = []
-    for contact_source in contact_sources:
-        if len(contact_source.contact_source_json) > 0: # Sometimes get empty csv's
-            if contact_source.contact_source_type_id != 4:
-                try:
-                    process_webhook(account, ulinc_config, contact_source)
-                    contact_source.is_processed = True
-                    db.session.commit()
-                    success_list.append(contact_source.contact_source_id)
-                except Exception as err:
-                    logger.error("Error while processing contact source {}: {}".format(contact_source.contact_source_id, err))
-                    fail_list.append(contact_source.contact_source)
-            else:
-                ulinc_ulinc_campaign_id = contact_source.contact_source_json[0]['Campaign ID']
-                ulinc_campaign = db.session.query(Ulinc_campaign).filter(and_(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_ulinc_campaign_id, Ulinc_campaign.ulinc_config_id == ulinc_config.ulinc_config_id)).first()
-                try:
-                    process_csv(account, ulinc_config, ulinc_campaign.parent_janium_campaign, ulinc_campaign, contact_source)
-                    contact_source.is_processed = True
-                    db.session.commit()
-                    success_list.append(contact_source.contact_source_id)
-                except Exception as err:
-                    logger.error("Error while process contact source {}: {}".format(contact_source.contact_source_id, err))
-                    fail_list.append(contact_source.contact_source_id)
-        else:
-            contact_source.is_processed = 1
+def process_contact_source_function(account, ulinc_config, contact_source):
+    if contact_source.contact_source_type_id != 4:
+        try:
+            process_webhook(account, ulinc_config, contact_source)
+            contact_source.is_processed = True
             db.session.commit()
-    return {"success_list": success_list, "fail_list": fail_list}
+            return 1
+        except Exception as err:
+            logger.error("Error while processing contact source {}: {}".format(contact_source.contact_source_id, err))
+    else:
+        ulinc_ulinc_campaign_id = contact_source.contact_source_json[0]['Campaign ID']
+        ulinc_campaign = db.session.query(Ulinc_campaign).filter(and_(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_ulinc_campaign_id, Ulinc_campaign.ulinc_config_id == ulinc_config.ulinc_config_id)).first()
+        try:
+            process_csv(account, ulinc_config, ulinc_campaign.parent_janium_campaign, ulinc_campaign, contact_source)
+            print("From process_contact_source_function function. Contact_source_id: {}".format(contact_source.contact_source_id))
+            contact_source.is_processed = True
+            db.session.commit()
+            return 1
+        except Exception as err:
+            logger.error("Error while process contact source {}: {}".format(contact_source.contact_source_id, err))
+    return None

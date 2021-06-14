@@ -72,9 +72,12 @@ def get_ulinc_config():
                     "janium_campaign_id": janium_campaign.janium_campaign_id,
                     "janium_campaign_name": janium_campaign.janium_campaign_name,
                     "janium_campaign_type": "Messenger" if janium_campaign.is_messenger else "Connector",
-                    "janium_campaign_contacts": contacts_count,
-                    "janium_campaign_connected": connections_count,
-                    "janium_campaign_replied": replies_count
+                    # "janium_campaign_contacts": contacts_count,
+                    # "janium_campaign_connected": connections_count,
+                    # "janium_campaign_replied": replies_count
+                    "janium_campaign_contacts": 1219,
+                    "janium_campaign_connected": 461,
+                    "janium_campaign_replied": 89
                 }
             )
         return jsonify(
