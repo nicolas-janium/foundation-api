@@ -187,7 +187,6 @@ def get_ulinc_campaigns():
     """
     Required query params: None
     """
-    json_body = request.get_json(force=True)
     user_id = get_jwt_identity()
     user = db.session.query(User).filter(User.user_id == user_id).first()
 
@@ -204,6 +203,27 @@ def get_ulinc_campaigns():
                 }
             )
         return jsonify(ulinc_campaigns)
+
+@mod_campaign.route('/ulinc_campaign', methods=['GET'])
+@jwt_required()
+def get_ulinc_campaign():
+    """
+    Required query params: None
+    """
+    user_id = get_jwt_identity()
+    ulinc_campaign_id = request.args.get('ulinc_campaign_id')
+
+    if ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == ulinc_campaign_id).first():
+        return jsonify(
+            {
+                # "dte_nc": ulinc_campaign.get_dte_new_connections(),
+                # "dte_nm": ulinc_campaign.get_dte_new_messages(),
+                # "dte_vmt": ulinc_campaign.get_dte_vm_tasks()
+                "total_contacts": ulinc_campaign.get_total_num_contacts(),
+                "total_connections": ulinc_campaign.get_total_num_connections(),
+                "total_responses": ulinc_campaign.get_total_num_responses()
+            }
+        )
 
 @mod_campaign.route('/ulinc_campaign', methods=['PUT'])
 @jwt_required()

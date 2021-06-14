@@ -7,7 +7,7 @@ from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, PrimaryKeyConstraint, String, Table, Text,
                         create_engine, engine, or_, and_)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import backref, query, relationship, sessionmaker
 from sqlalchemy.sql import false, func, text, true
 from workdays import networkdays
 
@@ -433,110 +433,50 @@ class Janium_campaign(Base):
             )
         return sorted(ulinc_campaigns, key = lambda item: item['ulinc_campaign_name'])
     
+    def get_total_num_contacts(self):
+        res = 0
+        for ulinc_campaign in self.ulinc_campaigns:
+            res += ulinc_campaign.get_total_num_contacts()
+        return res
+    
+    def get_total_num_connections(self):
+        res = 0
+        for ulinc_campaign in self.ulinc_campaigns:
+            res += ulinc_campaign.get_total_num_connections()
+        return res
+    
+    def get_total_num_responses(self):
+        res = 0
+        for ulinc_campaign in self.ulinc_campaigns:
+            res += ulinc_campaign.get_total_num_responses()
+        return res
+
+    
     def get_contacts(self):
         contacts_list = []
         for ulinc_campaign in self.ulinc_campaigns:
             contacts_list += ulinc_campaign.get_contacts()
-        contact_list = sorted(contacts_list, key = lambda item: item['contact_id'])
-        return contact_list[0:100] # Just for the demo
+        contact_list = sorted(contacts_list, key = lambda item: item['full_name'])
+        return contact_list
     
     def get_dte_new_connections(self):
-        new_connections_list = []
-
-        contacts = [
-            contact
-            for contact
-            in self.contacts
-            if not contact.actions.filter(Action.action_type_id.in_([2,6,8,9,11])).first() and contact.actions.filter(Action.action_type_id == 1).first()
-        ]
-        for contact in contacts:
-            cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
-
-            if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
-                new_connections_list.append(
-                    {
-                        "contact_id": contact.contact_id,
-                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                        "title": contact.contact_info['ulinc']['title'],
-                        "company": contact.contact_info['ulinc']['company'],
-                        "location": contact.contact_info['ulinc']['location'],
-                        "janium_campaign_id": self.janium_campaign_id,
-                        "janium_campaign_name": self.janium_campaign_name,
-                        "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
-                        "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                        "connection_date": cnxn_action.action_timestamp,
-                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
-                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                    }
-                )
-        return new_connections_list
+        dte_nc_list = []
+        for ulinc_campaign in self.ulinc_campaigns:
+            dte_nc_list += ulinc_campaign.get_dte_new_connections()
+        return sorted(dte_nc_list, key = lambda item: item['connection_date'], reverse=True)
     
     def get_dte_new_messages(self):
-        new_messages_list = []
-
-        contacts = [
-            contact
-            for contact
-            in self.contacts
-            if not contact.actions.filter(Action.action_type_id.in_([11])).first() and contact.actions.filter(Action.action_type_id.in_([2,6])).first()
-        ]
-        for contact in contacts:
-            msg_action = contact.actions.filter(Action.action_type_id.in_([2,6])).order_by(Action.action_timestamp.desc()).first()
-
-            if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
-                new_messages_list.append(
-                    {
-                        "contact_id": contact.contact_id,
-                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                        "title": contact.contact_info['ulinc']['title'],
-                        "company": contact.contact_info['ulinc']['company'],
-                        "location": contact.contact_info['ulinc']['location'],
-                        "janium_campaign_id": self.janium_campaign_id,
-                        "janium_campaign_name": self.janium_campaign_name,
-                        "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
-                        "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                        "msg_timestamp": msg_action.action_timestamp,
-                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
-                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                    }
-                )
-        return new_messages_list
+        dte_nm_list = []
+        for ulinc_campaign in self.ulinc_campaigns:
+            dte_nm_list += ulinc_campaign.get_dte_new_messages()
+        return sorted(dte_nm_list, key = lambda item: item['msg_timestamp'], reverse=True)
     
     def get_dte_vm_tasks(self):
-        vm_tasks_list = []
-        if janium_campaign_steps := self.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
-            if last_step := janium_campaign_steps[0]:
-                contacts = [
-                    contact
-                    for contact
-                    in self.contacts
-                    if not contact.actions.filter(Action.action_type_id.in_([2,6,11])).first() and contact.contact_info['ulinc']['phone']
-                ]
-                for contact in contacts:
-                    cnxn_action = contact.actions.filter(Action.action_type_id == 1).first()
-                    if last_step.janium_campaign_step_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_step_delay + 5:
-                        vm_tasks_list.append(
-                            {
-                                "contact_id": contact.contact_id,
-                                "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                                "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                                "title": contact.contact_info['ulinc']['title'],
-                                "company": contact.contact_info['ulinc']['company'],
-                                "location": contact.contact_info['ulinc']['location'],
-                                "phone": contact.contact_info['ulinc']['phone'],
-                                "janium_campaign_id": self.janium_campaign_id,
-                                "janium_campaign_name": self.janium_campaign_name,
-                                "ulinc_campaign_id": contact.contact_ulinc_campaign.ulinc_campaign_id,
-                                "ulinc_campaign_name": contact.contact_ulinc_campaign.ulinc_campaign_name,
-                                "connection_date": cnxn_action.action_timestamp,
-                                "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
-                                "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                            }
-                        )
-        return vm_tasks_list
-
+        dte_vmt_list = []
+        for ulinc_campaign in self.ulinc_campaigns:
+            dte_vmt_list += ulinc_campaign.get_dte_vm_tasks()
+        return sorted(dte_vmt_list, key = lambda item: item['connection_date'], reverse=True)
+        
     def get_summary_data(self):
         sql_statement = text(
             "   select 'new_connections' as action_type, \
@@ -782,6 +722,31 @@ class Ulinc_campaign(Base):
                 "total": line[5]
             }
         return summary_data
+    
+    def get_total_num_contacts(self):
+        return self.contacts.count()
+
+    def get_total_num_connections(self):
+        return db.session.query(
+            Contact, Action
+        ).filter(
+            Contact.ulinc_campaign_id == self.ulinc_campaign_id
+        ).filter(
+            Action.contact_id == Contact.contact_id
+        ).filter(
+            Action.action_type_id == 1
+        ).count()
+    
+    def get_total_num_responses(self):
+        return db.session.query(
+            Contact, Action
+        ).filter(
+            Contact.ulinc_campaign_id == self.ulinc_campaign_id
+        ).filter(
+            Action.contact_id == Contact.contact_id
+        ).filter(
+            Action.action_type_id.in_([2,6])
+        ).count()
 
     def get_contacts(self):
         contacts_list = []
@@ -810,65 +775,82 @@ class Ulinc_campaign(Base):
     def get_dte_new_connections(self):
         new_connections_list = []
 
-        ### Build this into some type of query in either sql or sqlalchemy ###
-        contacts = [
-            contact
-            for contact
-            in self.contacts.limit(300)
-            if not contact.actions.filter(Action.action_type_id.in_([2,6,8,9,11])).first() and contact.actions.filter(Action.action_type_id == 1).first()
-        ]
-        for contact in contacts:
-            if cnxn_action := contact.actions.filter(Action.action_type_id == 1).first():
-                if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
-                    new_connections_list.append(
-                        {
-                            "contact_id": contact.contact_id,
-                            "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                            "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                            "title": contact.contact_info['ulinc']['title'],
-                            "company": contact.contact_info['ulinc']['company'],
-                            "location": contact.contact_info['ulinc']['location'],
-                            "ulinc_campaign_id": self.ulinc_campaign_id,
-                            "ulinc_campaign_name": self.ulinc_campaign_name,
-                            "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                            "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
-                            "connection_date": cnxn_action.action_timestamp,
-                            "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
-                            "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                        }
-                    )
-        return new_connections_list
+        query_result = db.session.query(
+                Contact, Action
+            ).filter(
+                Contact.ulinc_campaign_id == self.ulinc_campaign_id
+            ).filter(
+                Action.contact_id == Contact.contact_id
+            ).filter(
+                and_(Action.action_type_id.notin_([2,6,8,9,11]), Action.action_type_id.in_([1]))
+            ).order_by(
+                Contact.contact_id, Action.action_timestamp.desc()
+            ).all()
+        for item in query_result:
+            item_dict = item._asdict()
+            cnxn_action = item_dict['Action']
+            contact = item_dict['Contact']
+            if 0 <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
+                new_connections_list.append(
+                    {
+                        "contact_id": contact.contact_id,
+                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
+                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                        "title": contact.contact_info['ulinc']['title'],
+                        "company": contact.contact_info['ulinc']['company'],
+                        "location": contact.contact_info['ulinc']['location'],
+                        "ulinc_campaign_id": self.ulinc_campaign_id,
+                        "ulinc_campaign_name": self.ulinc_campaign_name,
+                        "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
+                        "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                        "connection_date": cnxn_action.action_timestamp,
+                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
+                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+                    }
+                )
+        return sorted(new_connections_list, key = lambda item: item['connection_date'], reverse=True)
     
     def get_dte_new_messages(self):
         new_messages_list = []
+        prev_contact_id = ''
 
-        contacts = [
-            contact
-            for contact
-            in self.contacts.limit(300)
-            if not contact.actions.filter(Action.action_type_id.in_([11])).first() and contact.actions.filter(Action.action_type_id.in_([2,6])).first()
-        ]
-        for contact in contacts:
-            if msg_action := contact.actions.filter(Action.action_type_id.in_([2,6])).order_by(Action.action_timestamp.desc()).first():
-                if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
-                    new_messages_list.append(
-                        {
-                            "contact_id": contact.contact_id,
-                            "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                            "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                            "title": contact.contact_info['ulinc']['title'],
-                            "company": contact.contact_info['ulinc']['company'],
-                            "location": contact.contact_info['ulinc']['location'],
-                            "ulinc_campaign_id": self.ulinc_campaign_id,
-                            "ulinc_campaign_name": self.ulinc_campaign_name,
-                            "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                            "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
-                            "msg_timestamp": msg_action.action_timestamp,
-                            "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
-                            "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                        }
-                    )
-        return new_messages_list
+        query_result = db.session.query(
+                Contact, Action
+            ).filter(
+                Contact.ulinc_campaign_id == self.ulinc_campaign_id
+            ).filter(
+                Action.contact_id == Contact.contact_id
+            ).filter(
+                and_(Action.action_type_id.notin_([11]), Action.action_type_id.in_([2,6]))
+            ).order_by(
+                Contact.contact_id, Action.action_timestamp.desc()
+            ).all()
+        for item in query_result:
+            item_dict = item._asdict()
+            msg_action = item_dict['Action']
+            contact = item_dict['Contact']
+            if 0 <= networkdays(msg_action.action_timestamp, datetime.utcnow()) - 1 <= 2:
+                if contact.contact_id == prev_contact_id:
+                    continue
+                prev_contact_id = contact.contact_id
+                new_messages_list.append(
+                    {
+                        "contact_id": contact.contact_id,
+                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
+                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                        "title": contact.contact_info['ulinc']['title'],
+                        "company": contact.contact_info['ulinc']['company'],
+                        "location": contact.contact_info['ulinc']['location'],
+                        "ulinc_campaign_id": self.ulinc_campaign_id,
+                        "ulinc_campaign_name": self.ulinc_campaign_name,
+                        "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
+                        "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                        "msg_timestamp": msg_action.action_timestamp,
+                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
+                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+                    }
+                )
+        return sorted(new_messages_list, key = lambda item: item['msg_timestamp'], reverse=True)
     
     def get_dte_vm_tasks(self):
         vm_tasks_list = []
@@ -876,34 +858,41 @@ class Ulinc_campaign(Base):
         if janium_campaign.janium_campaign_id != Janium_campaign.unassigned_janium_campaign_id:
             if janium_campaign_steps := janium_campaign.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
                 if last_step := janium_campaign_steps[0]:
-                    contacts = [
-                        contact
-                        for contact
-                        in self.contacts.limit(100)
-                        if not contact.actions.filter(Action.action_type_id.in_([2,6,11])).first() and contact.contact_info['ulinc']['phone']
-                    ]
-                    for contact in contacts:
-                        if cnxn_action := contact.actions.filter(Action.action_type_id == 1).first():
-                            if last_step.janium_campaign_step_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_step_delay + 5:
-                                vm_tasks_list.append(
-                                    {
-                                        "contact_id": contact.contact_id,
-                                        "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
-                                        "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
-                                        "title": contact.contact_info['ulinc']['title'],
-                                        "company": contact.contact_info['ulinc']['company'],
-                                        "location": contact.contact_info['ulinc']['location'],
-                                        "phone": contact.contact_info['ulinc']['phone'],
-                                        "ulinc_campaign_id": self.ulinc_campaign_id,
-                                        "ulinc_campaign_name": self.ulinc_campaign_name,
-                                        "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                                        "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
-                                        "connection_date": cnxn_action.action_timestamp,
-                                        "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
-                                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
-                                    }
-                                )
-        return vm_tasks_list
+                    query_result = db.session.query(
+                        Contact, Action
+                    ).filter(
+                        Contact.ulinc_campaign_id == self.ulinc_campaign_id
+                    ).filter(
+                        Action.contact_id == Contact.contact_id
+                    ).filter(
+                        and_(Action.action_type_id.notin_([2,6,11]), Action.action_type_id.in_([1]))
+                    ).order_by(
+                        Contact.contact_id, Action.action_timestamp.desc()
+                    ).all()
+                    for item in query_result:
+                        item_dict = item._asdict()
+                        cnxn_action = item_dict['Action']
+                        contact = item_dict['Contact']
+                        if last_step.janium_campaign_step_delay <= networkdays(cnxn_action.action_timestamp, datetime.utcnow()) - 1 <= last_step.janium_campaign_step_delay + 5:
+                            vm_tasks_list.append(
+                                {
+                                    "contact_id": contact.contact_id,
+                                    "full_name": contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name'],
+                                    "li_profile_url": contact.contact_info['ulinc']['li_profile_url'] if contact.contact_info['ulinc']['li_profile_url'] else contact.contact_info['ulinc']['li_salesnav_profile_url'],
+                                    "title": contact.contact_info['ulinc']['title'],
+                                    "company": contact.contact_info['ulinc']['company'],
+                                    "location": contact.contact_info['ulinc']['location'],
+                                    "phone": contact.contact_info['ulinc']['phone'],
+                                    "ulinc_campaign_id": self.ulinc_campaign_id,
+                                    "ulinc_campaign_name": self.ulinc_campaign_name,
+                                    "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
+                                    "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                                    "connection_date": cnxn_action.action_timestamp,
+                                    "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
+                                    "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+                                }
+                            )
+        return sorted(vm_tasks_list, key = lambda item: item['connection_date'], reverse=True)
 
 class Contact(Base):
     __tablename__ = 'contact'
