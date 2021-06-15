@@ -1,17 +1,14 @@
-import os
-import random
-import string
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from uuid import uuid4
 from threading import Thread
 
-from flask import Blueprint, jsonify, request, make_response
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt, get_jwt_identity, create_refresh_token, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
-from flask_mail import Message
+from flask import Blueprint, jsonify, request, make_response, current_app
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token, set_access_cookies, unset_jwt_cookies
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_auth.models import User, Account, User_account_map, Account_group, Time_zone, Permission
+from foundation_api import bcrypt, mail
+from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import User, Account, User_account_map, Account_group, Time_zone, Permission
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/api/v1')
 
@@ -204,7 +201,7 @@ I suggest on the react app. We create an endpoint that swaps the passwords
 """
 
 def send_reset_email(app, token, email):
-    with app.app_context():
+    with current_app.app_context():
         mail.send_email(
             from_email=app.config['SENDGRID_DEFAULT_FROM'],
             to_email=email,
@@ -220,11 +217,11 @@ def reset_user_password_request():
     if user := db.session.query(User).filter(User.username == username).first():
 
         ### Create token to be sent in email ###
-        s = Serializer(app.config['SECRET_KEY'], 1800)
+        s = Serializer(current_app.config['SECRET_KEY'], 1800)
         token = s.dumps({'user_id': user.user_id}).decode('utf-8')
 
         ### Send email asynchronously ###
-        Thread(target=send_reset_email, args=(app, token, user_email)).start()
+        Thread(target=send_reset_email, args=(current_app, token, user_email)).start()
 
         return jsonify({"message": "Reset password email sent"})
     else:
@@ -236,7 +233,7 @@ def reset_user_password(token):
     new_password = json_body['password']
 
     ### Decode token and see if valid. User_id in token ###
-    s = Serializer(app.config['SECRET_KEY'])
+    s = Serializer(current_app.config['SECRET_KEY'])
     if user_id := s.loads(token)['user_id']:
 
         if user := db.session.query(User).filter(User.user_id == user_id).first():

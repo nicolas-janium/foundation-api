@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from threading import Thread
 
-from flask import Blueprint, json, jsonify, request, make_response
-from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from flask import Blueprint, jsonify, request, make_response
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_onboard.models import User, Account, Ulinc_config, Credentials, Cookie, Email_config, Email_server
+from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import User, Ulinc_config, Credentials, Cookie, Email_config
 from foundation_api.V1.utils.ulinc import get_ulinc_client_info
 from foundation_api.V1.utils.ses import send_forwarding_verification_email, verify_ses_dkim
 

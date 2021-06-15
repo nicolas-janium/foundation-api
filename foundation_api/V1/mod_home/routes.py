@@ -1,12 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from uuid import uuid4
-import os
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from foundation_api import db
-from foundation_api.V1.mod_home.models import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action, Janium_campaign, Ulinc_campaign
+from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action, Janium_campaign, Ulinc_campaign
 from foundation_api.V1.utils.ulinc import get_ulinc_tasks_count
 
 mod_home = Blueprint('home', __name__, url_prefix='/api/v1')

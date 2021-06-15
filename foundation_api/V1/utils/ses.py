@@ -2,13 +2,8 @@ import boto3
 import os
 from email.message import EmailMessage
 from email.header import Header
-from html2text import html2text
-import css_inline
 from minify_html import minify
-from pprint import pprint
 from foundation_api.V1.utils.send_email import add_tracker
-from bs4 import BeautifulSoup as Soup
-from bs4 import NavigableString
 
 client = boto3.client(
     'ses',

@@ -10,9 +10,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, query, relationship, sessionmaker
 from sqlalchemy.sql import false, func, text, true
 from workdays import networkdays
+from flask_sqlalchemy import SQLAlchemy
+from flask import current_app
 
+db = SQLAlchemy()
 
-from foundation_api import db
+# from foundation_api import db
 
 Base = declarative_base()
 

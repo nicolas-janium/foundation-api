@@ -1,16 +1,11 @@
-from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from datetime import datetime
 import logging
-from functools import wraps
-import pytz
-import json
 
-from flask import Blueprint, jsonify, request, make_response
-from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
-from sqlalchemy import and_, or_
+from flask import Blueprint, jsonify, request
+from sqlalchemy import and_
 
-from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_tasks.models import Account, Ulinc_config, Contact_source
+from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_ulinc_webhooks, poll_and_save_webhook
