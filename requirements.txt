@@ -49,6 +49,7 @@ PyJWT==2.0.1
 PyMySQL==1.0.2
 pyngrok==5.0.5
 pyparsing==2.4.7
+pytest==6.2.4
 python-dotenv==0.17.0
 pytz==2021.1
 PyYAML==5.4.1
