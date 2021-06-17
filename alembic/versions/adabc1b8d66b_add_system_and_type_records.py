@@ -90,6 +90,13 @@ def upgrade():
             password='$2y$12$licUV4DEBt6eV5.8Zh1gROdBOKtHOZ87ihUHj5rFePTmVcOeaygCW '
         )
     )
+    op.execute(
+        credentials.insert().values(
+            credentials_id=model.Credentials.unassigned_credentials_id,
+            username='unassigned',
+            password='123'
+        )
+    )
 
     janium_master_id = str(uuid.uuid4())
     op.bulk_insert(user,

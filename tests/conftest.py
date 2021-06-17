@@ -15,7 +15,6 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.join(TEST_DIR, os.pardir))
 sys.path.insert(0, PROJECT_DIR)
 
-# ALEMBIC_CONFIG = '{}/alembic.ini'.format(PROJECT_DIR)
 ALEMBIC_CONFIG = 'alembic.ini'
 
 
@@ -52,9 +51,8 @@ def apply_migrations(teardown=False):
 def db(app, request):
     """Session-wide test database."""
     def teardown():
-        # apply_migrations(teardown=True)
+        apply_migrations(teardown=True)
         # _db.drop_all()
-        pass
 
     _db.app = app
     apply_migrations()
@@ -81,6 +79,10 @@ def session(db, request):
 
     request.addfinalizer(teardown)
     return session
+ 
+
+
+
 
 class AuthActions(object):
     def __init__(self, test_app):
@@ -111,16 +113,6 @@ class AuthActions(object):
             '/api/v1/login',
             headers=headers
         )
-    def logout(self, token):
-        headers={
-            'content-type': 'application/json',
-            'Authorization': 'Bearer {}'.format(token)
-        }
-        return self._client.post(
-            '/api/v1/logout',
-            headers=headers
-        )
-
 @pytest.fixture
 def auth(test_app):
     return AuthActions(test_app)
