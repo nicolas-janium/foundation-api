@@ -33,7 +33,7 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 from foundation_api.V1.sa_db.model import db
 Base = db.Model
-target_metadata = Base.metadata
+target_metadata = db.Model.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
