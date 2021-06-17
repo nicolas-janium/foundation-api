@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from foundation_api.V1.sa_db.model import Base
+# from foundation_api.V1.sa_db.model import Base
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,7 +15,7 @@ db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
         os.getenv('DB_PASSWORD'),
         os.getenv('DB_PUBLIC_HOST') if os.getenv('IS_BUILD') else os.getenv('DB_HOST'),
         os.getenv('DB_PORT', 3306),
-        os.getenv('DB_NAME')
+        os.getenv('DB_NAME') if not os.getenv('FLASK_TESTING') else 'testing_db'
     )
 
 # this is the Alembic Config object, which provides
@@ -31,6 +31,8 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
+from foundation_api.V1.sa_db.model import db
+Base = db.Model
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

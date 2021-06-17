@@ -11,56 +11,10 @@ from sqlalchemy.orm import backref, query, relationship, sessionmaker
 from sqlalchemy.sql import false, func, text, true
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
-from flask import current_app
 
 db = SQLAlchemy()
 
-# from foundation_api import db
-
-Base = declarative_base()
-
-
-# def get_session(is_remote=False, environment=None):
-#     if not os.getenv('LOCAL_DEV'):
-#         db_url = engine.url.URL(
-#             drivername='mysql+pymysql',
-#             username= os.getenv('DB_USER'),
-#             password= os.getenv('DB_PASSWORD'),
-#             database= os.getenv('DB_DATABASE'),
-#             host= os.getenv('DB_PRIVATE_HOST')
-#         )
-#     else:
-#         if is_remote:
-#             if environment == 'staging':
-#                 db_url = engine.url.URL(
-#                     drivername='mysql+pymysql',
-#                     username= os.getenv('STAGING_DB_USER'),
-#                     password= os.getenv('STAGING_DB_PASSWORD'),
-#                     database= os.getenv('STAGING_DB_DATABASE'),
-#                     host= os.getenv('STAGING_DB_PUBLIC_HOST'),
-#                 )
-#             elif environment == 'production':
-#                 db_url = engine.url.URL(
-#                     drivername='mysql+pymysql',
-#                     username= os.getenv('PROD_DB_USER'),
-#                     password= os.getenv('PROD_DB_PASSWORD'),
-#                     database= os.getenv('PROD_DB_DATABASE'),
-#                     host= os.getenv('PROD_DB_PUBLIC_HOST'),
-#                 )
-#         else:
-#             db_url = engine.url.URL(
-#                 drivername='mysql+pymysql',
-#                 username= os.getenv('LOCAL_DB_USER'),
-#                 password= os.getenv('LOCAL_DB_PASSWORD'),
-#                 database= os.getenv('LOCAL_DB_DATABASE'),
-#                 host= os.getenv('LOCAL_DB_HOST'),
-#                 port= os.getenv('LOCAL_DB_PORT')
-#             )
-#     sql_engine = create_engine(db_url)
-#     return sessionmaker(bind=sql_engine)()
-
-
-class Account(Base):
+class Account(db.Model):
     __tablename__ = 'account'
     unassigned_account_id = '8acafb6b-3ce5-45b5-af81-d357509ba457'
 
@@ -110,7 +64,7 @@ class Account(Base):
     ulinc_configs = relationship('Ulinc_config', backref=backref('ulinc_config_account', uselist=False), uselist=True, lazy=True)
     time_zone = relationship('Time_zone', backref=backref('tz_account', uselist=True), uselist=False, lazy=True)
 
-class Account_type(Base):
+class Account_type(db.Model):
     __tablename__ = 'account_type'
 
     def __init__(self, account_type_id, account_type_name, account_type_description):
@@ -123,12 +77,12 @@ class Account_type(Base):
     account_type_description = Column(String(256), nullable=False)
     date_added = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
 
-class User(Base):
+class User(db.Model):
     __tablename__ = 'user'
     unassigned_user_id = '9d34bb21-7037-4709-bb0f-e1e8b1491506'
     system_user_id = 'a0bcc7a2-5e2b-41c6-9d5c-ba8ebb01c03d'
 
-    def __init__(self, user_id, first_name, last_name, title, company, location, primary_email, additional_contact_info, phone, updated_by, username, password):
+    def __init__(self, user_id, first_name, last_name, title, company, location, primary_email, additional_contact_info, phone, username, password):
         self.user_id = user_id
         self.first_name = first_name
         self.last_name = last_name
@@ -138,7 +92,6 @@ class User(Base):
         self.primary_email = primary_email
         self.additional_contact_info = additional_contact_info
         self.phone = phone
-        self.updated_by = updated_by
         self.username = username
         self.password = password
     
@@ -159,7 +112,7 @@ class User(Base):
 
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-    updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
+    # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
     accounts = relationship('User_account_map', back_populates='user')
     # permissions = relationship('User_permission_map', back_populates='permission_user')
@@ -167,7 +120,7 @@ class User(Base):
     # permissions = relationship('User_permission_map')
 
 
-class User_account_map(Base):
+class User_account_map(db.Model):
     __tablename__ = 'user_account_map'
 
     def __init__(self, user_id, account_id, permission_id):
@@ -190,7 +143,7 @@ class User_account_map(Base):
     # account = relationship('Account', foreign_keys=[account_id])
 
 
-class User_proxy_map(Base):
+class User_proxy_map(db.Model):
     __tablename__ = 'user_proxy_map'
 
     def __init__(self, user_id, account_id):
@@ -209,7 +162,7 @@ class User_proxy_map(Base):
     # user = relationship('User', foreign_keys=[user_id])
     # account = relationship('Account', foreign_keys=[account_id])
 
-class User_permission_map(Base):
+class User_permission_map(db.Model):
     __tablename__ = 'user_permission_map'
 
     def __init__(self, user_id, permission_id):
@@ -228,7 +181,7 @@ class User_permission_map(Base):
     # user = relationship('User', foreign_keys=[user_id])
     # permission = relationship('Permission', foreign_keys=[permission_id])
 
-class Permission(Base):
+class Permission(db.Model):
     __tablename__ = 'permission'
     default_permission_id = '2e9b5679-134d-4b6e-9a4d-6e14138eab22'
 
@@ -248,7 +201,7 @@ class Permission(Base):
 
     # users = relationship('User_permission_map', back_populates='permission_user')
 
-class Permission_hierarchy(Base):
+class Permission_hierarchy(db.Model):
     __tablename__ = 'permission_hierarchy'
 
     def __init__(self, permission_hierarchy_id, parent_permission_id, child_permission_id):
@@ -266,7 +219,7 @@ class Permission_hierarchy(Base):
 
     # users = relationship('User_permission_map', back_populates='permission_user')
 
-class Login_credential(Base):
+class Login_credential(db.Model):
     __tablename__ = 'login_credential'
 
     def __init__(self, login_credential_id, user_id, login_credential):
@@ -287,7 +240,7 @@ class Login_credential(Base):
 
 
 
-class Account_group(Base):
+class Account_group(db.Model):
     __tablename__ = 'account_group'
     janium_account_group_id = '972fac9f-7adc-4940-86cc-95956df64ce8'
     unassigned_account_group_id = '7c22e0c6-a778-41e5-9f22-37b06c18f34a'
@@ -324,10 +277,10 @@ class Account_group(Base):
     # SQLAlchemy Relationships and Backreferences
     accounts = relationship('Account', backref=backref('account_group', uselist=False), lazy=False)
     # account_group_manager = relationship('Account_group_manager', backref=backref('account_groups', uselist=True), uselist=False, lazy=True)
-    dte = relationship('Dte', uselist=False, lazy=True)
-    dte_sender = relationship('Dte_sender', uselist=False, lazy=True)
+    dte = relationship('Dte', backref=backref('dte_account_group'), uselist=False, lazy=True)
+    dte_sender = relationship('Dte_sender', backref=backref('dte_sender_account_group'), uselist=False, lazy=True)
 
-class User_account_group_map(Base):
+class User_account_group_map(db.Model):
     __tablename__ = 'user_account_group_map'
 
     def __init(self, user_id, account_group_id):
@@ -342,7 +295,7 @@ class User_account_group_map(Base):
     updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
 
-class Janium_campaign(Base):
+class Janium_campaign(db.Model):
     __tablename__ = 'janium_campaign'
     unassigned_janium_campaign_id = '65c96bb2-0c32-4858-a913-ca0cd902f1fe'
 
@@ -552,7 +505,7 @@ class Janium_campaign(Base):
         return summary_data
 
 
-class Janium_campaign_step(Base):
+class Janium_campaign_step(db.Model):
     __tablename__ = 'janium_campaign_step'
 
     def __init__(self, janium_campaign_step_id, janium_campaign_id, janium_campaign_step_type_id,
@@ -595,7 +548,7 @@ class Janium_campaign_step(Base):
     janium_campaign_step_type = relationship('Janium_campaign_step_type', uselist=False, lazy=True)
 
 
-class Janium_campaign_step_type(Base):
+class Janium_campaign_step_type(db.Model):
     __tablename__ = 'janium_campaign_step_type'
 
     def __init__(self, janium_campaign_step_type_id, janium_campaign_step_type_name, janium_campaign_step_type_description):
@@ -618,7 +571,7 @@ class Janium_campaign_step_type(Base):
     # SQLAlchemy Relationships and Backreferences
 
 
-class Ulinc_campaign(Base):
+class Ulinc_campaign(db.Model):
     __tablename__ = 'ulinc_campaign'
     unassigned_ulinc_campaign_id = '943c18f3-74c8-45cf-a396-1ddc89c6b9d2'
 
@@ -897,7 +850,7 @@ class Ulinc_campaign(Base):
                             )
         return sorted(vm_tasks_list, key = lambda item: item['connection_date'], reverse=True)
 
-class Contact(Base):
+class Contact(db.Model):
     __tablename__ = 'contact'
     unassigned_contact_id = '9b84cf42-80f5-4cb4-80e6-7da4632b8177'
 
@@ -958,7 +911,7 @@ class Contact(Base):
         return emails
 
 
-class Action(Base):
+class Action(db.Model):
     __tablename__ = 'action'
 
     def __init__(self, action_id, contact_id, action_type_id, action_timestamp, action_message, to_email_addr=None, email_message_id=None):
@@ -990,7 +943,7 @@ class Action(Base):
     action_type = relationship('Action_type', uselist=False, lazy=True)
 
 
-class Action_type(Base): # (messenger_origin_message, new_connection_date{backdate contacts})
+class Action_type(db.Model): # (messenger_origin_message, new_connection_date{backdate contacts})
     __tablename__ = 'action_type'
 
     def __init__(self, action_type_id, action_type_name, action_type_description):
@@ -1013,7 +966,7 @@ class Action_type(Base): # (messenger_origin_message, new_connection_date{backda
     # SQLAlchemy Relationships and Backreferences
 
 
-class Contact_source(Base):
+class Contact_source(db.Model):
     __tablename__ = 'contact_source'
     unassigned_contact_source_id = '950e964d-29bd-4ac6-96c4-8b27fadd8dee'
 
@@ -1041,7 +994,7 @@ class Contact_source(Base):
     # SQLAlchemy Relationships and Backreferences
     contacts = relationship('Contact', backref=backref('contact_source', uselist=False), lazy=False)
 
-class Contact_source_type(Base):
+class Contact_source_type(db.Model):
     __tablename__ = 'contact_source_type'
 
     def __init__(self, contact_source_type_id, contact_source_type_name, contact_source_type_description):
@@ -1064,7 +1017,7 @@ class Contact_source_type(Base):
     # SQLAlchemy Relationships and Backreferences
 
 
-class Dte_sender(Base):
+class Dte_sender(db.Model):
     __tablename__ = 'dte_sender'
     janium_dte_sender_id = '5202aea8-ab36-4e6d-9cda-5994d2c0bbe1'
     unassigned_dte_sender_id = 'd07a45e1-8baa-4593-ae54-452697e7f559'
@@ -1089,7 +1042,7 @@ class Dte_sender(Base):
     email_config = relationship('Email_config', uselist=False, lazy=True)
 
 
-class Dte(Base):
+class Dte(db.Model):
     __tablename__ = 'dte'
     janium_dte_id = '38429485-59e1-4eeb-a4bb-05696ead8e49'
     unassigned_dte_id = 'e18bd1b0-b404-41ac-a5e4-bcb112ced90d'
@@ -1119,7 +1072,7 @@ class Dte(Base):
     # SQLAlchemy Relationships and Backreferences
 
 
-class Email_config(Base):
+class Email_config(db.Model):
     __tablename__ = 'email_config'
     janium_email_config_id = '709f79b3-7a20-43ff-844a-4f014fa4e406'
     unassigned_email_config_id = '7c5c4aa2-2c6e-4e3d-947e-6efdae4366a1'
@@ -1186,7 +1139,7 @@ class Email_config(Base):
     credentials = relationship('Credentials', backref=backref('email_config', uselist=False), uselist=False, lazy=True)
     email_server = relationship('Email_server', uselist=False, lazy=True)
 
-class Email_server(Base):
+class Email_server(db.Model):
     __tablename__ = 'email_server'
     gmail_id = '936dce84-b50f-4b72-824f-b01989b20500'
 
@@ -1218,7 +1171,7 @@ class Email_server(Base):
     # SQLAlchemy Relationships and Backreferences
 
 
-class Ulinc_config(Base):
+class Ulinc_config(db.Model):
     __tablename__ = 'ulinc_config'
     unassigned_ulinc_config_id = 'dff0e400-b338-4bc5-bb99-617bade305bd'
 
@@ -1317,7 +1270,7 @@ class Ulinc_config(Base):
         return vm_tasks_list[0:100]
 
 
-class Credentials(Base):
+class Credentials(db.Model):
     __tablename__ = 'credentials'
     janium_email_app_credentials_id = 'a217fb95-0a28-49ba-a18a-a0298d0b68b3'
     unassigned_credentials_id = '264f534f-d36e-4c3c-9614-9760f47ee0e3'
@@ -1345,7 +1298,7 @@ class Credentials(Base):
     # SQLAlchemy Relationships and Backreferences
 
 
-class Cookie(Base):
+class Cookie(db.Model):
     __tablename__ = 'cookie'
     unassigned_cookie_id = 'dd0dfdaa-3d58-4d96-85dc-cd68307f528d'
 
@@ -1375,7 +1328,7 @@ class Cookie(Base):
     cookie_type = relationship('Cookie_type', uselist=False, lazy=True)
 
 
-class Cookie_type(Base):
+class Cookie_type(db.Model):
     __tablename__ = 'cookie_type'
 
     def __init__(self, cookie_type_id, cookie_type_name, cookie_type_description):
@@ -1398,7 +1351,7 @@ class Cookie_type(Base):
 
     # SQLAlchemy Relationships and Backreferences
 
-class Time_zone(Base):
+class Time_zone(db.Model):
     __tablename__ = 'time_zone'
 
     def __init__(self, time_zone_id, time_zone_name, time_zone_code):

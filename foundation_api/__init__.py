@@ -12,13 +12,13 @@ jwt = JWTManager()
 mail = SendGrid()
 cors = CORS()
 
-def create_app(test_config=None):
+def create_app(test_config=False):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    if test_config is None:
+    if not test_config:
         app.config.from_object('config')
     else:
-        app.config.from_mapping(test_config)
+        app.config.from_object('test_config')
 
     # ensure the instance folder exists
     try:
