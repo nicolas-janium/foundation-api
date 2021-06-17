@@ -1018,11 +1018,10 @@ class Cookie(db.Model):
     __tablename__ = 'cookie'
     unassigned_cookie_id = 'dd0dfdaa-3d58-4d96-85dc-cd68307f528d'
 
-    def __init__(self, cookie_id, cookie_type_id, cookie_json_value, updated_by):
+    def __init__(self, cookie_id, cookie_type_id, cookie_json_value):
         self.cookie_id = cookie_id
         self.cookie_type_id = cookie_type_id
         self.cookie_json_value = cookie_json_value
-        self.updated_by = updated_by
 
     # Primary Keys
     cookie_id = Column(String(36), primary_key=True)

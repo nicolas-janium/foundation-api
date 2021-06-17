@@ -47,8 +47,7 @@ def create_ulinc_config():
                 ulinc_cookie = Cookie(
                     str(uuid4()),
                     1,
-                    ulinc_client_info['user_cookie'],
-                    User.system_user_id
+                    ulinc_client_info['user_cookie']
                 )
                 db.session.add(ulinc_cookie)
                 new_ulinc_config_id = str(uuid4())
