@@ -11,11 +11,11 @@ TESTING = True
 
 SQLALCHEMY_DATABASE_URI = engine.url.URL(
     drivername='mysql+pymysql',
-    username= os.getenv('DB_USER'),
-    password= os.getenv('DB_PASSWORD'),
-    database= 'testing_db',
-    host= os.getenv('DB_HOST'),
-    port= os.getenv('DB_PORT', 3306)
+    username= os.getenv('TESTING_DB_USER'),
+    password= os.getenv('TESTING_DB_PASSWORD'),
+    database= os.getenv('TESTING_DB_DATABASE'),
+    host= os.getenv('TESTING_DB_PUBLIC_HOST'),
+    port= 3306
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
