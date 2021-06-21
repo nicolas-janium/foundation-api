@@ -29,12 +29,10 @@ del logging
 URL = "http://unicode.org/Public/emoji/12.0/emoji-test.txt"
 
 # # Directory location for cached downloaded codes
-# DIRECTORY = os.path.join(os.path.expanduser("~"), ".demoji")
+DIRECTORY = ".demoji"
 
 # # Filepath of the cached downloaded codes
-# CACHEPATH = os.path.join(DIRECTORY, "codes.json")
-
-CACHEPATH = "./.demoji/codes.json"
+CACHEPATH = os.path.join(DIRECTORY, "codes.json")
 
 _zero = datetime.timedelta(0)
 
