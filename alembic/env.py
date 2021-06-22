@@ -5,12 +5,21 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from foundation_api.V1.sa_db.model import Base
+# from foundation_api.V1.sa_db.model import Base
 from dotenv import load_dotenv
 
 load_dotenv()
 
-db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
+if os.getenv('FLASK_TESTING'):
+    db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
+        os.getenv('TESTING_DB_USER'),
+        os.getenv('TESTING_DB_PASSWORD'),
+        os.getenv('TESTING_DB_PUBLIC_HOST'),
+        3306,
+        os.getenv('TESTING_DB_DATABASE')
+    )
+else:
+    db_url = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
         os.getenv('DB_USER'),
         os.getenv('DB_PASSWORD'),
         os.getenv('DB_PUBLIC_HOST') if os.getenv('IS_BUILD') else os.getenv('DB_HOST'),
@@ -31,7 +40,9 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+from foundation_api.V1.sa_db.model import db
+Base = db.Model
+target_metadata = db.Model.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

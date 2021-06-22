@@ -3,14 +3,10 @@ import json
 import logging
 import os
 import smtplib
-import time
 from datetime import datetime, timedelta
 from email.header import Header
 from email.message import EmailMessage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from email.utils import make_msgid
-from pprint import pprint
 from uuid import uuid4
 import pytz
 import math
@@ -20,9 +16,7 @@ from bs4 import BeautifulSoup as Soup
 import boto3
 from botocore.exceptions import ClientError
 from html2text import html2text
-from sqlalchemy import or_, and_
 from workdays import networkdays
-from foundation_api import db
 from foundation_api.V1.sa_db.model import *
 
 logger = logging.getLogger('send_email_task')

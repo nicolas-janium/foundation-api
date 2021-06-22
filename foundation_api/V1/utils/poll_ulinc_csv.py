@@ -1,19 +1,11 @@
-import base64
-import json
-import logging
-import os
-from datetime import datetime, timedelta
-from pprint import pprint
+from datetime import datetime
 from uuid import uuid4
 import csv
-import json
 import io
 
-import pytz
 import requests
 from nameparser import HumanName
 from urllib3.exceptions import InsecureRequestWarning
-from foundation_api import db
 import foundation_api.V1.utils.demoji_module as demoji
 from foundation_api.V1.sa_db.model import *
 

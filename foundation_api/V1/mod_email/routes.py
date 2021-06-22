@@ -1,21 +1,17 @@
 import email
 import json
 import os
-import random
-import string
-from datetime import datetime, timedelta, timezone
-from threading import Thread
+from datetime import datetime
 from uuid import uuid4
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
-from pprint import pprint
 
 import requests
 from bs4 import BeautifulSoup as Soup
-from flask import Blueprint, jsonify, make_response, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
-from foundation_api import app, bcrypt, db, mail
-from foundation_api.V1.mod_email.models import Action, Email_config, User, Contact
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt_identity
+from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import Action, Email_config, User, Contact
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')

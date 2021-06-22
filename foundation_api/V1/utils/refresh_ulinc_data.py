@@ -7,7 +7,6 @@ import os
 
 import requests
 from bs4 import BeautifulSoup as Soup
-from foundation_api import db
 from foundation_api.V1.sa_db.model import *
 
 def get_cookie(username, password):

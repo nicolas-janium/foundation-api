@@ -1,23 +1,15 @@
 import base64
 import json
 import logging
-import os
-import time
 from datetime import datetime, timedelta
-from pprint import pprint
-from typing import final
 from uuid import uuid4
 import pytz
 import math
 
 import requests
 import urllib3
-from urllib import parse
 from bs4 import BeautifulSoup as Soup
-from html2text import html2text
-from sqlalchemy import or_, and_
 from workdays import networkdays
-from foundation_api import db
 from foundation_api.V1.sa_db.model import *
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
