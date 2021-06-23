@@ -28,6 +28,10 @@ def refresh():
 
 @mod_auth.route('/signup', methods=['POST'])
 def create_user():
+    """
+        required JSON keys: username, password, first_name, last_name, title, company, 
+        time_zone_code (US/Mountain, US/Pacific, US/Central, US/Eastern)
+    """
     if json_body := request.get_json():
         if existing_username := db.session.query(Credentials).filter(Credentials.username == json_body['username']).first():
             return make_response(jsonify({"message": "Username already exists"}), 200)
@@ -93,9 +97,9 @@ def login_user():
             response = make_response(jsonify({"message": "Login successfull", "access_token": access_token, "refresh_token": refresh_token}), 200)
             return response
         else:
-            return make_response(jsonify({"message": "Invalid password"}), 200)
+            return make_response(jsonify({"message": "Incorrect Password"}), 200)
     else:
-        return make_response(jsonify({"message": "Invalid username"}), 200)
+        return make_response(jsonify({"message": "Username not found"}), 200)
 
 @mod_auth.route('/update_user', methods=['PUT'])
 @jwt_required()
