@@ -37,7 +37,7 @@ def get_janium_campaign():
             ulinc_config = janium_campaign.janium_campaign_ulinc_config
             refreshed_ulinc_campaigns = False
             try:
-                refresh_ulinc_campaigns(janium_campaign.janium_campaign_account, ulinc_config)
+                refresh_ulinc_campaigns(ulinc_config.ulinc_config_account, ulinc_config)
                 refreshed_ulinc_campaigns = True
             except Exception as err:
                 print(err)
@@ -68,7 +68,7 @@ def get_janium_campaign():
 def create_janium_campaign():
     """
     Required JSON keys: ulinc_config_id, email_config_id, janium_campaign_name,
-    janium_campaign_description,is_messenger, is_reply_in_email_thread, queue_start_time, queue_end_time
+    janium_campaign_description, is_messenger, is_reply_in_email_thread, queue_start_time, queue_end_time
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():

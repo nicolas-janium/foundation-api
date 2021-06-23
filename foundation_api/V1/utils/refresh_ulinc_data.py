@@ -103,8 +103,7 @@ def insert_campaigns(account_id, ulinc_config_id, ulinc_campaign_dict):
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
                 False,
-                None,
-                User.system_user_id
+                None
             )
             db.session.add(new_ulinc_campaign)
 
@@ -123,8 +122,7 @@ def insert_campaigns(account_id, ulinc_config_id, ulinc_campaign_dict):
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
                 True,
-                None,
-                User.system_user_id
+                None
             )
             db.session.add(new_ulinc_campaign)
 
