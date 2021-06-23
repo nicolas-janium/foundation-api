@@ -28,8 +28,7 @@ def create_ulinc_config():
                 ulinc_credentials = Credentials(
                     ulinc_credentials_id,
                     json_body['ulinc_username'],
-                    json_body['ulinc_password'],
-                    User.system_user_id
+                    json_body['ulinc_password']
                 )
                 db.session.add(ulinc_credentials)
 
