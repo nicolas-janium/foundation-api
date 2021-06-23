@@ -16,75 +16,87 @@ steps:
   args: ['dos2unix', './bash_scripts/make_sql.bash']
 
 # 5
+# Set environment variables and write to .env
 - name: bash
   args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217 $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY']
   secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET']
 
-- name: bash
-  args: ['cat', '.env']
-
 # 6
+# Allow the build network in the SQL configuration
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET set']
   secretEnv: ['DB_INSTANCE_ID_SECRET']
 
 # 7
+# Create the sql file for testing db setup and teardown
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/make_sql.bash $$DB_USER_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_PASSWORD_SECRET setup']
   secretEnv: [DB_USER_SECRET, DB_PUBLIC_HOST_SECRET, DB_PASSWORD_SECRET]
 
+# 8
+# Run the testing_setup sql file
 - name: mysql:8
   entrypoint: bash
   args: ['-c', 'mysql -h $$DB_PUBLIC_HOST_SECRET -uroot -ppino < ./testing_setup.sql']
   secretEnv: ['DB_PUBLIC_HOST_SECRET']
 
-# 6
+# 9
+# Install python dependencies
 - name: python
   entrypoint: pip
   args: ['install', '-r', 'requirements.txt', '--user']
 
+# 9
+# Run tests. Build fails if any test fails
 - name: python
   entrypoint: python
   args: ["-m", "pytest"]
   env:
   - 'FLASK_TESTING=1'
 
+# 10
+# Create the sql file that tears down the testing db
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/make_sql.bash $$DB_USER_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_PASSWORD_SECRET teardown']
   secretEnv: [DB_USER_SECRET, DB_PUBLIC_HOST_SECRET, DB_PASSWORD_SECRET]
 
+# 11
+# Tear down the testing db
 - name: mysql:8
   entrypoint: bash
   args: ['-c', 'mysql -h $$DB_PUBLIC_HOST_SECRET -uroot -ppino < ./testing_teardown.sql']
   secretEnv: ['DB_PUBLIC_HOST_SECRET']
 
-
-# # 7
-# - name: python
-#   entrypoint: python
-#   args: ['-m','alembic', 'upgrade', 'head']
-#   env:
-#   - 'IS_BUILD=1'
+# 12
+# Run db migration on the staging db
+- name: python
+  entrypoint: python
+  args: ['-m','alembic', 'upgrade', 'head']
+  env:
+  - 'IS_BUILD=1'
   
-# # 8
-# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-#   entrypoint: 'bash'
-#   args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml ./cron.yaml ./dispatch.yaml']
+# 13
+# Deploy the app to GAE
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml ./cron.yaml ./dispatch.yaml']
 
-# 9
+# 14
+# Reset the allowed networks in the cloud sql configuration
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET reset']
   secretEnv: ['DB_INSTANCE_ID_SECRET']
 
-# # 10
-# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-#   entrypoint: bash
-#   args: ['-c', './bash_scripts/clean_app_versions.bash backend 3']
-#   secretEnv: ['DB_INSTANCE_ID_SECRET']
+# 15
+# Keep only the previous 3 version of the app
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args: ['-c', './bash_scripts/clean_app_versions.bash backend 3']
+  secretEnv: ['DB_INSTANCE_ID_SECRET']
 
 timeout: '1600s'
 
