@@ -15,29 +15,39 @@ def get_cookie(username, password):
     req_session = requests.Session()
     login = req_session.post(url=login_url)
 
-    ulinc_cookie = {}
-    for cookie in login.history[0].cookies:
-        if cookie.name == 'PHPSESSID':
-            continue
-        elif cookie.name == 'usr':
-            ulinc_cookie['usr'] = cookie.value
-            ulinc_cookie['expires'] = datetime.fromtimestamp(cookie.expires).strftime(r'%Y-%m-%d %H:%M:%S')
-        elif cookie.name == 'pwd':
-            ulinc_cookie['pwd'] = cookie.value 
-    return ulinc_cookie
+    if login.ok:
+        ulinc_cookie = {}
+        if login.history:
+            for cookie in login.history[0].cookies:
+                if cookie.name == 'PHPSESSID':
+                    continue
+                elif cookie.name == 'usr':
+                    ulinc_cookie['usr'] = cookie.value
+                    ulinc_cookie['expires'] = datetime.fromtimestamp(cookie.expires).strftime(r'%Y-%m-%d %H:%M:%S')
+                elif cookie.name == 'pwd':
+                    ulinc_cookie['pwd'] = cookie.value 
+            return ulinc_cookie
+        else:
+            return None
+    else:
+        return None
 
 def refresh_ulinc_cookie(ulinc_config):
-    ulinc_cookie = get_cookie(ulinc_config.credentials.username, ulinc_config.credentials.password)
-    if ulinc_config.cookie_id == Cookie.unassigned_cookie_id:
-        new_cookie = Cookie(str(uuid4()), 1, ulinc_cookie)
-        db.session.add(new_cookie)
-        ulinc_config.cookie_id = new_cookie.cookie_id
-        print("Created new ulinc cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
+    if ulinc_cookie := get_cookie(ulinc_config.credentials.username, ulinc_config.credentials.password):
+        if ulinc_config.cookie_id == Cookie.unassigned_cookie_id:
+            new_cookie = Cookie(str(uuid4()), 1, ulinc_cookie)
+            db.session.add(new_cookie)
+            ulinc_config.cookie_id = new_cookie.cookie_id
+            print("Created new ulinc cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
+        else:
+            cookie = db.session.query(Cookie).filter(Cookie.cookie_id == ulinc_config.cookie_id).first()
+            cookie.cookie_json_value = ulinc_cookie
+            print("Updated existing cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
+        db.session.commit()
     else:
-        cookie = db.session.query(Cookie).filter(Cookie.cookie_id == ulinc_config.cookie_id).first()
-        cookie.cookie_json_value = ulinc_cookie
-        print("Updated existing cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
-    db.session.commit()
+        print("Error while refreshing ulinc cookie")
+        ulinc_config.is_working = False
+        db.session.commit()
 
 def extract_campaign_id(url):
     return url.split('/')[-2]
@@ -148,5 +158,7 @@ def main(account_id, ulinc_config_id, ulinc_client_id, ulinc_config_cookie_id, c
 
 
 if __name__ == '__main__':
-    account_id = "ccddacca-2106-46ea-911a-41c46040e60a"
-    main(account_id)
+    # account_id = "ccddacca-2106-46ea-911a-41c46040e60a"
+    # main(account_id)
+    print(get_cookie('jhawkes20@gmail.com', 'JA12345!'))
+    # print(get_cookie('jhawkes20@gmail.com', 'JA12345!123'))

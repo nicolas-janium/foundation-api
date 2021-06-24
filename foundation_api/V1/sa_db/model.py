@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_)
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy.sql import false, text
+from sqlalchemy.sql import false, text, true
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
 
@@ -132,6 +132,7 @@ class Ulinc_config(db.Model):
     new_connection_webhook = Column(String(256), nullable=False)
     new_message_webhook = Column(String(256), nullable=False)
     send_message_webhook = Column(String(256), nullable=False)
+    is_working = Column(Boolean, server_default=true(), nullable=False)
 
     # Table Metadata
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
