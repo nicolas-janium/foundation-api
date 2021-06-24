@@ -67,9 +67,9 @@ def poll_and_save_csv(ulinc_config, ulinc_campaign):
         "Connection": "keep-alive",
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    cookie = ulinc_config.cookie.cookie_json_value
-    usr = cookie['usr']
-    pwd = cookie['pwd']
+    ulinc_cookie = ulinc_config.cookie.cookie_json_value
+    usr = ulinc_cookie['usr']
+    pwd = ulinc_cookie['pwd']
     jar = requests.cookies.RequestsCookieJar()
     jar.set('usr', usr)
     jar.set('pwd', pwd)
@@ -81,156 +81,11 @@ def poll_and_save_csv(ulinc_config, ulinc_campaign):
         reader = csv.DictReader(io.StringIO(res.content.decode('utf-8')))
         contact_source_id = str(uuid4())
         if csv_data := list(reader):
-            contact_source = Contact_source(contact_source_id, ulinc_config.account_id, 4, csv_data)
+            contact_source = Contact_source(contact_source_id, ulinc_config.ulinc_config_id, 4, csv_data)
             db.session.add(contact_source)
             db.session.commit()
-            return contact_source_id
-        print(res.text)
-        return None
+            # return contact_source_id
+            return "success"
+        return "success"
     else:
-        return None
-
-
-
-def handle_csv_data(account, ulinc_config):
-    for ulinc_campaign in ulinc_config.ulinc_campaigns:
-        janium_campaign = ulinc_campaign.parent_janium_campaign
-        contact_source_id = poll_and_save_csv(ulinc_config.ulinc_client_id, ulinc_campaign.ulinc_ulinc_campaign_id, ulinc_config.cookie.cookie_json_value,  account.account_id)
-        d_list = db.session.query(Contact_source).filter(Contact_source.contact_source_id == contact_source_id).first().contact_source_json
-
-        if d_list:
-            print('Length of csv export: {}'.format(len(d_list)))
-            for item in d_list:
-                existing_contact = db.session.query(Contact).filter(Contact.ulinc_id == str(ulinc_config.ulinc_client_id + item['Contact ID'])).first()
-                # existing_contact = db.session.query(Contact).filter(Contact.ulinc_id == str('5676186' + item['Contact ID'])).first()
-                if item['Status'] == 'In Queue':
-                    if existing_contact:
-                        if existing_action := existing_contact.actions.filter(Action.action_type_id == 18).first():
-                            continue
-                        else:
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 18, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 18, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Connect Req':
-                    if existing_contact:
-                        if existing_action := existing_contact.actions.filter(Action.action_type_id == 19).first():
-                            continue
-                        else:
-                            existing_contact_info = existing_contact.contact_info
-                            existing_contact_info['li_profile_url'] = item['LinkedIn profile']
-                            existing_contact.contact_info = existing_contact_info
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 19, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 19, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Connect Error':
-                    if existing_contact:
-                        if existing_action := existing_contact.actions.filter(Action.action_type_id == 20).first():
-                            continue
-                        else:
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 20, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 20, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Later':
-                    if existing_contact:
-                        if existing_action := existing_contact.actions.filter(Action.action_type_id == 21).first():
-                            continue
-                        else:
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 21, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 21, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'No Interest':
-                    if existing_contact:
-                        if existing_action := existing_contact.actions.filter(Action.action_type_id == 11).first():
-                            continue
-                        else:
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 11, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 11, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Connected':
-                    if existing_contact:
-                        if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id.in_([1])).first():
-                            if stop_campaign_actions := existing_contact.actions.filter(Action.action_type_id.in_([2, 6, 11, 21])).order_by(Action.action_timestamp.desc()).all():
-                                if continue_campaign_action := existing_contact.actions.filter(Action.action_type_id == 14).order_by(Action.action_timestamp.desc()).first():
-                                    if stop_campaign_actions[0].action_timestamp > continue_campaign_action.action_timestamp:
-                                        new_action = Action(str(uuid4()), existing_contact.contact_id, 14, datetime.utcnow(), None)
-                                        db.session.add(new_action)
-                                    else:
-                                        continue
-                                else:
-                                    new_action = Action(str(uuid4()), existing_contact.contact_id, 14, datetime.utcnow(), None)
-                                    db.session.add(new_action)
-                            else:
-                                continue
-                        else:
-                            new_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
-                            db.session.add(new_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Replied':
-                    if existing_contact:
-                        if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id == 1).first():
-                            pass
-                        else:
-                            cnxn_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
-                            db.session.add(cnxn_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
-                        db.session.add(new_action)
-                elif item['Status'] == 'Talking':
-                    if existing_contact:
-                        if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id == 1).first():
-                            pass
-                        else:
-                            cnxn_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
-                            db.session.add(cnxn_action)
-                    else:
-                        new_contact = create_new_contact(
-                            item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source_id, ulinc_config.ulinc_client_id
-                        )
-                        db.session.add(new_contact)
-                        new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
-                        db.session.add(new_action)
-            db.session.commit()
-
-if __name__ == '__main__':
-    account_id = "ccddacca-2106-46ea-911a-41c46040e60a"
-    main(account_id)
+        return "failure"

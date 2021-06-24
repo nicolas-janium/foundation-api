@@ -61,8 +61,7 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
                     'li_profile_url': data['LinkedIn profile'] if 'sales' not in data['LinkedIn profile'] else None
                 }
             },
-            None,
-            User.system_user_id
+            None
         )
     else:
         return Contact(
@@ -87,8 +86,7 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
                     'li_profile_url': data['profile']
                 }
             },
-            None,
-            User.system_user_id
+            None
         )
 
 def process_webhook(account, ulinc_config, contact_source):

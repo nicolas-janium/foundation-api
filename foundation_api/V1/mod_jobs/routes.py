@@ -9,12 +9,13 @@ from flask import Blueprint, jsonify, request, make_response
 from sqlalchemy import and_
 from google.cloud import tasks_v2
 
-from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import Contact_source, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_ulinc_webhooks, poll_and_save_webhook
 from foundation_api.V1.utils.poll_ulinc_csv import handle_csv_data, poll_and_save_csv
+from foundation_api.V1.utils.process_contact_source_handler import process_contact_source_function
 from foundation_api.V1.utils.send_email import send_email_function
 from foundation_api.V1.utils.send_li_message import send_li_message_function
 from foundation_api.V1.utils.ses import send_simple_email
@@ -41,94 +42,141 @@ def check_cron_header(f):
 
 @mod_jobs.route('/poll_ulinc_webhooks', methods=['GET'])
 @check_cron_header
-def poll_ulinc_webhooks_route_function():
+def poll_ulinc_webhooks_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
 
-    fail_list = []
-    success_list = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
-                try:
-                    poll_and_save_webhook(account, ulinc_config.new_connection_webhook, 1)
-                    poll_and_save_webhook(account, ulinc_config.new_message_webhook, 2)
-                    poll_and_save_webhook(account, ulinc_config.send_message_webhook, 3)
-                    success_list.append(account.account_id)
-                except Exception as err:
-                    logger.error("Poll Ulinc webhook error for account {}: {}".format(account.account_id, err))
-                    fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id})
-    # Send email to nic@janium.io
-    task_summary = {"poll_ulinc_webhook_fail_list": fail_list, "poll_ulinc_webhook_success_list": success_list}
-    # send_simple_email('nic@janium.io', json.dumps(task_summary), "Poll Ulinc Task Summary")
-    return jsonify(task_summary)
+                for webhook in ulinc_config.get_webhooks():
+                    # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
+                    parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-webhook')
+                    payload = {
+                        'ulinc_config_id': ulinc_config.ulinc_config_id,
+                        'webhook_url': webhook['url'],
+                        'webhook_type': webhook['type']
+                        
+                    }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": "https://a40504218726.ngrok.io/api/v1/tasks/poll_ulinc_webhook",
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
+                            }
+                        }
+                    }
+                    # task = {
+                    #     'app_engine_http_request': {
+                    #         'http_method': tasks_v2.HttpMethod.POST,
+                    #         'relative_uri': '/tasks/process_contact_source',
+                    #         'body': json.dumps(payload).encode(),
+                    #         'headers': {
+                    #             'Content-type': 'application/json'
+                    #         }
+                    #     }
+                    # }
+                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
+    return jsonify([])
 
 @mod_jobs.route('/poll_ulinc_csv', methods=['GET'])
 @check_cron_header
-def poll_ulinc_csv_route_function():
+def poll_ulinc_csv_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
 
-    fail_list = []
-    success_list = []
+    # fail_list = []
+    # success_list = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
-            campaign_success_list = []
-            campaign_fail_list = []
+            # campaign_success_list = []
+            # campaign_fail_list = []
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
                 for ulinc_campaign in ulinc_config.ulinc_campaigns:
-                    if contact_source_id := poll_and_save_csv(ulinc_config, ulinc_campaign):
-                        campaign_success_list.append(ulinc_campaign.ulinc_campaign_id)
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
-                        payload = {
-                            'account_id': account.account_id,
-                            'ulinc_config_id': ulinc_config.ulinc_config_id,
-                            'contact_source_id': contact_source_id}
-                        task = {
-                            'app_engine_http_request': {
-                                'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/tasks/process_contact_source',
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
-                                }
+                    # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
+                    parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-csv')
+                    payload = {
+                        'ulinc_config_id': ulinc_config.ulinc_config_id,
+                        'ulinc_campaign_id': ulinc_campaign.ulinc_campaign_id
+                    }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": "https://a40504218726.ngrok.io/api/v1/tasks/poll_ulinc_csv",
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
                             }
                         }
-                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                    else:
-                        campaign_fail_list.append(ulinc_campaign.ulinc_campaign_id)
-                fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_fail_list})
-                success_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_success_list})
-    return jsonify({"poll_ulinc_csv_fail_list": fail_list if campaign_fail_list else [], "poll_ulinc_csv_success_list": success_list})
+                    }
+                    # task = {
+                    #     'app_engine_http_request': {
+                    #         'http_method': tasks_v2.HttpMethod.POST,
+                    #         'relative_uri': '/tasks/process_contact_source',
+                    #         'body': json.dumps(payload).encode(),
+                    #         'headers': {
+                    #             'Content-type': 'application/json'
+                    #         }
+                    #     }
+                    # }
+                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                # for ulinc_campaign in ulinc_config.ulinc_campaigns:
+                #     if contact_source_id := poll_and_save_csv(ulinc_config, ulinc_campaign):
+                #         campaign_success_list.append(ulinc_campaign.ulinc_campaign_id)
+                #     else:
+                #         campaign_fail_list.append(ulinc_campaign.ulinc_campaign_id)
+                # fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_fail_list})
+                # success_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "ulinc_campaigns": campaign_success_list})
+    # return jsonify({"poll_ulinc_csv_fail_list": fail_list if campaign_fail_list else [], "poll_ulinc_csv_success_list": success_list})
+    return jsonify([])
 
 @mod_jobs.route('/process_contact_sources', methods=['GET'])
 @check_cron_header
-def process_contact_sources():
+def process_contact_sources_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
-
-    fail_list = []
-    success_list = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
-            task_fail_list = []
-            try:
-                task_res = process_contact_source_function(account, ulinc_config)
-                if task_res_fail_list := task_res['fail_list']:
-                    task_fail_list = task_res_fail_list
-                    fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "contact_sources_fail_list": task_fail_list})
-                success_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id})
-            except Exception as err:
-                logger.error("Process contact sources error for account {}: {}".format(account.account_id, err))
-                fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id, "contact_sources_fail_list": task_fail_list})
-    return jsonify({"process_contact_sources_fail_list": fail_list, "process_contact_sources_success_list": success_list})
+            for contact_source in ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).all():
+                # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
+                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='process-cs-queue')
+                payload = {
+                    'account_id': account.account_id,
+                    'ulinc_config_id': ulinc_config.ulinc_config_id,
+                    'contact_source_id': contact_source.contact_source_id
+                }
+                task = {
+                    "http_request": {  # Specify the type of request.
+                        "http_method": tasks_v2.HttpMethod.POST,
+                        "url": "https://a40504218726.ngrok.io/api/v1/tasks/process_contact_source",
+                        'body': json.dumps(payload).encode(),
+                        'headers': {
+                            'Content-type': 'application/json'
+                        }
+                    }
+                }
+                # task = {
+                #     'app_engine_http_request': {
+                #         'http_method': tasks_v2.HttpMethod.POST,
+                #         'relative_uri': '/tasks/process_contact_source',
+                #         'body': json.dumps(payload).encode(),
+                #         'headers': {
+                #             'Content-type': 'application/json'
+                #         }
+                #     }
+                # }
+                task_response = gc_tasks_client.create_task(parent=parent, task=task)
+
+    return jsonify([])
 
 @mod_jobs.route('/refresh_ulinc_data', methods=['GET'])
 @check_cron_header
@@ -142,12 +190,11 @@ def refresh_ulinc_data():
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
-                try:
-                    refresh_ulinc_cookie(ulinc_config)
+                refresh_ulinc_cookie(ulinc_config)
+                if ulinc_config.is_working:
                     refresh_ulinc_campaigns(account, ulinc_config)
                     success_list.append(account.account_id)
-                except Exception as err:
-                    logger.error("Refresh Ulinc data error for account {}: {}".format(account.account_id, err))
+                else:
                     fail_list.append({"account_id": account.account_id, "ulinc_config_id": ulinc_config.ulinc_config_id})
     return jsonify({"refresh_ulinc_data_fail_list": fail_list, "refresh_ulinc_data_success_list": success_list})
 

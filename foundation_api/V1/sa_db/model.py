@@ -145,6 +145,14 @@ class Ulinc_config(db.Model):
     account = relationship('Account', uselist=False)
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_ulinc_config', uselist=False), uselist=True)
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
+    contact_sources = relationship('Contact_source', uselist=True, lazy='dynamic')
+
+    def get_webhooks(self):
+        return [
+            {"url": self.new_connection_webhook, "type": 1},
+            {"url": self.new_message_webhook, "type": 2},
+            {"url": self.send_message_webhook, "type": 3}
+        ]
 
     def get_janium_campaigns(self):
         janium_campaigns = []
@@ -814,9 +822,9 @@ class Contact_source(db.Model):
     __tablename__ = 'contact_source'
     unassigned_contact_source_id = '950e964d-29bd-4ac6-96c4-8b27fadd8dee'
 
-    def __init__(self, contact_source_id, account_id, contact_source_type_id, contact_source_json, is_processed=False):
+    def __init__(self, contact_source_id, ulinc_config_id, contact_source_type_id, contact_source_json, is_processed=False):
         self.contact_source_id = contact_source_id
-        self.account_id = account_id
+        self.ulinc_config_id = ulinc_config_id
         self.contact_source_type_id = contact_source_type_id
         self.contact_source_json = contact_source_json
         self.is_processed = is_processed
@@ -825,7 +833,7 @@ class Contact_source(db.Model):
     contact_source_id = Column(String(36), primary_key=True, nullable=False)
 
     # Foreign Keys
-    account_id = Column(String(36), ForeignKey('account.account_id'), nullable=False)
+    ulinc_config_id = Column(String(36), ForeignKey('ulinc_config.ulinc_config_id'), nullable=False)
     contact_source_type_id = Column(Integer, ForeignKey('contact_source_type.contact_source_type_id'), nullable=False)
 
     # Common Columns
@@ -852,7 +860,6 @@ class Contact(db.Model):
         self.ulinc_ulinc_campaign_id = ulinc_ulinc_campaign_id
         self.contact_info = contact_info
         self.tib_id = tib_id
-        # self.updated_by = updated_by
 
     # Primary Keys
     contact_id = Column(String(36), primary_key=True, nullable=False)
@@ -872,7 +879,6 @@ class Contact(db.Model):
     # Table Metadata
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-    updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
     # SQLAlchemy Relationships and Backreferences
     actions = relationship('Action', backref=backref('contact', uselist=False), uselist=True, lazy='dynamic')

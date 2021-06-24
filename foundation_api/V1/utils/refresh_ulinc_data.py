@@ -43,6 +43,7 @@ def refresh_ulinc_cookie(ulinc_config):
             cookie = db.session.query(Cookie).filter(Cookie.cookie_id == ulinc_config.cookie_id).first()
             cookie.cookie_json_value = ulinc_cookie
             print("Updated existing cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
+        ulinc_config.is_working = True
         db.session.commit()
     else:
         print("Error while refreshing ulinc cookie")

@@ -130,17 +130,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
     sa.PrimaryKeyConstraint('account_id')
     )
-    op.create_table('contact_source',
-    sa.Column('contact_source_id', sa.String(length=36), nullable=False),
-    sa.Column('account_id', sa.String(length=36), nullable=False),
-    sa.Column('contact_source_type_id', sa.Integer(), nullable=False),
-    sa.Column('contact_source_json', sa.JSON(), nullable=False),
-    sa.Column('is_processed', sa.Boolean(), server_default=sa.text('false'), nullable=False),
-    sa.Column('date_added', sa.DateTime(), server_default=sa.text('(UTC_TIMESTAMP)'), nullable=True),
-    sa.ForeignKeyConstraint(['account_id'], ['account.account_id'], ),
-    sa.ForeignKeyConstraint(['contact_source_type_id'], ['contact_source_type.contact_source_type_id'], ),
-    sa.PrimaryKeyConstraint('contact_source_id')
-    )
     op.create_table('email_config',
     sa.Column('email_config_id', sa.String(length=36), nullable=False),
     sa.Column('account_id', sa.String(length=36), nullable=True),
@@ -183,6 +172,17 @@ def upgrade():
     sa.ForeignKeyConstraint(['cookie_id'], ['cookie.cookie_id'], ),
     sa.ForeignKeyConstraint(['credentials_id'], ['credentials.credentials_id'], ),
     sa.PrimaryKeyConstraint('ulinc_config_id')
+    )
+    op.create_table('contact_source',
+    sa.Column('contact_source_id', sa.String(length=36), nullable=False),
+    sa.Column('ulinc_config_id', sa.String(length=36), nullable=False),
+    sa.Column('contact_source_type_id', sa.Integer(), nullable=False),
+    sa.Column('contact_source_json', sa.JSON(), nullable=False),
+    sa.Column('is_processed', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('date_added', sa.DateTime(), server_default=sa.text('(UTC_TIMESTAMP)'), nullable=True),
+    sa.ForeignKeyConstraint(['ulinc_config_id'], ['ulinc_config.ulinc_config_id'], ),
+    sa.ForeignKeyConstraint(['contact_source_type_id'], ['contact_source_type.contact_source_type_id'], ),
+    sa.PrimaryKeyConstraint('contact_source_id')
     )
     op.create_table('janium_campaign',
     sa.Column('janium_campaign_id', sa.String(length=36), nullable=False),
@@ -243,10 +243,8 @@ def upgrade():
     sa.Column('contact_info', sa.JSON(), nullable=False),
     sa.Column('asOfStartTime', sa.DateTime(), server_default=sa.text('(UTC_TIMESTAMP)'), nullable=True),
     sa.Column('asOfEndTime', sa.DateTime(), server_default=sa.text('(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))'), nullable=True),
-    sa.Column('updated_by', sa.String(length=36), nullable=False),
     sa.ForeignKeyConstraint(['contact_source_id'], ['contact_source.contact_source_id'], ),
     sa.ForeignKeyConstraint(['ulinc_campaign_id'], ['ulinc_campaign.ulinc_campaign_id'], ),
-    sa.ForeignKeyConstraint(['updated_by'], ['user.user_id'], ),
     sa.PrimaryKeyConstraint('contact_id')
     )
     op.create_table('action',

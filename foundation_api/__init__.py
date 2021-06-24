@@ -47,9 +47,9 @@ def create_app(test_config=False):
     from foundation_api.V1.mod_campaign.routes import mod_campaign as campaign_module
     from foundation_api.V1.mod_home.routes import mod_home as home_module
     from foundation_api.V1.mod_onboard.routes import mod_onboard as onboard_module
-    # from foundation_api.V1.mod_jobs.routes import mod_jobs as jobs_module
+    from foundation_api.V1.mod_jobs.routes import mod_jobs as jobs_module
     # from foundation_api.V1.mod_email.routes import mod_email as email_module
-    # from foundation_api.V1.mod_tasks.routes import mod_tasks as tasks_module
+    from foundation_api.V1.mod_tasks.routes import mod_tasks as tasks_module
 
 
     # Register blueprint(s)
@@ -57,9 +57,9 @@ def create_app(test_config=False):
     app.register_blueprint(campaign_module)
     app.register_blueprint(home_module)
     app.register_blueprint(onboard_module)
-    # app.register_blueprint(jobs_module)
+    app.register_blueprint(jobs_module)
     # app.register_blueprint(email_module)
-    # app.register_blueprint(tasks_module)
+    app.register_blueprint(tasks_module)
 
     return app
 

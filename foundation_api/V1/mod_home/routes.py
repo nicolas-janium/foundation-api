@@ -27,6 +27,7 @@ def get_ulinc_configs():
                         "ulinc_config_id": ulinc_config.ulinc_config_id,
                         "ulinc_li_email": ulinc_config.ulinc_li_email,
                         "ulinc_is_active": ulinc_config.ulinc_is_active,
+                        "ulinc_is_working": ulinc_config.is_working,
                         "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
                         "summary_data": ulinc_config.get_summary_data()
                     }
@@ -60,6 +61,7 @@ def get_ulinc_config():
             return jsonify(
                 {
                     "ulinc_config_id": ulinc_config.ulinc_config_id,
+                    "ulinc_is_working": ulinc_config.is_working,
                     "janium_campaigns": janium_campaigns,
                     "new_connections": ulinc_config.get_dte_new_connections(),
                     "new_messages": ulinc_config.get_dte_new_messages(),
