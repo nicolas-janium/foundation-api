@@ -125,6 +125,8 @@ def create_janium_campaign_step():
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
+        if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == json_body['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == json_body['janium_campaign_step_delay']).first():
+            return jsonify({"message": "Duplicate"})
         if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
             new_step = Janium_campaign_step(
                 str(uuid4()),
@@ -134,8 +136,7 @@ def create_janium_campaign_step():
                 json_body['janium_campaign_step_body'],
                 None if 'email' not in json_body['janium_campaign_step_type'] else json_body['janium_campaign_step_subject'],
                 janium_campaign.queue_start_time,
-                janium_campaign.queue_end_time,
-                user_id
+                janium_campaign.queue_end_time
             )
             db.session.add(new_step)
             db.session.commit()

@@ -231,27 +231,51 @@ def refresh_ulinc_data():
 
 @mod_jobs.route('/data_enrichment', methods=['GET'])
 @check_cron_header
-def data_enrichment():
+def data_enrichment_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
 
-    fail_list = []
-    enriched_list = []
+    tasks = []
     for account in accounts:
-        try:
-            enriched_list.append(
-                {
-                    "account_id": account.account_id,
-                    "enriched_contacts": data_enrichment_function(account)
+        for ulinc_config in account.ulinc_configs:
+            for janium_campaign in ulinc_config.janium_campaigns:
+                # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
+                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
+                payload = {
+                    'janium_campaign_id': janium_campaign.janium_campaign_id,
                 }
-            )
-        except Exception as err:
-            logger.error("Data Enrichment error for account {}: {}".format(account.account_id, err))
-            fail_list.append({"account_id": account.account_id})
-    return jsonify({"data_enrichment_fail_list": fail_list, "data_enrichment_success_list": enriched_list})
+                task = {
+                    "http_request": {  # Specify the type of request.
+                        "http_method": tasks_v2.HttpMethod.POST,
+                        "url": "https://0f4c82be59ff.ngrok.io/api/v1/tasks/data_enrichment",
+                        'body': json.dumps(payload).encode(),
+                        'headers': {
+                            'Content-type': 'application/json'
+                        }
+                    }
+                }
+                # task = {
+                #     'app_engine_http_request': {
+                #         'http_method': tasks_v2.HttpMethod.POST,
+                #         'relative_uri': '/tasks/process_contact_source',
+                #         'body': json.dumps(payload).encode(),
+                #         'headers': {
+                #             'Content-type': 'application/json'
+                #         }
+                #     }
+                # }
+                task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                tasks.append({
+                    "account_id": account.account_id,
+                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                    "janium_campaign_id": janium_campaign.janium_campaign_id,
+                    "task_id": task_response.name
+                })
+                    
+    return jsonify(tasks)
 
 @mod_jobs.route('/send_email', methods=['GET'])
 @check_cron_header

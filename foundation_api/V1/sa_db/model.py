@@ -4,7 +4,10 @@ from datetime import datetime
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_)
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy.sql import false, text, true
+from sqlalchemy.sql import false, text, true, func
+from sqlalchemy.sql.expression import cast, null
+from sqlalchemy.dialects.mysql import JSON as MYSQL_JSON
+from sqlalchemy.dialects import mysql
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
 
@@ -496,6 +499,22 @@ class Janium_campaign(db.Model):
             }
         # print(summary_data)
         return summary_data
+    
+    def get_data_enrichment_targets(self):
+        targets =[]
+        if campaign_steps := self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all():
+            contacts = []
+            for ulinc_campaign in self.ulinc_campaigns:
+                contacts += ulinc_campaign.get_data_enrichment_targets()
+            
+            for contact in contacts:
+                contact_dict = contact._asdict()
+                cnxn_req_action = contact_dict['Action']
+                contact = contact_dict['Contact']
+                if (networkdays(cnxn_req_action.action_timestamp, datetime.utcnow()) - 1) >= (campaign_steps[0].janium_campaign_step_delay - 1):
+                    targets.append(contact)
+        return targets
+
 
 class Janium_campaign_step(db.Model):
     __tablename__ = 'janium_campaign_step'
@@ -815,6 +834,21 @@ class Ulinc_campaign(db.Model):
                                 }
                             )
         return sorted(vm_tasks_list, key = lambda item: item['connection_date'], reverse=True)
+    
+    def get_data_enrichment_targets(self):
+        return db.session.query(
+            Contact, Action
+        ).filter(
+            Contact.ulinc_campaign_id == self.ulinc_campaign_id
+        ).filter(
+            Action.contact_id == Contact.contact_id
+        ).filter(
+            and_(Action.action_type_id.notin_([1,22]), Action.action_type_id == 19)
+        ).filter(
+            Contact.contact_info['ulinc']['li_profile_url'] != cast(text("'null'"), JSON)
+        ).order_by(
+            Contact.contact_id, Action.action_timestamp.desc()
+        ).all()
 
 class Contact_source(db.Model):
     __tablename__ = 'contact_source'
