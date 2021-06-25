@@ -92,7 +92,7 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
 def process_webhook(account, ulinc_config, contact_source):
     for item in contact_source.contact_source_json:
         existing_contact = db.session.query(Contact).filter(Contact.ulinc_id == str(item['id'])).first() # if contact exists in the contact table
-        existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.account_id == account.account_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == str(item['campaign_id'])).first()
+        existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config.ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == str(item['campaign_id'])).first()
         if contact_source.contact_source_type_id == 1:
             if existing_contact: # if contact exists in the contact table
                 # if len([action for action in existing_contact.actions if action.action_type_id == action_type_dict['ulinc_new_connection']['id']]) > 0:
@@ -119,7 +119,7 @@ def process_webhook(account, ulinc_config, contact_source):
                     existing_ulinc_campaign_id = Ulinc_campaign.unassigned_ulinc_campaign_id
                     janium_campaign_id = Janium_campaign.unassigned_janium_campaign_id # Unassigned janium campaign id value
                 
-                new_contact = create_new_contact(item, account.account_id, janium_campaign_id, existing_ulinc_campaign_id, contact_source_id)
+                new_contact = create_new_contact(item, account.account_id, janium_campaign_id, existing_ulinc_campaign_id, contact_source.contact_source_id)
                 connection_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None, None)
                 db.session.add(new_contact)
                 db.session.add(connection_action)
@@ -135,9 +135,9 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact.contact_info = existing_contact_info
             else:
                 if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source_id)
+                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
                 else:
-                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source_id)
+                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
             new_message_action = Action(
@@ -161,9 +161,9 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact.contact_info = existing_contact_info
             else:
                 if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source_id)
+                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
                 else:
-                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source_id)
+                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
 

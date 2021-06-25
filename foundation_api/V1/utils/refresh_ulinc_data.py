@@ -70,35 +70,39 @@ def get_ulinc_campaigns(ulinc_config):
     }
 
     connector_campaigns_table = req_session.get(url=get_connector_campaigns_url, cookies=jar)
-    c_soup = Soup(connector_campaigns_table.text, 'html.parser')
-    c_table_body = c_soup.find('tbody')
-    if len(c_table_body.find_all('tr')) > 0:
-        for tr in c_table_body.find_all('tr'):
-            td_list = tr.find_all('td')
-            camp_dict = {
-                "name": td_list[0].text,
-                "ulinc_campaign_id": str(extract_campaign_id(td_list[0].find('a')['href'])),
-                "is_active": True if td_list[1].find('span').text == 'Active' else False
-            }
-            campaigns['connector'].append(camp_dict)
-
     messenger_campaigns_table = req_session.get(url=get_messenger_campaigns_url, cookies=jar)
-    m_soup = Soup(messenger_campaigns_table.text, 'html.parser')
-    m_table_body = m_soup.find('tbody')
-    if len(m_table_body.find_all('tr')) > 0:
-        for tr in m_table_body.find_all('tr'):
-            td_list = tr.find_all('td')
-            ulinc_campaign_id = str(extract_campaign_id(td_list[0].find('a')['href']))
-            camp_dict = {
-                "name": td_list[0].text,
-                "ulinc_campaign_id": ulinc_campaign_id,
-                "is_active": True if td_list[1].find('span').text == 'Active' else False
-            }
-            campaigns['messenger'].append(camp_dict)
+    if connector_campaigns_table.ok and messenger_campaigns_table.ok:
+        ### Get connector campaigns ###
+        c_soup = Soup(connector_campaigns_table.text, 'html.parser')
+        c_table_body = c_soup.find('tbody')
+        if len(c_table_body.find_all('tr')) > 0:
+            for tr in c_table_body.find_all('tr'):
+                td_list = tr.find_all('td')
+                camp_dict = {
+                    "name": td_list[0].text,
+                    "ulinc_campaign_id": str(extract_campaign_id(td_list[0].find('a')['href'])),
+                    "is_active": True if td_list[1].find('span').text == 'Active' else False
+                }
+                campaigns['connector'].append(camp_dict)
 
-    return campaigns
+        ### Get messenger campaigns ###
+        m_soup = Soup(messenger_campaigns_table.text, 'html.parser')
+        m_table_body = m_soup.find('tbody')
+        if len(m_table_body.find_all('tr')) > 0:
+            for tr in m_table_body.find_all('tr'):
+                td_list = tr.find_all('td')
+                ulinc_campaign_id = str(extract_campaign_id(td_list[0].find('a')['href']))
+                camp_dict = {
+                    "name": td_list[0].text,
+                    "ulinc_campaign_id": ulinc_campaign_id,
+                    "is_active": True if td_list[1].find('span').text == 'Active' else False
+                }
+                campaigns['messenger'].append(camp_dict)
 
-def insert_campaigns(account_id, ulinc_config_id, ulinc_campaign_dict):
+        return campaigns
+    return None
+
+def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
     for ulinc_campaign in ulinc_campaign_dict['connector']:
         existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first()
         if existing_ulinc_campaign:
@@ -107,14 +111,12 @@ def insert_campaigns(account_id, ulinc_config_id, ulinc_campaign_dict):
         else:
             new_ulinc_campaign = Ulinc_campaign(
                 str(uuid4()),
-                account_id,
                 ulinc_config_id,
                 Janium_campaign.unassigned_janium_campaign_id,
                 ulinc_campaign['name'],
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
-                False,
-                None
+                False
             )
             db.session.add(new_ulinc_campaign)
 
@@ -126,28 +128,31 @@ def insert_campaigns(account_id, ulinc_config_id, ulinc_campaign_dict):
         else:
             new_ulinc_campaign = Ulinc_campaign(
                 str(uuid4()),
-                account_id,
                 ulinc_config_id,
                 Janium_campaign.unassigned_janium_campaign_id,
                 ulinc_campaign['name'],
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
-                True,
-                None
+                True
             )
             db.session.add(new_ulinc_campaign)
 
     db.session.commit()
 
-def refresh_ulinc_campaigns(account, ulinc_config):
+def refresh_ulinc_campaigns(ulinc_config):
     if ulinc_config.cookie_id != Cookie.unassigned_cookie_id:
-        ulinc_campaign_dict = get_ulinc_campaigns(ulinc_config)
-        if ulinc_campaign_dict:
-            insert_campaigns(account.account_id, ulinc_config.ulinc_config_id, ulinc_campaign_dict)
+        if ulinc_campaign_dict := get_ulinc_campaigns(ulinc_config):
+            if ulinc_campaign_dict['connector'] or ulinc_campaign_dict['messenger']:
+                insert_campaigns(ulinc_config.ulinc_config_id, ulinc_campaign_dict)
+                return 1
+            else:
+                print('Campaign dict empty. No campaigns')
+                return 1
         else:
-            print('Campaign dict empty. Error or no campaigns')
+            return None
     else:
         print('Ulinc cookie does not exist for ulinc_config {}'.format(ulinc_config.ulinc_config_id))
+        return None
 
 def main(account_id, ulinc_config_id, ulinc_client_id, ulinc_config_cookie_id, cookie_json_value, username, password):
     if account := db.session.query(Account).filter(Account.account_id == account_id).first():

@@ -543,9 +543,8 @@ class Ulinc_campaign(db.Model):
     __tablename__ = 'ulinc_campaign'
     unassigned_ulinc_campaign_id = '943c18f3-74c8-45cf-a396-1ddc89c6b9d2'
 
-    def __init__(self, ulinc_campaign_id, account_id, ulinc_config_id, janium_campaign_id, ulinc_campaign_name, ulinc_is_active, ulinc_ulinc_campaign_id, ulinc_is_messenger, ulinc_messenger_origin_message):
+    def __init__(self, ulinc_campaign_id, ulinc_config_id, janium_campaign_id, ulinc_campaign_name, ulinc_is_active, ulinc_ulinc_campaign_id, ulinc_is_messenger, ulinc_messenger_origin_message=None):
         self.ulinc_campaign_id = ulinc_campaign_id
-        self.account_id = account_id
         self.ulinc_config_id = ulinc_config_id
         self.janium_campaign_id = janium_campaign_id
         self.ulinc_campaign_name = ulinc_campaign_name
@@ -559,7 +558,6 @@ class Ulinc_campaign(db.Model):
     ulinc_campaign_id = Column(String(36), primary_key=True)
     
     # Foreign Keys
-    # account_id = Column(String(36), ForeignKey('account.account_id'), nullable=False)
     ulinc_config_id = Column(String(36), ForeignKey('ulinc_config.ulinc_config_id'), nullable=False)
     janium_campaign_id = Column(String(36), ForeignKey('janium_campaign.janium_campaign_id'), nullable=False)
 
