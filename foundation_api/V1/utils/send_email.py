@@ -250,8 +250,8 @@ def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
     steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id != 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
 
     ### Only get contacts who have not been email blacklisted or who have bounced email actions ###
-    contacts = [
-        contact 
+    contacts = [ 
+        contact
         for contact 
         in janium_campaign.contacts
         if not contact.actions.filter(Action.action_type_id.in_([7,15])).first() and len(contact.get_emails()) > 0

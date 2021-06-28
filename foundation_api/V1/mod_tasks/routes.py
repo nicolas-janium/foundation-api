@@ -89,3 +89,11 @@ def data_enrichment_task():
     if data_enrichment_function(contact) == 'success':
         return jsonify({"message": "success"})
     return make_response(jsonify({"message": "failure"}), 300) # Task should repeat
+
+@mod_tasks.route('/send_email', methods=['POST'])
+def send_email_task():
+    """
+    Required JSON keys: email_target_details
+    """
+    json_body = request.get_json(force=True)
+
