@@ -511,8 +511,11 @@ class Janium_campaign(db.Model):
                 contact_dict = contact._asdict()
                 cnxn_req_action = contact_dict['Action']
                 contact = contact_dict['Contact']
-                if (networkdays(cnxn_req_action.action_timestamp, datetime.utcnow()) - 1) >= (campaign_steps[0].janium_campaign_step_delay - 1):
-                    targets.append(contact)
+                if da_action := contact.actions.filter(Action.action_type_id == 22).first():
+                    continue
+                else:
+                    if (networkdays(cnxn_req_action.action_timestamp, datetime.utcnow()) - 1) >= (campaign_steps[0].janium_campaign_step_delay - 1):
+                        targets.append(contact)
         return targets
 
 
@@ -843,12 +846,13 @@ class Ulinc_campaign(db.Model):
         ).filter(
             Action.contact_id == Contact.contact_id
         ).filter(
-            and_(Action.action_type_id.notin_([1,22]), Action.action_type_id == 19)
+            Action.action_type_id == 19
         ).filter(
             Contact.contact_info['ulinc']['li_profile_url'] != cast(text("'null'"), JSON)
         ).order_by(
             Contact.contact_id, Action.action_timestamp.desc()
         ).all()
+
 
 class Contact_source(db.Model):
     __tablename__ = 'contact_source'

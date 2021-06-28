@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request, make_response
 from sqlalchemy import and_
 
 from foundation_api.V1.sa_db.model import db
-from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign
+from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign, Contact
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_and_save_webhook
 from foundation_api.V1.utils.poll_ulinc_csv import poll_and_save_csv
@@ -81,21 +81,11 @@ def refresh_ulinc_data_task():
 @mod_tasks.route('/data_enrichment', methods=['POST'])
 def data_enrichment_task():
     """
-    Required JSON keys: janium_campaign_id
+    Required JSON keys: contact_id
     """
     json_body = request.get_json(force=True)
-    janium_campaign = db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first()
+    contact = db.session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first()
 
-    if data_enrichment_function(janium_campaign):
+    if data_enrichment_function(contact) == 'success':
         return jsonify({"message": "success"})
     return make_response(jsonify({"message": "failure"}), 300) # Task should repeat
-
-    
-    # refresh_ulinc_cookie(ulinc_config)
-    # if ulinc_config.is_working:
-    #     if refresh_ulinc_campaigns(ulinc_config):
-    #         return jsonify({"message": "success"})
-    #     else:
-    #         return make_response(jsonify({"message": "Failure: unable to refresh ulinc campaigns"}), 300) # Should try again
-    # else:
-    #     return make_response(jsonify({"message": "Failure: ulinc credentials are likely incorrect"}), 200) # Task should not repeat

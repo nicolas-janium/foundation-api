@@ -11,7 +11,7 @@ from sqlalchemy import and_
 from google.cloud import tasks_v2
 
 from foundation_api.V1.sa_db.model import Contact_source, db
-from foundation_api.V1.sa_db.model import Account, Ulinc_config
+from foundation_api.V1.sa_db.model import Account, Ulinc_config, Action
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
 from foundation_api.V1.utils.send_email import send_email_function
 from foundation_api.V1.utils.send_li_message import send_li_message_function
@@ -242,38 +242,41 @@ def data_enrichment_job():
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
             for janium_campaign in ulinc_config.janium_campaigns:
-                # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
-                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
-                payload = {
-                    'janium_campaign_id': janium_campaign.janium_campaign_id,
-                }
-                task = {
-                    "http_request": {  # Specify the type of request.
-                        "http_method": tasks_v2.HttpMethod.POST,
-                        "url": "https://0f4c82be59ff.ngrok.io/api/v1/tasks/data_enrichment",
-                        'body': json.dumps(payload).encode(),
-                        'headers': {
-                            'Content-type': 'application/json'
+                contacts  = janium_campaign.get_data_enrichment_targets()
+                for contact in contacts:
+                    # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
+                    parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
+                    payload = {
+                        'contact_id': contact.contact_id,
+                    }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": "https://1ba3b79c6304.ngrok.io/api/v1/tasks/data_enrichment",
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
+                            }
                         }
                     }
-                }
-                # task = {
-                #     'app_engine_http_request': {
-                #         'http_method': tasks_v2.HttpMethod.POST,
-                #         'relative_uri': '/tasks/process_contact_source',
-                #         'body': json.dumps(payload).encode(),
-                #         'headers': {
-                #             'Content-type': 'application/json'
-                #         }
-                #     }
-                # }
-                task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                tasks.append({
-                    "account_id": account.account_id,
-                    "ulinc_config_id": ulinc_config.ulinc_config_id,
-                    "janium_campaign_id": janium_campaign.janium_campaign_id,
-                    "task_id": task_response.name
-                })
+                    # task = {
+                    #     'app_engine_http_request': {
+                    #         'http_method': tasks_v2.HttpMethod.POST,
+                    #         'relative_uri': '/tasks/process_contact_source',
+                    #         'body': json.dumps(payload).encode(),
+                    #         'headers': {
+                    #             'Content-type': 'application/json'
+                    #         }
+                    #     }
+                    # }
+                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                    tasks.append({
+                        "account_id": account.account_id,
+                        "ulinc_config_id": ulinc_config.ulinc_config_id,
+                        "janium_campaign_id": janium_campaign.janium_campaign_id,
+                        "contact_id": contact.contact_id,
+                        "task_id": task_response.name
+                    })
                     
     return jsonify(tasks)
 
