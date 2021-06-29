@@ -4,13 +4,14 @@ import logging
 from flask import Blueprint, jsonify, request, make_response
 from sqlalchemy import and_
 
-from foundation_api.V1.sa_db.model import db
+from foundation_api.V1.sa_db.model import Email_config, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign, Contact
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_and_save_webhook
 from foundation_api.V1.utils.poll_ulinc_csv import poll_and_save_csv
 from foundation_api.V1.utils.process_contact_source_handler import process_contact_source_function
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
+from foundation_api.V1.utils.send_email import send_email_function
 
 
 logger = logging.getLogger('api_tasks')
@@ -96,4 +97,10 @@ def send_email_task():
     Required JSON keys: email_target_details
     """
     json_body = request.get_json(force=True)
+
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == json_body['email_target_details']['email_config_id']).first():
+        send_email_function(email_config, json_body['email_target_details'])
+        return jsonify({"message": "success"})
+    else:
+        return jsonify({"message": "Failure. Email config does not exist"}) # Should not repeat
 

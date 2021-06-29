@@ -64,7 +64,7 @@ def get_sendgrid_sender(sender_id):
         logger.error(str("Request to get sender failed. {}".format(res.text)))
         return None
 
-def add_tracker(email_html):
+def add_identifier(email_html):
     soup = Soup(email_html, 'html.parser')
     html_tag = soup.find('html')
     div = soup.new_tag('div', attrs={'style': 'opacity:0'})
@@ -87,7 +87,7 @@ def add_footer(email_html, contact_id, contact_email):
 
     return str(soup).replace(r'{opt_out_url}', opt_out_url)
 
-def send_email_with_sendgrid(details, account_local_time):
+def send_email_with_sendgrid(details):
     url = "https://api.sendgrid.com/v3/mail/send"
 
     action_id = str(uuid4())
@@ -97,7 +97,7 @@ def send_email_with_sendgrid(details, account_local_time):
 
     # message = add_footer(details['email_body'], details['contact_id'], details['contact_email'])
     message = details['email_body']
-    message = add_tracker(message)
+    message = add_identifier(message)
     message_id = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
 
     if sender:
@@ -156,27 +156,29 @@ def send_email_with_sendgrid(details, account_local_time):
         logger.error(str("There was an error while sending an email to {} for account {}. Error: {}".format(details['contact_email'], sender['from_name'], err)))
         return None
 
-def send_email_with_ses(details):
+def send_email_with_ses(details, from_address, from_full_name):
     from foundation_api.V1.utils.test import body
     action_id = str(uuid4())
     main_email = EmailMessage()
     main_email.make_alternative()
 
-    # main_email['Subject'] = details['email_subject']
-    main_email['Subject'] = "Amazon SES Test (SDK for Python)"
-    main_email['From'] = str(Header('{} <{}>')).format('Nic Arnold', 'nic@janium.io')
+    main_email['Subject'] = details['email_subject']
+    # main_email['Subject'] = "Amazon SES Test (SDK for Python)"
+    # main_email['From'] = str(Header('{} <{}>')).format('Nic Arnold', 'nic@janium.io')
+    main_email['From'] = str(Header('{} <{}>')).format(from_full_name, from_address)
+
     # main_email['To'] = 'nic@janium.io'
-    # main_email['To'] = 'success@simulator.amazonses.com'
+    main_email['To'] = details['contact_email']
     # main_email['To'] = 'bounce@simulator.amazonses.com'
-    main_email['To'] = 'complaint@simulator.amazonses.com'
+    # main_email['To'] = 'complaint@simulator.amazonses.com'
     main_email.add_header('j_a_id', action_id)
     main_email['MIME-Version'] = '1.0'
 
     # email_html = details['email_body']
     # email_html = email_html.replace(r"{FirstName}", details['contact_first_name'])
-    # email_html = add_tracker(email_html)
-    email_html = body
-    email_html = add_tracker(email_html)
+    # email_html = add_identifier(email_html)
+    email_html = details['email_body']
+    # email_html = add_identifier(email_html)
 
     # main_email.add_alternative(html2text(email_html), 'plain')
     main_email.add_alternative(email_html, 'html')
@@ -195,15 +197,16 @@ def send_email_with_ses(details):
                 "Data": main_email.as_string()
             }
         )
+        action = Action(action_id, details['contact_id'], 4, datetime.utcnow(), email_html, to_email_addr=details['contact_email'])
+        db.session.add(action)
+        db.session.commit()
     # Display an error if something goes wrong.	
     except ClientError as e:
         print(e.response['Error']['Message'])
-    else:
-        print("Email sent! Message ID:"),
-        print(response['MessageId'])
+        return None
 
 
-def send_email_with_smtp(details, account_local_time):
+def send_email_with_smtp(details):
     username, password = details['email_creds']
 
     recipient = details['contact_email']
@@ -369,23 +372,15 @@ def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
             )
     return email_targets_list
 
-def send_email_function(account, janium_campaign, account_local_time, queue_times_dict):
-    is_sendgrid = True if janium_campaign.email_config.is_sendgrid and janium_campaign.email_config.sendgrid_sender_id else False
-    email_targets_list = get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
-    # pprint(email_targets_list)
-
-    ## Divide the email targets list to evenly distribute over the queue start and end time ###
-    queue_intervals = int((queue_times_dict['end'].hour - queue_times_dict['start'].hour) / 0.5)
-    queue_max = math.ceil(len(email_targets_list) / queue_intervals)
-
-    recipient_list = []
-    for email_target in email_targets_list[0:queue_max]:
-        if email_target['is_sendgrid']:
-            send_email_res = send_email_with_sendgrid(email_target, account_local_time)
-        else:
-            send_email_res = send_email_with_smtp(email_target, account_local_time)
-        recipient_list.append({"contact_email_address": email_target['contact_email'], "contact_id": email_target['contact_id']})
-    return recipient_list
+def send_email_function(email_config, email_target_details):
+    if email_config.is_ses:
+        if send_email_with_ses(email_target_details, email_config.from_address, email_config.from_full_name):
+            return 1
+    elif email_config.is_sendgrid:
+        pass
+    elif email_config.is_smtp:
+        pass
+    
 
 if __name__ == '__main__':
     payload = {

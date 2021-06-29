@@ -324,7 +324,7 @@ def send_email():
                     task = {
                         "http_request": {  # Specify the type of request.
                             "http_method": tasks_v2.HttpMethod.POST,
-                            "url": "https://1ba3b79c6304.ngrok.io/api/v1/tasks/send_email",
+                            "url": "https://689d552b6129.ngrok.io/api/v1/tasks/send_email",
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
