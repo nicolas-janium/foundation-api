@@ -3,7 +3,7 @@ import os
 from email.message import EmailMessage
 from email.header import Header
 from minify_html import minify
-from foundation_api.V1.utils.send_email import add_tracker
+from foundation_api.V1.utils.send_email import add_identifier
 
 client = boto3.client(
     'ses',
