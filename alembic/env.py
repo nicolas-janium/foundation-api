@@ -15,7 +15,7 @@ if os.getenv('FLASK_TESTING'):
         os.getenv('TESTING_DB_USER'),
         os.getenv('TESTING_DB_PASSWORD'),
         os.getenv('TESTING_DB_PUBLIC_HOST'),
-        3306,
+        os.getenv('TESTING_DB_PORT', 3306),
         os.getenv('TESTING_DB_DATABASE')
     )
 else:

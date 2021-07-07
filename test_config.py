@@ -15,7 +15,7 @@ SQLALCHEMY_DATABASE_URI = engine.url.URL(
     password= os.getenv('TESTING_DB_PASSWORD'),
     database= os.getenv('TESTING_DB_DATABASE'),
     host= os.getenv('TESTING_DB_PUBLIC_HOST'),
-    port= 3306
+    port= os.getenv('TESTING_DB_PORT', 3306),
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
