@@ -8,7 +8,8 @@ from alembic.command import upgrade, downgrade
 from alembic.config import Config
 
 from foundation_api import create_app
-from foundation_api.V1.sa_db.model import db as _db
+from foundation_api.V1.sa_db.model import Janium_campaign, db as _db
+from foundation_api.V1.sa_db.model import Ulinc_config, Email_config
 
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +17,10 @@ PROJECT_DIR = os.path.abspath(os.path.join(TEST_DIR, os.pardir))
 sys.path.insert(0, PROJECT_DIR)
 
 ALEMBIC_CONFIG = 'alembic.ini'
+
+headers={
+    'content-type': 'application/json'
+}
 
 
 
@@ -98,9 +103,6 @@ class AuthActions(object):
             "company": "Test",
             "time_zone_code": "US/Mountain"
         }
-        headers={
-            'content-type': 'application/json'
-        }
         return self._client.post('/api/v1/signup', headers=headers, data=json.dumps(json_body))
     
     def login(self, username='test@test.com', password='test123'):
@@ -116,3 +118,49 @@ class AuthActions(object):
 @pytest.fixture
 def auth(test_app):
     return AuthActions(test_app)
+
+
+class CampaignActions(object):
+    def __init__(self, test_app):
+        self._client = test_app
+    
+    def create_janium_campaign(self, token, janium_campaign_name):
+        json_body = {
+            "ulinc_config_id": Ulinc_config.unassigned_ulinc_config_id,
+            "email_config_id": Email_config.unassigned_email_config_id,
+            "janium_campaign_name": janium_campaign_name,
+            "janium_campaign_description": None,
+            "is_messenger": False,
+            "is_reply_in_email_thread": False,
+            "queue_start_time": "9999-12-31 09:00:00",
+            "queue_end_time": "9999-12-31 12:00:00"
+        }
+        headers['Authorization'] = "Bearer {}".format(token)
+        return self._client.post('/api/v1/janium_campaign', headers=headers, data=json.dumps(json_body))
+    
+    def create_janium_campaign_step(self, token, janium_campaign_id, step_type_id, delay):
+        json_body = {
+            "janium_campaign_id": janium_campaign_id,
+            "janium_campaign_step_type_id": step_type_id,
+            "janium_campaign_step_delay": delay,
+            "janium_campaign_step_body": "Test Body",
+            "janium_campaign_step_subject": "Test Subject"
+        }
+        headers['Authorization'] = "Bearer {}".format(token)
+        return self._client.post('/api/v1/janium_campaign_step', headers=headers, data=json.dumps(json_body))
+
+@pytest.fixture
+def campaign(test_app):
+    return CampaignActions(test_app)
+
+class ContactActions(object):
+    def __init__(self, test_app):
+        self._client = test_app
+    
+    def create_contact(self):
+        pass
+
+
+@pytest.fixture
+def contact(test_app):
+    return ContactActions(test_app)

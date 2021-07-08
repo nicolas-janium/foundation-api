@@ -120,21 +120,21 @@ def update_janium_campaign():
 @check_json_header
 def create_janium_campaign_step():
     """
-    Required JSON keys: janium_campaign_id, janium_campaign_step_type (li_message, email, pre_connection_email, text), janium_campaign_step_delay,
+    Required JSON keys: janium_campaign_id, janium_campaign_step_type_id (li_message: 1, email: 2, pre_connection_email: 4, text: 3), janium_campaign_step_delay,
     janium_campaign_step_body, janium_campaign_step_subject (if type == email or type == pre_connection_email), 
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
-        if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == json_body['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == json_body['janium_campaign_step_delay']).first():
+        if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == json_body['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == json_body['janium_campaign_step_delay']).filter(Janium_campaign_step.janium_campaign_step_type_id == json_body['janium_campaign_step_type_id']).first():
             return jsonify({"message": "Duplicate"})
         if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
             new_step = Janium_campaign_step(
                 str(uuid4()),
                 json_body['janium_campaign_id'],
-                1 if 'email' not in json_body['janium_campaign_step_type'] else 2 if json_body['janium_campaign_step_type'] == 'email' else 4,
+                json_body['janium_campaign_step_type_id'],
                 json_body['janium_campaign_step_delay'],
                 json_body['janium_campaign_step_body'],
-                None if 'email' not in json_body['janium_campaign_step_type'] else json_body['janium_campaign_step_subject'],
+                json_body['janium_campaign_step_subject'] if json_body['janium_campaign_step_type_id'] in [2,4] else None,
                 janium_campaign.queue_start_time,
                 janium_campaign.queue_end_time
             )

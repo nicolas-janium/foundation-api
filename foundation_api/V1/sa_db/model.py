@@ -545,8 +545,8 @@ class Janium_campaign(db.Model):
                         if continue_campaign_action:
                             if previous_received_messages[0].action_timestamp > continue_campaign_action.action_timestamp:
                                 continue
-                        # else:
-                        #     continue
+                        else:
+                            continue
                     if cnxn_action and cnxn_action.action_type_id == 1:
                         sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                         num_sent_emails = len(sent_emails) if sent_emails else 0
@@ -676,8 +676,8 @@ class Janium_campaign(db.Model):
                         if continue_campaign_action:
                             if previous_received_messages[0].action_timestamp > continue_campaign_action.action_timestamp:
                                 continue
-                        # else:
-                        #     continue
+                        else:
+                            continue
                     if cnxn_action and cnxn_action.action_type_id == 1:
                         sent_li_messages = contact.actions.filter(Action.action_type_id == 3).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                         num_sent_li_messages = len(sent_li_messages) if sent_li_messages else 0
@@ -726,6 +726,7 @@ class Janium_campaign(db.Model):
                                     continue
 
                     if add_contact:
+                        print("Inside add contact conditional")
                         li_message_targets_list.append(
                             {
                                 "janium_campaign_id": self.janium_campaign_id,
@@ -1140,11 +1141,9 @@ class Contact(db.Model):
     __tablename__ = 'contact'
     unassigned_contact_id = '9b84cf42-80f5-4cb4-80e6-7da4632b8177'
 
-    def __init__(self, contact_id, contact_source_id, account_id, janium_campaign_id, ulinc_campaign_id, ulinc_id, ulinc_ulinc_campaign_id, contact_info, tib_id):
+    def __init__(self, contact_id, contact_source_id, ulinc_campaign_id, ulinc_id, ulinc_ulinc_campaign_id, contact_info, tib_id=None):
         self.contact_id = contact_id
         self.contact_source_id = contact_source_id
-        self.account_id = account_id
-        self.janium_campaign_id = janium_campaign_id
         self.ulinc_campaign_id = ulinc_campaign_id
         self.ulinc_id = ulinc_id
         self.ulinc_ulinc_campaign_id = ulinc_ulinc_campaign_id
