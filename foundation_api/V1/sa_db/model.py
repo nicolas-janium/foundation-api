@@ -536,8 +536,8 @@ class Janium_campaign(db.Model):
                 emails = contact.get_emails()
                 if len(emails) and action.action_type_id in [1,19]:
                     add_contact = False
-                    cnxn_action = action
-                    # cnxn_req_action = contact.actions.filter(Action.action_type_id == action.action_type_id).order_by(Action.action_timestamp.desc()).first()
+                    cnxn_action = action if action.action_type_id == 1 else None
+                    cnxn_req_action = action if action.action_type_id == 19 and not db.session.query(Action).filter(Action.contact_id == contact.contact_id).filter(Action.action_type_id == 1).first() else None
                     continue_campaign_action = contact.actions.filter(Action.action_type_id == 14).order_by(Action.action_timestamp.desc()).first()
                     previous_received_messages = contact.actions.filter(Action.action_type_id.in_([2, 6, 11, 21])).order_by(Action.action_timestamp.desc()).all()
 
@@ -547,7 +547,7 @@ class Janium_campaign(db.Model):
                                 continue
                         else:
                             continue
-                    if cnxn_action and cnxn_action.action_type_id == 1:
+                    if cnxn_action:
                         sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                         num_sent_emails = len(sent_emails) if sent_emails else 0
                         last_sent_email = sent_emails[0] if sent_emails else None
@@ -597,13 +597,12 @@ class Janium_campaign(db.Model):
                                             continue
                                     else:
                                         continue
-                    elif cnxn_action and cnxn_action.action_type_id == 19:
-                        cnxn_req_timestamp = cnxn_action.action_timestamp
+                    elif cnxn_req_action:
+                        cnxn_req_timestamp = cnxn_req_action.action_timestamp
                         sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_req_timestamp).order_by(Action.action_timestamp.desc()).all()
                         num_sent_emails = len(sent_emails) if sent_emails else 0
                         last_sent_email = sent_emails[0] if sent_emails else None
 
-                        cnxn_req_timestamp = cnxn_action.action_timestamp
                         day_diff = networkdays(cnxn_req_timestamp, datetime.utcnow()) - 1
 
                         # steps = self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
@@ -726,7 +725,6 @@ class Janium_campaign(db.Model):
                                     continue
 
                     if add_contact:
-                        print("Inside add contact conditional")
                         li_message_targets_list.append(
                             {
                                 "janium_campaign_id": self.janium_campaign_id,
