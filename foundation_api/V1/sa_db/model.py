@@ -1080,6 +1080,8 @@ class Ulinc_campaign(db.Model):
             Action.action_type_id == 19
         ).filter(
             Contact.contact_info['ulinc']['li_profile_url'] != cast(text("'null'"), JSON)
+        ).filter(
+            ~Contact.actions.any(Action.action_type_id.in_([1,2,6,11,15,7]))
         ).order_by(
             Contact.contact_id, Action.action_timestamp.desc()
         ).all()
