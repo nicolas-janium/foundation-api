@@ -88,7 +88,7 @@ def create_janium_campaign():
         )
         db.session.add(janium_campaign)
         db.session.commit()
-        return jsonify({"message": "Janium campaign created successfully"})
+        return jsonify({"message": "success"})
     return jsonify({"message": "JSON body is missing"})
 
 @mod_campaign.route('/janium_campaign', methods=['PUT'])
@@ -111,7 +111,7 @@ def update_janium_campaign():
             janium_campaign.effective_start_date = datetime.utcnow()
             janium_campaign.effective_end_date = datetime.utcnow() + timedelta(days=365000) if json_body['is_active'] else datetime.utcnow()
             db.session.commit()
-            return jsonify({"message": "Janium campaign updated successfully"})
+            return jsonify({"message": "success"})
         return jsonify({"message": "Janium campaign not found"})
     return jsonify({"message": "JSON body is missing"})
 
@@ -140,7 +140,7 @@ def create_janium_campaign_step():
             )
             db.session.add(new_step)
             db.session.commit()
-            return jsonify({"message": "Janium campaign step created successfully"})
+            return jsonify({"message": "success"})
         return jsonify({"message": "Janium campaign not found"})
     return jsonify({"message": "JSON body is missing"})
 
@@ -159,7 +159,7 @@ def update_janium_campaign_step():
             janium_campaign_step.janium_campaign_step_body = json_body['janium_campaign_step_body']
             janium_campaign_step.janium_campaign_step_subject = json_body['janium_campaign_step_subject']
             db.session.commit()
-            return jsonify({"message": "Janium campaign step updated successfully"})
+            return jsonify({"message": "success"})
         return jsonify({"message": "Janium campaign step not found"})
     return jsonify({"message": "JSON body is missing"})
 

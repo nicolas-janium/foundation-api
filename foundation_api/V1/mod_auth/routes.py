@@ -78,7 +78,7 @@ def create_user():
             db.session.add(account)
             db.session.commit()
 
-            return jsonify({"message": "User created successfully"})
+            return jsonify({"message": "success"})
         return jsonify({"message": "Invalid time_zone_code"})
     return jsonify({"message": "Missing JSON body"})
 
@@ -94,7 +94,7 @@ def login_user():
             user = credentials.credentials_user
             access_token = create_access_token(identity=user.user_id)
             refresh_token = create_refresh_token(identity=user.user_id)
-            response = make_response(jsonify({"message": "Login successfull", "access_token": access_token, "refresh_token": refresh_token}), 200)
+            response = make_response(jsonify({"message": "success", "access_token": access_token, "refresh_token": refresh_token}), 200)
             return response
         else:
             return make_response(jsonify({"message": "Incorrect Password"}), 200)
@@ -116,7 +116,7 @@ def update_user():
             user.additional_contact_info = json_body['additional_contact_info']
             user.phone = json_body['phone']
             db.session.commit()
-            return jsonify({"message": "User updated"})
+            return jsonify({"message": "success"})
         else:
             return make_response(jsonify({"message": "Missing JSON body"}), 200)
     else:
