@@ -976,8 +976,8 @@ class Ulinc_campaign(db.Model):
                         "location": contact.contact_info['ulinc']['location'],
                         "ulinc_campaign_id": self.ulinc_campaign_id,
                         "ulinc_campaign_name": self.ulinc_campaign_name,
-                        "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                        "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                        "janium_campaign_id": self.parent_janium_campaign.janium_campaign_id,
+                        "janium_campaign_name": self.parent_janium_campaign.janium_campaign_name,
                         "connection_date": cnxn_action.action_timestamp,
                         "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
                         "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
@@ -1018,8 +1018,8 @@ class Ulinc_campaign(db.Model):
                         "location": contact.contact_info['ulinc']['location'],
                         "ulinc_campaign_id": self.ulinc_campaign_id,
                         "ulinc_campaign_name": self.ulinc_campaign_name,
-                        "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                        "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                        "janium_campaign_id": self.parent_janium_campaign.janium_campaign_id,
+                        "janium_campaign_name": self.parent_janium_campaign.janium_campaign_name,
                         "msg_timestamp": msg_action.action_timestamp,
                         "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
                         "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
@@ -1060,8 +1060,8 @@ class Ulinc_campaign(db.Model):
                                     "phone": contact.contact_info['ulinc']['phone'],
                                     "ulinc_campaign_id": self.ulinc_campaign_id,
                                     "ulinc_campaign_name": self.ulinc_campaign_name,
-                                    "janium_campaign_id": contact.contact_janium_campaign.janium_campaign_id,
-                                    "janium_campaign_name": contact.contact_janium_campaign.janium_campaign_name,
+                                    "janium_campaign_id": janium_campaign.janium_campaign_id,
+                                    "janium_campaign_name": janium_campaign.janium_campaign_name,
                                     "connection_date": cnxn_action.action_timestamp,
                                     "is_clicked": True if contact.actions.filter(Action.action_type_id == 10).first() else False,
                                     "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False

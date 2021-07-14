@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from threading import Thread
 
@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request, make_response, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token, set_access_cookies, unset_jwt_cookies
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from foundation_api import bcrypt, mail
+from foundation_api import bcrypt, mail, check_json_header
 from foundation_api.V1.sa_db.model import db
 from foundation_api.V1.sa_db.model import User, Account, Time_zone, Credentials, Dte
 
@@ -27,6 +27,7 @@ def refresh():
     return response
 
 @mod_auth.route('/signup', methods=['POST'])
+@check_json_header
 def create_user():
     """
         required JSON keys: username, password, first_name, last_name, title, company, 
@@ -34,9 +35,10 @@ def create_user():
     """
     if json_body := request.get_json():
         if existing_username := db.session.query(Credentials).filter(Credentials.username == json_body['username']).first():
-            return make_response(jsonify({"message": "Username already exists"}), 200)
+            return make_response(jsonify({"message": "Username already exists"}), 409)
         
-        if time_zone_id := db.session.query(Time_zone).filter(Time_zone.time_zone_code == json_body['time_zone_code']).first().time_zone_id:
+        if time_zone := db.session.query(Time_zone).filter(Time_zone.time_zone_code == json_body['time_zone_code']).first():
+            time_zone_id = time_zone.time_zone_id
             credentials_id = str(uuid4())
             credentials = Credentials(
                 credentials_id,
@@ -79,15 +81,15 @@ def create_user():
             db.session.commit()
 
             return jsonify({"message": "success"})
-        return jsonify({"message": "Invalid time_zone_code"})
-    return jsonify({"message": "Missing JSON body"})
+        return make_response(jsonify({"message": "Invalid time_zone_code"}), 422)
+    return make_response(jsonify({"message": "Missing JSON body"}), 422)
 
 @mod_auth.route('/login', methods=['POST'])
 def login_user():
     auth = request.authorization
 
     if not auth or not auth.username or not auth.password:
-        return make_response(jsonify({"message": "Missing username or password"}), 200)
+        return make_response(jsonify({"message": "Missing username or password"}), 401)
 
     if credentials := db.session.query(Credentials).filter(Credentials.username == auth.username).first():
         if bcrypt.check_password_hash(credentials.password, auth.password):
@@ -97,9 +99,9 @@ def login_user():
             response = make_response(jsonify({"message": "success", "access_token": access_token, "refresh_token": refresh_token}), 200)
             return response
         else:
-            return make_response(jsonify({"message": "Incorrect Password"}), 200)
+            return make_response(jsonify({"message": "Incorrect Password"}), 401)
     else:
-        return make_response(jsonify({"message": "Username not found"}), 200)
+        return make_response(jsonify({"message": "Username not found"}), 401)
 
 @mod_auth.route('/update_user', methods=['PUT'])
 @jwt_required()
@@ -118,9 +120,9 @@ def update_user():
             db.session.commit()
             return jsonify({"message": "success"})
         else:
-            return make_response(jsonify({"message": "Missing JSON body"}), 200)
+            return make_response(jsonify({"message": "Missing JSON body"}), 422)
     else:
-        return make_response(jsonify({"message": "User does not exist"}), 200)
+        return make_response(jsonify({"message": "Username not found"}), 401)
 
 ### Logging out will happen solely on the react app ###
 # @mod_auth.route('/logout', methods=['POST'])

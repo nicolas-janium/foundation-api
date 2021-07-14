@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from foundation_api.V1.sa_db.model import db
@@ -34,8 +34,8 @@ def get_ulinc_configs():
                 )
 
             return jsonify(ulinc_configs)
-        return jsonify({"message": "Janium account not found"})
-    return jsonify({"message": "User not found"})
+        return make_response(jsonify({"message": "Janium account not found"}), 400)
+    return make_response(jsonify({"message": "User not found"}), 401)
 
 @mod_home.route('/ulinc_config', methods=['GET'])
 @jwt_required()
@@ -68,8 +68,8 @@ def get_ulinc_config():
                     "vm_tasks": ulinc_config.get_dte_vm_tasks()
                 }
             )
-        return jsonify({"message": "Ulinc config not found"})
-    return jsonify({"message": "Missing ulinc_config_id parameter"})
+        return make_response(jsonify({"message": "Unknown ulinc_config_id value"}), 400)
+    return make_response(jsonify({"message": "Missing ulinc_config_id param"}), 400)
 
 # @mod_home.route('/dte_click', methods=['POST'])
 # @jwt_required()

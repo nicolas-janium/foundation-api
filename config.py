@@ -28,6 +28,7 @@ JWT_SECRET_KEY = 'super_secret_jwt_key'
 # JWT_COOKIE_CSRF_PROTECT = False
 # JWT_CSRF_IN_COOKIES = False
 JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)
+# JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=10)
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')

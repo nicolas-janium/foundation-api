@@ -68,7 +68,7 @@ def check_json_header(f):
     def decorated(*args, **kwargs):
         if str(request.headers.get('Content-Type')).lower() == 'application/json':
             return f(*args, **kwargs)
-        return make_response(jsonify({"message": "Set Content-Type header value to 'application/json'"}), 200)
+        return make_response(jsonify({"message": "Set Content-Type header value to 'application/json'"}), 400)
     return decorated
 
 
