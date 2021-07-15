@@ -18,23 +18,22 @@ def get_ulinc_configs():
     """
     user_id = get_jwt_identity()
     if user := db.session.query(User).filter(User.user_id == user_id).first():
-        if janium_account := user.account:
-            ulinc_configs = []
+        janium_account = user.account
+        ulinc_configs = []
 
-            for ulinc_config in janium_account.ulinc_configs:
-                ulinc_configs.append(
-                    {
-                        "ulinc_config_id": ulinc_config.ulinc_config_id,
-                        "ulinc_li_email": ulinc_config.ulinc_li_email,
-                        "ulinc_is_active": ulinc_config.ulinc_is_active,
-                        "ulinc_is_working": ulinc_config.is_working,
-                        "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
-                        "summary_data": ulinc_config.get_summary_data()
-                    }
-                )
+        for ulinc_config in janium_account.ulinc_configs:
+            ulinc_configs.append(
+                {
+                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                    "ulinc_li_email": ulinc_config.ulinc_li_email,
+                    "ulinc_is_active": ulinc_config.ulinc_is_active,
+                    "ulinc_is_working": ulinc_config.is_working,
+                    "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
+                    "summary_data": ulinc_config.get_summary_data()
+                }
+            )
 
-            return jsonify(ulinc_configs)
-        return make_response(jsonify({"message": "Janium account not found"}), 400)
+        return jsonify(ulinc_configs)
     return make_response(jsonify({"message": "User not found"}), 401)
 
 @mod_home.route('/ulinc_config', methods=['GET'])

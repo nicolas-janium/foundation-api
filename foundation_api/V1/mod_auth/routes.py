@@ -88,8 +88,8 @@ def create_user():
 def login_user():
     auth = request.authorization
 
-    if not auth or not auth.username or not auth.password:
-        return make_response(jsonify({"message": "Missing username or password"}), 401)
+    if not auth:
+        return make_response(jsonify({"message": "Missing Authorization header"}), 401)
 
     if credentials := db.session.query(Credentials).filter(Credentials.username == auth.username).first():
         if bcrypt.check_password_hash(credentials.password, auth.password):
@@ -101,7 +101,7 @@ def login_user():
         else:
             return make_response(jsonify({"message": "Incorrect Password"}), 401)
     else:
-        return make_response(jsonify({"message": "Username not found"}), 401)
+        return make_response(jsonify({"message": "Unknown username"}), 401)
 
 @mod_auth.route('/update_user', methods=['PUT'])
 @jwt_required()
