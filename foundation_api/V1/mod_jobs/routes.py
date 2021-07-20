@@ -148,7 +148,7 @@ def process_contact_sources_job():
     tasks = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
-            for contact_source in ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).all():
+            for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).order_by(Contact_source.contact_source_type_id.asc()).all()):
                 # parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), 'us-central1', queue='process-cs-queue')
                 parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='process-cs-queue')
                 payload = {
@@ -159,7 +159,7 @@ def process_contact_sources_job():
                 task = {
                     "http_request": {  # Specify the type of request.
                         "http_method": tasks_v2.HttpMethod.POST,
-                        "url": "https://0f4c82be59ff.ngrok.io/api/v1/tasks/process_contact_source",
+                        "url": "https://30c4827ac01d.ngrok.io/api/v1/tasks/process_contact_source",
                         'body': json.dumps(payload).encode(),
                         'headers': {
                             'Content-type': 'application/json'
@@ -176,6 +176,12 @@ def process_contact_sources_job():
                 #         }
                 #     }
                 # }
+
+                # Create Timestamp protobuf.
+                timestamp = timestamp_pb2.Timestamp()
+                timestamp.FromDatetime(datetime.utcnow() + timedelta(seconds=(i * 10)))
+                task['schedule_time'] = timestamp
+
                 task_response = gc_tasks_client.create_task(parent=parent, task=task)
                 tasks.append({
                     "account_id": account.account_id,
@@ -430,28 +436,28 @@ def send_li_message_job():
 
     return jsonify(tasks)
 
-@mod_jobs.route('/send_li_message', methods=['GET'])
-@check_cron_header
-def send_li_message():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        Account.account_id != Account.unassigned_account_id,
-        Account.is_sending_li_messages
-    )).all()
+# @mod_jobs.route('/send_li_message', methods=['GET'])
+# @check_cron_header
+# def send_li_message():
+#     accounts = db.session.query(Account).filter(and_(
+#         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+#         Account.account_id != Account.unassigned_account_id,
+#         Account.is_sending_li_messages
+#     )).all()
 
-    fail_list = []
-    success_list = []
-    for account in accounts:
-        account_local_time = datetime.now(pytz.timezone('UTC')).astimezone(pytz.timezone(account.time_zone.time_zone_code)).replace(tzinfo=None)
-        for ulinc_config in account.ulinc_configs:
-            for janium_campaign in ulinc_config.janium_campaigns:
-                effective_dates_dict = janium_campaign.get_effective_dates(account.time_zone.time_zone_code)
-                queue_times_dict = janium_campaign.get_queue_times(account.time_zone.time_zone_code)
-                if (effective_dates_dict['start'] <= account_local_time <= effective_dates_dict['end']) and (queue_times_dict['start'].hour <= account_local_time.hour <= queue_times_dict['end'].hour):
-                    try:
-                        task_res = send_li_message_function(account, ulinc_config, janium_campaign, account_local_time, queue_times_dict)
-                        success_list.append({"account_id": account.account_id, "janium_campaign_id": janium_campaign.janium_campaign_id, "li_message_recipients": task_res})
-                    except Exception as err:
-                        logger.error("Send LI message error for account {}: {}".format(account.account_id, err))
-                        fail_list.append({"account_id": account.account_id})
-    return jsonify({"send_li_message_fail_list": fail_list, "send_li_message_success_list": success_list})
+#     fail_list = []
+#     success_list = []
+#     for account in accounts:
+#         account_local_time = datetime.now(pytz.timezone('UTC')).astimezone(pytz.timezone(account.time_zone.time_zone_code)).replace(tzinfo=None)
+#         for ulinc_config in account.ulinc_configs:
+#             for janium_campaign in ulinc_config.janium_campaigns:
+#                 effective_dates_dict = janium_campaign.get_effective_dates(account.time_zone.time_zone_code)
+#                 queue_times_dict = janium_campaign.get_queue_times(account.time_zone.time_zone_code)
+#                 if (effective_dates_dict['start'] <= account_local_time <= effective_dates_dict['end']) and (queue_times_dict['start'].hour <= account_local_time.hour <= queue_times_dict['end'].hour):
+#                     try:
+#                         task_res = send_li_message_function(account, ulinc_config, janium_campaign, account_local_time, queue_times_dict)
+#                         success_list.append({"account_id": account.account_id, "janium_campaign_id": janium_campaign.janium_campaign_id, "li_message_recipients": task_res})
+#                     except Exception as err:
+#                         logger.error("Send LI message error for account {}: {}".format(account.account_id, err))
+#                         fail_list.append({"account_id": account.account_id})
+#     return jsonify({"send_li_message_fail_list": fail_list, "send_li_message_success_list": success_list})

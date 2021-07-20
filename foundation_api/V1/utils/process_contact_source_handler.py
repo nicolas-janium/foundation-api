@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime
 from uuid import uuid4
+from proto import message
 
 import requests
 from nameparser import HumanName
+import Levenshtein as lev
 from urllib3.exceptions import InsecureRequestWarning
 import foundation_api.V1.utils.demoji_module as demoji
 from foundation_api.V1.sa_db.model import *
@@ -34,7 +36,7 @@ base_contact_dict = dict({
 def scrub_name(name):
     return HumanName(demoji.replace(name.replace(',', ''), ''))
 
-def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_campaign_id, contact_source_id, ulinc_client_id=None):
+def create_new_contact(contact_info, existing_ulinc_campaign_id, contact_source_id, ulinc_client_id=None):
     data = {**base_contact_dict, **contact_info}
     if ulinc_client_id:
         conv = lambda i : i or None
@@ -42,8 +44,6 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
         return Contact(
             str(uuid4()),
             contact_source_id,
-            account_id,
-            campaign_id,
             existing_ulinc_campaign_id,
             str(ulinc_client_id + data['Contact ID']),
             data['Campaign ID'],
@@ -67,8 +67,6 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
         return Contact(
             str(uuid4()),
             contact_source_id,
-            account_id,
-            campaign_id,
             existing_ulinc_campaign_id,
             data['id'],
             data['campaign_id'],
@@ -111,15 +109,10 @@ def process_webhook(account, ulinc_config, contact_source):
             else:
                 if existing_ulinc_campaign:
                     existing_ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
-                    if existing_ulinc_campaign.parent_janium_campaign:
-                        janium_campaign_id = existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id
-                    else:
-                        janium_campaign_id = Janium_campaign.unassigned_janium_campaign_id # Unassigned janium campaign id value
                 else:
                     existing_ulinc_campaign_id = Ulinc_campaign.unassigned_ulinc_campaign_id
-                    janium_campaign_id = Janium_campaign.unassigned_janium_campaign_id # Unassigned janium campaign id value
                 
-                new_contact = create_new_contact(item, account.account_id, janium_campaign_id, existing_ulinc_campaign_id, contact_source.contact_source_id)
+                new_contact = create_new_contact(item, existing_ulinc_campaign_id, contact_source.contact_source_id)
                 connection_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None, None)
                 db.session.add(new_contact)
                 db.session.add(connection_action)
@@ -135,9 +128,9 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact.contact_info = existing_contact_info
             else:
                 if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
+                    new_contact = create_new_contact(item, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
                 else:
-                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
+                    new_contact = create_new_contact(item, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
             new_message_action = Action(
@@ -159,11 +152,20 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact_info['ulinc']['website'] = new_contact_info['website']
                 existing_contact_info['ulinc']['li_profile_url'] = new_contact_info['profile']
                 existing_contact.contact_info = existing_contact_info
+                if existing_ulinc_campaign:
+                    message_text = str(existing_ulinc_campaign.messenger_origin_message) if existing_ulinc_campaign.ulinc_is_messenger == 1 else str(existing_ulinc_campaign.connection_request_message)
+                    message_text = message_text.strip().replace('\r', '').replace('\n', '')
+                    if message_text:
+                        item_message_text = str(item['message'])
+                        item_message_text = item_message_text.strip().replace('\r', '').replace('\n', '')
+                        lev_ratio = lev.ratio(message_text, item_message_text)
+                        if lev_ratio > 0.9:
+                            continue
             else:
                 if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, account.account_id, existing_ulinc_campaign.parent_janium_campaign.janium_campaign_id, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
+                    new_contact = create_new_contact(item, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
                 else:
-                    new_contact = create_new_contact(item, account.account_id, Janium_campaign.unassigned_janium_campaign_id, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
+                    new_contact = create_new_contact(item, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
 

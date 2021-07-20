@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 import logging
 import os
+from proto import message
 
 import requests
 from bs4 import BeautifulSoup as Soup
@@ -65,7 +66,7 @@ def get_campaign_message(ulinc_client_id, ulinc_campaign_id, usr, pwd, is_messen
         soup = Soup(res.text, 'html.parser')
         message_type = "message[welcome]" if is_messenger else "message[connection]"
         if message_item := soup.find('textarea', {"name": message_type}):
-            if message_text := message_item.text:
+            if message_text := message_item.get_text():
                 return message_text
             else:
                 return None
