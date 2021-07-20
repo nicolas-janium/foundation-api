@@ -796,7 +796,7 @@ class Ulinc_campaign(db.Model):
     __tablename__ = 'ulinc_campaign'
     unassigned_ulinc_campaign_id = '943c18f3-74c8-45cf-a396-1ddc89c6b9d2'
 
-    def __init__(self, ulinc_campaign_id, ulinc_config_id, janium_campaign_id, ulinc_campaign_name, ulinc_is_active, ulinc_ulinc_campaign_id, ulinc_is_messenger, ulinc_messenger_origin_message=None):
+    def __init__(self, ulinc_campaign_id, ulinc_config_id, janium_campaign_id, ulinc_campaign_name, ulinc_is_active, ulinc_ulinc_campaign_id, ulinc_is_messenger, ulinc_messenger_origin_message=None, connection_request_message=None):
         self.ulinc_campaign_id = ulinc_campaign_id
         self.ulinc_config_id = ulinc_config_id
         self.janium_campaign_id = janium_campaign_id
@@ -804,7 +804,8 @@ class Ulinc_campaign(db.Model):
         self.ulinc_is_active = ulinc_is_active
         self.ulinc_ulinc_campaign_id = ulinc_ulinc_campaign_id
         self.ulinc_is_messenger = ulinc_is_messenger
-        self.ulinc_messenger_origin_message = ulinc_messenger_origin_message
+        self.messenger_origin_message = ulinc_messenger_origin_message
+        self.connection_request_message = connection_request_message
         # self.updated_by = updated_by
 
     # Primary Keys
@@ -819,6 +820,8 @@ class Ulinc_campaign(db.Model):
     ulinc_is_active = Column(Boolean, nullable=False, server_default=false())
     ulinc_ulinc_campaign_id = Column(String(16), nullable=False)
     ulinc_is_messenger = Column(Boolean, nullable=False, server_default=false())
+    connection_request_message = Column(Text, nullable=True)
+    messenger_origin_message = Column(Text, nullable=True)
 
     # Table Metadata    
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
