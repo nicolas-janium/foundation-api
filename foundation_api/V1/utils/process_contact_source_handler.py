@@ -6,6 +6,7 @@ from proto import message
 import requests
 from nameparser import HumanName
 import Levenshtein as lev
+from sqlalchemy.orm.attributes import flag_modified
 from urllib3.exceptions import InsecureRequestWarning
 import foundation_api.V1.utils.demoji_module as demoji
 from foundation_api.V1.sa_db.model import *
@@ -87,37 +88,40 @@ def create_new_contact(contact_info, existing_ulinc_campaign_id, contact_source_
             None
         )
 
-def process_webhook(account, ulinc_config, contact_source):
+def process_webhook(ulinc_config, contact_source):
     for item in contact_source.contact_source_json:
         existing_contact = db.session.query(Contact).filter(Contact.ulinc_id == str(item['id'])).first() # if contact exists in the contact table
         existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config.ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == str(item['campaign_id'])).first()
         if contact_source.contact_source_type_id == 1:
             if existing_contact: # if contact exists in the contact table
-                # if len([action for action in existing_contact.actions if action.action_type_id == action_type_dict['ulinc_new_connection']['id']]) > 0:
+                # Update contat information. CSV has lets info than webhook responses
+                existing_contact_info = existing_contact.contact_info
+                new_contact_info = {**base_contact_dict, **item}
+                existing_contact_info['ulinc']['email'] = new_contact_info['email']
+                existing_contact_info['ulinc']['phone'] = new_contact_info['phone']
+                existing_contact_info['ulinc']['website'] = new_contact_info['website']
+                existing_contact_info['ulinc']['li_profile_url'] = new_contact_info['profile']
+                existing_contact.contact_info = existing_contact_info
+                flag_modified(existing_contact, 'contact_info')
+                db.session.commit()
+
                 if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id == 1).first():
                     pass
                 else:
-                    existing_contact_info = existing_contact.contact_info
-                    new_contact_info = {**base_contact_dict, **item}
-                    existing_contact_info['ulinc']['email'] = new_contact_info['email']
-                    existing_contact_info['ulinc']['phone'] = new_contact_info['phone']
-                    existing_contact_info['ulinc']['website'] = new_contact_info['website']
-                    existing_contact_info['ulinc']['li_profile_url'] = new_contact_info['profile']
-                    existing_contact.contact_info = existing_contact_info
                     connection_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None, None)
                     db.session.add(connection_action)
             else:
-                if existing_ulinc_campaign:
-                    existing_ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
-                else:
-                    existing_ulinc_campaign_id = Ulinc_campaign.unassigned_ulinc_campaign_id
-                
-                new_contact = create_new_contact(item, existing_ulinc_campaign_id, contact_source.contact_source_id)
+                new_contact = create_new_contact(
+                    item,
+                    existing_ulinc_campaign.ulinc_campaign_id if existing_ulinc_campaign else Ulinc_campaign.unassigned_ulinc_campaign_id,
+                    contact_source.contact_source_id
+                )
                 connection_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None, None)
                 db.session.add(new_contact)
                 db.session.add(connection_action)
         elif contact_source.contact_source_type_id == 2:
             if existing_contact:
+                # Update contat information. CSV has lets info than webhook responses
                 contact_id = existing_contact.contact_id
                 existing_contact_info = existing_contact.contact_info
                 new_contact_info = {**base_contact_dict, **item}
@@ -126,11 +130,14 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact_info['ulinc']['website'] = new_contact_info['website']
                 existing_contact_info['ulinc']['li_profile_url'] = new_contact_info['profile']
                 existing_contact.contact_info = existing_contact_info
+                flag_modified(existing_contact, 'contact_info')
+                db.session.commit()
             else:
-                if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
-                else:
-                    new_contact = create_new_contact(item, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
+                new_contact = create_new_contact(
+                    item,
+                    existing_ulinc_campaign.ulinc_campaign_id if existing_ulinc_campaign else Ulinc_campaign.unassigned_ulinc_campaign_id,
+                    contact_source.contact_source_id
+                )
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
             new_message_action = Action(
@@ -144,6 +151,7 @@ def process_webhook(account, ulinc_config, contact_source):
             db.session.add(new_message_action)
         elif contact_source.contact_source_type_id == 3:
             if existing_contact:
+                # Update contat information. CSV has lets info than webhook responses
                 contact_id = existing_contact.contact_id
                 existing_contact_info = existing_contact.contact_info
                 new_contact_info = {**base_contact_dict, **item}
@@ -152,58 +160,47 @@ def process_webhook(account, ulinc_config, contact_source):
                 existing_contact_info['ulinc']['website'] = new_contact_info['website']
                 existing_contact_info['ulinc']['li_profile_url'] = new_contact_info['profile']
                 existing_contact.contact_info = existing_contact_info
-                if existing_ulinc_campaign:
-                    message_text = str(existing_ulinc_campaign.messenger_origin_message) if existing_ulinc_campaign.ulinc_is_messenger == 1 else str(existing_ulinc_campaign.connection_request_message)
-                    message_text = message_text.strip().replace('\r', '').replace('\n', '')
-                    if message_text:
-                        item_message_text = str(item['message'])
-                        item_message_text = item_message_text.strip().replace('\r', '').replace('\n', '')
-                        lev_ratio = lev.ratio(message_text, item_message_text)
-                        if lev_ratio > 0.9:
-                            continue
+                flag_modified(existing_contact, 'contact_info')
+                db.session.commit()
+
             else:
-                if existing_ulinc_campaign:
-                    new_contact = create_new_contact(item, existing_ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id)
-                else:
-                    new_contact = create_new_contact(item, Ulinc_campaign.unassigned_ulinc_campaign_id, contact_source.contact_source_id)
+                new_contact = create_new_contact(
+                    item,
+                    existing_ulinc_campaign.ulinc_campaign_id if existing_ulinc_campaign else Ulinc_campaign.unassigned_ulinc_campaign_id,
+                    contact_source.contact_source_id
+                )
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
 
+            is_origin = False
             if existing_ulinc_campaign:
-                if existing_ulinc_campaign.parent_janium_campaign.is_messenger:
-                    if existing_origin_message := db.session.query(Action).filter(Action.contact_id == contact_id).filter(Action.action_id == 13).first():
-                        is_origin = False
-                    else:
-                        is_origin = True
+                item_message = str(item['message'])
+                item_message = item_message.strip().replace('\r', '').replace('\n', '')
+                if existing_ulinc_campaign.ulinc_is_messenger:
+                    if origin_message := str(existing_ulinc_campaign.messenger_origin_message):
+                        origin_message = origin_message.strip().replace('\r', '').replace('\n', '')
+                        if lev.ration(origin_message, item_message) > 0.9:
+                            is_origin = True
                 else:
-                    is_origin = False
-            else:
-                is_origin = False
+                    if cnxn_req_message := str(existing_ulinc_campaign.connection_request_message):
+                        cnxn_req_message = cnxn_req_message.strip().replace('\r', '').replace('\n', '')
+                        if lev.ration(cnxn_req_message, item_message) > 0.9:
+                            continue
 
-            if is_origin:
-                new_action = Action(
-                    str(uuid4()),
-                    contact_id,
-                    13,
-                    datetime.utcnow(),
-                    item['message'],
-                    None
-                )
-            else:
-                new_action = Action(
-                    str(uuid4()),
-                    contact_id,
-                    3,
-                    datetime.utcnow(),
-                    item['message'],
-                    None
-                )
+            new_action = Action(
+                str(uuid4()),
+                contact_id,
+                13 if is_origin else 3,
+                datetime.utcnow(),
+                item['message'],
+                None
+            )
             db.session.add(new_action)
         else:
             print('Unknown webhook response type')
         db.session.commit()
 
-def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_source):
+def process_csv(ulinc_config, ulinc_campaign, contact_source):
     for item in contact_source.contact_source_json:
         existing_contact = db.session.query(Contact).filter(Contact.ulinc_id == str(ulinc_config.ulinc_client_id + item['Contact ID'])).first()
         if item['Status'] == 'In Queue':
@@ -215,7 +212,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 18, datetime.utcnow(), None)
@@ -232,7 +229,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 19, datetime.utcnow(), None)
@@ -246,7 +243,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 20, datetime.utcnow(), None)
@@ -260,7 +257,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 21, datetime.utcnow(), None)
@@ -274,7 +271,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 11, datetime.utcnow(), None)
@@ -299,7 +296,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(new_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
@@ -313,7 +310,7 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(cnxn_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
@@ -327,17 +324,17 @@ def process_csv(account, ulinc_config, janium_campaign, ulinc_campaign, contact_
                     db.session.add(cnxn_action)
             else:
                 new_contact = create_new_contact(
-                    item, account.account_id, janium_campaign.janium_campaign_id, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+                    item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
                 )
                 db.session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
                 db.session.add(new_action)
     db.session.commit()
 
-def process_contact_source_function(account, ulinc_config, contact_source):
+def process_contact_source_function(ulinc_config, contact_source):
     if contact_source.contact_source_type_id != 4:
         try:
-            process_webhook(account, ulinc_config, contact_source)
+            process_webhook(ulinc_config, contact_source)
             contact_source.is_processed = True
             db.session.commit()
             return 1
@@ -347,7 +344,7 @@ def process_contact_source_function(account, ulinc_config, contact_source):
         ulinc_ulinc_campaign_id = contact_source.contact_source_json[0]['Campaign ID']
         ulinc_campaign = db.session.query(Ulinc_campaign).filter(and_(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_ulinc_campaign_id, Ulinc_campaign.ulinc_config_id == ulinc_config.ulinc_config_id)).first()
         try:
-            process_csv(account, ulinc_config, ulinc_campaign.parent_janium_campaign, ulinc_campaign, contact_source)
+            process_csv(ulinc_config, ulinc_campaign, contact_source)
             print("From process_contact_source_function function. Contact_source_id: {}".format(contact_source.contact_source_id))
             contact_source.is_processed = True
             db.session.commit()

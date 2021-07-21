@@ -64,7 +64,7 @@ def process_contact_source_task():
     ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
     contact_source = db.session.query(Contact_source).filter(Contact_source.contact_source_id == json_body['contact_source_id']).first()
     
-    if process_contact_source_function(account, ulinc_config, contact_source):
+    if process_contact_source_function(ulinc_config, contact_source):
         return jsonify({"message": "success"})
     return make_response(jsonify({"message": "failure"}), 300)
 
