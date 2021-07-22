@@ -524,132 +524,121 @@ class Janium_campaign(db.Model):
 
     def get_email_targets(self):
         email_targets_list = []
-        if campaign_steps := self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id.in_([2,4])).order_by(Janium_campaign_step.janium_campaign_step_delay).all():
-            targets = []
-            for uc in self.ulinc_campaigns:
-                targets += uc.get_email_targets()
+        targets = []
+        campaign_steps = self.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.asc()).all()
+        for uc in self.ulinc_campaigns:
+            targets += uc.get_email_targets()
 
-            for contact in targets:
-                contact_dict = contact._asdict()
-                action = contact_dict['Action']
-                contact = contact_dict['Contact']
-                emails = contact.get_emails()
-                if len(emails) and action.action_type_id in [1,19]:
-                    add_contact = False
-                    cnxn_action = action if action.action_type_id == 1 else None
-                    cnxn_req_action = action if action.action_type_id == 19 and not db.session.query(Action).filter(Action.contact_id == contact.contact_id).filter(Action.action_type_id == 1).first() else None
-                    continue_campaign_action = contact.actions.filter(Action.action_type_id == 14).order_by(Action.action_timestamp.desc()).first()
-                    previous_received_messages = contact.actions.filter(Action.action_type_id.in_([2, 6, 11, 21])).order_by(Action.action_timestamp.desc()).all()
+        for contact in targets:
+            contact_dict = contact._asdict()
+            action = contact_dict['Action']
+            contact = contact_dict['Contact']
+            emails = contact.get_emails()
+            if len(emails) and action.action_type_id in [1,19]:
+                add_contact = False
+                cnxn_action = action if action.action_type_id == 1 else None
+                cnxn_req_action = action if action.action_type_id == 19 and not db.session.query(Action).filter(Action.contact_id == contact.contact_id).filter(Action.action_type_id == 1).first() else None
+                continue_campaign_action = contact.actions.filter(Action.action_type_id == 14).order_by(Action.action_timestamp.desc()).first()
+                previous_received_messages = contact.actions.filter(Action.action_type_id.in_([2, 6, 11, 21])).order_by(Action.action_timestamp.desc()).all()
 
-                    if previous_received_messages:
-                        if continue_campaign_action:
-                            if previous_received_messages[0].action_timestamp > continue_campaign_action.action_timestamp:
-                                continue
-                        else:
+                if previous_received_messages:
+                    if continue_campaign_action:
+                        if previous_received_messages[0].action_timestamp > continue_campaign_action.action_timestamp:
                             continue
-                    if cnxn_action:
-                        sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
-                        num_sent_emails = len(sent_emails) if sent_emails else 0
-                        last_sent_email = sent_emails[0] if sent_emails else None
+                    else:
+                        continue
+                if cnxn_action:
+                    prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
+                    # print(prev_actions)
+                    sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.action_type_id == 4]
+                    num_sent_emails = len(sent_emails) if sent_emails else 0
+                    last_sent_email = sent_emails[0] if sent_emails else None
 
-                        if continue_campaign_action:
-                            cnxn_timestamp = cnxn_action.action_timestamp
-                            if last_sent_email:
-                                days_to_add = networkdays(last_sent_email.action_timestamp, continue_campaign_action.action_timestamp) - 1
-                            else:
-                                days_to_add = networkdays(previous_received_messages[0].action_timestamp, continue_campaign_action.action_timestamp) - 1
-                            while days_to_add > 0:
-                                cnxn_timestamp += timedelta(days=1)
-                                if cnxn_timestamp.weekday() >= 5: # sunday = 6
-                                    continue
-                                days_to_add -= 1
+                    if continue_campaign_action:
+                        cnxn_timestamp = cnxn_action.action_timestamp
+                        if last_sent_email:
+                            days_to_add = networkdays(last_sent_email.action_timestamp, continue_campaign_action.action_timestamp) - 1
                         else:
-                            cnxn_timestamp = cnxn_action.action_timestamp
-                        
-                        day_diff = networkdays(cnxn_timestamp, datetime.utcnow()) - 1
+                            days_to_add = networkdays(previous_received_messages[0].action_timestamp, continue_campaign_action.action_timestamp) - 1
+                        while days_to_add > 0:
+                            cnxn_timestamp += timedelta(days=1)
+                            if cnxn_timestamp.weekday() >= 5: # sunday = 6
+                                continue
+                            days_to_add -= 1
+                    else:
+                        cnxn_timestamp = cnxn_action.action_timestamp
+                    
+                    day_diff = networkdays(cnxn_timestamp, datetime.utcnow()) - 1
 
-                        # steps = self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 2).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
-                        steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 2]
-                        for i, step in enumerate(steps):
-                            add_contact = False
-                            if step.janium_campaign_step_type_id == 2:
-                                if i + 1 < len(steps):
-                                    if step.janium_campaign_step_delay <= day_diff:
-                                    # if step.janium_campaign_step_delay <= day_diff < steps[i + 1].janium_campaign_step_delay:
-                                        if num_sent_emails < i + 1:
-                                            add_contact = True
-                                            body = step.janium_campaign_step_body
-                                            subject = step.janium_campaign_step_subject
-                                            break
-                                        else:
-                                            continue
-                                    else: 
-                                        continue
-                                else:
-                                    # if step.janium_campaign_step_delay <= day_diff <= step.janium_campaign_step_delay + 1:
-                                    if step.janium_campaign_step_delay <= day_diff:
-                                        if num_sent_emails < i + 1:
-                                            add_contact = True
-                                            body = step.janium_campaign_step_body
-                                            subject = step.janium_campaign_step_subject
-                                            break
-                                        else:
-                                            continue
+                    post_cnxn_steps = [step for step in campaign_steps if step.janium_campaign_step_type_id in [1,2]]
+                    post_cnxn_email_steps = [step for step in post_cnxn_steps if step.janium_campaign_step_type_id == 2]
+                    prev_email_actions = [action for action in prev_actions if action.action_type_id == 4]
+                    prev_email_messages = [message.action_message for message in prev_email_actions]
+                    for i, step in enumerate(post_cnxn_email_steps):
+                        if step.janium_campaign_step_body in prev_email_messages:
+                            continue
+                        step_index = post_cnxn_steps.index(step)
+                        if step.janium_campaign_step_type_id == 2:
+                            if step.janium_campaign_step_delay <= day_diff:
+                                if num_sent_emails < i + 1:
+                                    if i == 0:
+                                        body = step.janium_campaign_step_body
+                                        subject = step.janium_campaign_step_subject
+                                        add_contact = True
+                                        break
                                     else:
-                                        continue
-                    elif cnxn_req_action:
-                        cnxn_req_timestamp = cnxn_req_action.action_timestamp
-                        sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_req_timestamp).order_by(Action.action_timestamp.desc()).all()
-                        num_sent_emails = len(sent_emails) if sent_emails else 0
-                        last_sent_email = sent_emails[0] if sent_emails else None
+                                        if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
+                                            if (networkdays(prev_email_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_email_steps[i-1].janium_campaign_step_delay):
+                                                body = step.janium_campaign_step_body
+                                                subject = step.janium_campaign_step_subject
+                                                add_contact = True
+                                                break
+                elif cnxn_req_action:                    
+                    prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_req_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
+                    sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.action_type_id == 4]
+                    num_sent_emails = len(sent_emails) if sent_emails else 0
+                    last_sent_email = sent_emails[0] if sent_emails else None
 
-                        day_diff = networkdays(cnxn_req_timestamp, datetime.utcnow()) - 1
+                    day_diff = networkdays(cnxn_req_action.action_timestamp, datetime.utcnow()) - 1
 
-                        # steps = self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
-                        steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 4]
-                        for i, step in enumerate(steps):
-                            add_contact = False
-                            if i + 1 < len(steps):
-                                # if step.janium_campaign_step_delay <= day_diff < steps[i + 1].janium_campaign_step_delay:
-                                if step.janium_campaign_step_delay <= day_diff:
-                                    # print(i + 1)
-                                    if num_sent_emails < i + 1:
-                                        # print(i + 1)
+                    pre_cnxn_steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 4]
+                    for i, step in enumerate(pre_cnxn_steps):
+                        add_contact = False
+                        body = step.janium_campaign_step_body
+                        subject = step.janium_campaign_step_subject
+                        if step.janium_campaign_step_delay <= day_diff:
+                            if num_sent_emails < i + 1:
+                                if i == 0:
+                                    add_contact = True
+                                    break
+                                else:
+                                    if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - pre_cnxn_steps[i-1].janium_campaign_step_delay):
                                         add_contact = True
-                                        body = step.janium_campaign_step_body
-                                        subject = step.janium_campaign_step_subject
                                         break
-                            else:
-                                # if step.janium_campaign_step_delay <= day_diff < step.janium_campaign_step_delay + 2:
-                                if step.janium_campaign_step_delay <= day_diff:
-                                    if num_sent_emails < i + 1:
-                                        add_contact = True
-                                        body = step.janium_campaign_step_body
-                                        subject = step.janium_campaign_step_subject
-                                        break
-                    if add_contact:
-                        email_targets_list.append(
-                            {
-                                "janium_campaign_id": self.janium_campaign_id,
-                                "email_config_id": self.email_config_id,
-                                "contact_id": contact.contact_id,
-                                "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                                "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
-                                "contact_email": emails[0],
-                                "email_subject": subject,
-                                "email_body": body,
-                                "action": action.action_type_id
-                            }
-                        )
-            # def is_boxerman(x):
-            #     if x['contact_full_name'] == 'Aaron Boxerman':
-            #         return True
-            #     else:
-            #         return False
-            # return list(filter(is_boxerman, email_targets_list))
 
-            # return email_targets_list
-            return sorted(email_targets_list, key = lambda item: item['contact_first_name'])
+                if add_contact:
+                    email_targets_list.append(
+                        {
+                            "janium_campaign_id": self.janium_campaign_id,
+                            "email_config_id": self.email_config_id,
+                            "contact_id": contact.contact_id,
+                            "contact_first_name": contact.contact_info['ulinc']['first_name'],
+                            "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
+                            "contact_email": emails[0],
+                            "email_subject": subject,
+                            "email_body": body,
+                            "action": action.action_type_id
+                        }
+                    )
+        # def is_boxerman(x):
+        #     if x['contact_full_name'] == 'Aaron Boxerman':
+        #         return True
+        #     else:
+        #         return False
+        # return list(filter(is_boxerman, email_targets_list))
+
+        # return email_targets_list
+        return sorted(email_targets_list, key = lambda item: item['contact_first_name'])
         return email_targets_list
     
 

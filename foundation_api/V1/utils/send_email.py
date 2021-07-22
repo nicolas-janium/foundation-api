@@ -14,6 +14,9 @@ import math
 import requests
 from bs4 import BeautifulSoup as Soup
 import boto3
+import google.auth
+from google.cloud import secretmanager
+from google.oauth2 import service_account
 from botocore.exceptions import ClientError
 from html2text import html2text
 from workdays import networkdays
@@ -221,7 +224,7 @@ def send_email_with_smtp(details):
     main_email['Subject'] = details['email_subject']
     main_email['From'] = str(Header('{} <{}>')).format(details['from_full_name'], username)
     main_email['To'] = recipient
-    main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=from_email[from_email.index('@') + 1 : ])
+    main_email['Message-ID'] = make_msgid(idstring=os.getenv('JANIUM_EMAIL_ID'), domain=username[username.index('@') + 1 : ])
     main_email.add_header('j_a_id', action_id) 
     main_email['MIME-Version'] = '1.0'
 
@@ -229,7 +232,7 @@ def send_email_with_smtp(details):
     # email_html = add_footer(details['email_body'], contact_id, details['contact_email'])
     email_html = details['email_body']
     email_html = email_html.replace(r"{FirstName}", details['contact_first_name'])
-    email_html = add_tracker(email_html)
+    email_html = add_identifier(email_html)
 
     main_email.add_alternative(html2text(email_html), 'plain')
     main_email.add_alternative(email_html, 'html')
@@ -248,8 +251,7 @@ def send_email_with_smtp(details):
     db.session.commit()
     return details['contact_email']
 
-def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time):
-    # steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 2).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
+def get_email_targets(janium_campaign, is_sendgrid):
     steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id != 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
 
     ### Only get contacts who have not been email blacklisted or who have bounced email actions ###
@@ -270,7 +272,8 @@ def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
                 continue
 
         if cnxn_action := contact.actions.filter(Action.action_type_id == 1).order_by(Action.action_timestamp.desc()).first():
-            sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
+            prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
+            sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.janium_campaign_step_type_id == 4]
             num_sent_emails = len(sent_emails) if sent_emails else 0
             last_sent_email = sent_emails[0] if sent_emails else None
 
@@ -287,71 +290,62 @@ def get_email_targets(account, janium_campaign, is_sendgrid, account_local_time)
                     days_to_add -= 1
             else:
                 cnxn_timestamp = cnxn_action.action_timestamp
-            
-            cnxn_timestamp = pytz.utc.localize(cnxn_timestamp).astimezone(pytz.timezone(account.time_zone.time_zone_code)).replace(tzinfo=None)
-            day_diff = networkdays(cnxn_timestamp, account_local_time) - 1
+
+            day_diff = networkdays(cnxn_timestamp, datetime.utcnow()) - 1
 
             for i, step in enumerate(steps):
-                add_contact = False
                 if step.janium_campaign_step_type_id == 2:
-                    if i + 1 < len(steps):
-                        if step.janium_campaign_step_delay <= day_diff:
-                        # if step.janium_campaign_step_delay <= day_diff < steps[i + 1].janium_campaign_step_delay:
-                            if num_sent_emails < i + 1:
+                    add_contact = False
+                    body = step.janium_campaign_step_body
+                    subject = step.janium_campaign_step_subject
+                    if step.janium_campaign_step_delay <= day_diff:
+                        if num_sent_emails < i + 1:
+                            if i == 0:
                                 add_contact = True
-                                body = step.janium_campaign_step_body
-                                subject = step.janium_campaign_step_subject
                                 break
                             else:
-                                continue
-                        else: 
-                            continue
-                    else:
-                        # if step.janium_campaign_step_delay <= day_diff <= step.janium_campaign_step_delay + 1:
-                        if step.janium_campaign_step_delay <= day_diff:
-                            if num_sent_emails < i + 1:
-                                add_contact = True
-                                body = step.janium_campaign_step_body
-                                subject = step.janium_campaign_step_subject
-                                break
-                            else:
-                                continue
+                                if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - steps[i-1].janium_campaign_step_delay):
+                                    add_contact = True
+                                    break
+                                else:
+                                    continue
                         else:
                             continue
+                    else:
+                        continue
+                else:
+                    continue
         # Pre connection email targets made possible by data enrichment
         elif cnxn_req_action := contact.actions.filter(Action.action_type_id == 19).order_by(Action.action_timestamp.desc()).first():
-            sent_emails = contact.actions.filter(Action.action_type_id == 4).filter(Action.action_timestamp >= cnxn_req_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
-            num_sent_emails = 0
-            last_sent_email = None
-            if sent_emails:
-                last_sent_email = sent_emails[0]
-                num_sent_emails = len(sent_emails)
+            prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_req_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
+            sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.janium_campaign_step_type_id == 4]
+            num_sent_emails = len(sent_emails) if sent_emails else 0
+            last_sent_email = sent_emails[0] if sent_emails else None
 
             if len(contact.get_emails()):
-                cnxn_req_timestamp = pytz.utc.localize(cnxn_req_action.action_timestamp).astimezone(pytz.timezone(account.time_zone.time_zone_code)).replace(tzinfo=None)
-                day_diff = networkdays(cnxn_req_timestamp, account_local_time) - 1
-
+                cnxn_req_timestamp = cnxn_req_action.action_timestamp
+                day_diff = networkdays(cnxn_req_timestamp, datetime.utcnow()) - 1
+                
                 steps = janium_campaign.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
                 for i, step in enumerate(steps):
                     add_contact = False
-                    if i + 1 < len(steps):
-                        # if step.janium_campaign_step_delay <= day_diff < steps[i + 1].janium_campaign_step_delay:
-                        if step.janium_campaign_step_delay <= day_diff:
-                            # print(i + 1)
-                            if num_sent_emails < i + 1:
-                                print(i + 1)
+                    body = step.janium_campaign_step_body
+                    subject = step.janium_campaign_step_subject
+                    if step.janium_campaign_step_delay <= day_diff:
+                        if num_sent_emails < i + 1:
+                            if i == 0:
                                 add_contact = True
-                                body = step.janium_campaign_step_body
-                                subject = step.janium_campaign_step_subject
                                 break
+                            else:
+                                if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - steps[i-1].janium_campaign_step_delay):
+                                    add_contact = True
+                                    break
+                                else:
+                                    continue
+                        else:
+                            continue
                     else:
-                        # if step.janium_campaign_step_delay <= day_diff < step.janium_campaign_step_delay + 2:
-                        if step.janium_campaign_step_delay <= day_diff:
-                            if num_sent_emails < i + 1:
-                                add_contact = True
-                                body = step.janium_campaign_step_body
-                                subject = step.janium_campaign_step_subject
-                                break
+                        continue
         if add_contact:
             email_targets_list.append(
                 {
