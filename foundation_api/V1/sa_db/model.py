@@ -1,6 +1,7 @@
 from operator import not_
 import pytz
 from datetime import datetime, timedelta
+import random
 
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_, exists)
@@ -354,6 +355,19 @@ class Janium_campaign(db.Model):
         start_date = pytz.utc.localize(self.queue_start_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         end_date = pytz.utc.localize(self.queue_end_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
         return {"start": start_date, "end": end_date}
+    
+    def generate_random_timestamp_in_queue_interval(self):
+        now = datetime.utcnow()
+        queue_start_time = datetime(now.year, now.month, now.day, self.queue_start_time.hour, self.queue_start_time.minute, 00)
+        queue_end_time = datetime(now.year, now.month, now.day, self.queue_end_time.hour, self.queue_end_time.minute, 00)
+        if queue_end_time > now:
+            if queue_start_time > now:
+                sec_to_add = random.randint(int((queue_start_time - now).total_seconds()), int((queue_end_time - now).total_seconds()))
+            else:
+                sec_to_add = random.randint(1, int((queue_end_time - now).total_seconds()))
+            return now + timedelta(seconds=sec_to_add)
+        else:
+            return None
 
     def get_utc_queue_times(self):
         return {"start": self.queue_start_time, "end": self.queue_end_time}
@@ -549,7 +563,6 @@ class Janium_campaign(db.Model):
                         continue
                 if cnxn_action:
                     prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
-                    # print(prev_actions)
                     sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.action_type_id == 4]
                     num_sent_emails = len(sent_emails) if sent_emails else 0
                     last_sent_email = sent_emails[0] if sent_emails else None
@@ -578,21 +591,20 @@ class Janium_campaign(db.Model):
                         if step.janium_campaign_step_body in prev_email_messages:
                             continue
                         step_index = post_cnxn_steps.index(step)
-                        if step.janium_campaign_step_type_id == 2:
-                            if step.janium_campaign_step_delay <= day_diff:
-                                if num_sent_emails < i + 1:
-                                    if i == 0:
-                                        body = step.janium_campaign_step_body
-                                        subject = step.janium_campaign_step_subject
-                                        add_contact = True
-                                        break
-                                    else:
-                                        if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
-                                            if (networkdays(prev_email_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_email_steps[i-1].janium_campaign_step_delay):
-                                                body = step.janium_campaign_step_body
-                                                subject = step.janium_campaign_step_subject
-                                                add_contact = True
-                                                break
+                        if step.janium_campaign_step_delay <= day_diff:
+                            if num_sent_emails < i + 1:
+                                if i == 0:
+                                    body = step.janium_campaign_step_body
+                                    subject = step.janium_campaign_step_subject
+                                    add_contact = True
+                                    break
+                                else:
+                                    if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
+                                        if (networkdays(prev_email_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_email_steps[i-1].janium_campaign_step_delay):
+                                            body = step.janium_campaign_step_body
+                                            subject = step.janium_campaign_step_subject
+                                            add_contact = True
+                                            break
                 elif cnxn_req_action:                    
                     prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_req_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                     sent_emails = [sent_email for sent_email in prev_actions if prev_actions and sent_email.action_type_id == 4]
@@ -639,12 +651,11 @@ class Janium_campaign(db.Model):
 
         # return email_targets_list
         return sorted(email_targets_list, key = lambda item: item['contact_first_name'])
-        return email_targets_list
     
 
     def get_li_message_targets(self):
         li_message_targets_list = []
-        if campaign_steps := self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 1).order_by(Janium_campaign_step.janium_campaign_step_delay).all():
+        if campaign_steps := self.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay).all():
             targets = []
             for uc in self.ulinc_campaigns:
                 targets += uc.get_li_message_targets()
@@ -667,6 +678,7 @@ class Janium_campaign(db.Model):
                         else:
                             continue
                     if cnxn_action and cnxn_action.action_type_id == 1:
+                        prev_actions = contact.actions.filter(Action.action_type_id.in_([3,4])).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                         sent_li_messages = contact.actions.filter(Action.action_type_id == 3).filter(Action.action_timestamp >= cnxn_action.action_timestamp).order_by(Action.action_timestamp.desc()).all()
                         num_sent_li_messages = len(sent_li_messages) if sent_li_messages else 0
                         last_sent_li_message = sent_li_messages[0] if sent_li_messages else None
@@ -687,31 +699,27 @@ class Janium_campaign(db.Model):
                         
                         day_diff = networkdays(cnxn_timestamp, datetime.utcnow()) - 1
 
-                        # steps = self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 2).order_by(Janium_campaign_step.janium_campaign_step_delay).all()
-                        steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 1]
-                        for i, step in enumerate(steps):
-                            add_contact = False
-                            if i + 1 < len(steps):
-                                if step.janium_campaign_step_delay <= day_diff:
-                                    if num_sent_li_messages < i + 1:
-                                        add_contact = True
+
+                        post_cnxn_steps = [step for step in campaign_steps if step.janium_campaign_step_type_id in [1,2]]
+                        post_cnxn_li_steps = [step for step in post_cnxn_steps if step.janium_campaign_step_type_id == 1]
+                        prev_li_actions = [action for action in prev_actions if action.action_type_id == 3]
+                        prev_li_messages = [str(message.action_message).strip().replace('\r', '').replace('\n', '') for message in prev_li_actions]
+                        for i, step in enumerate(post_cnxn_li_steps):
+                            if str(step.janium_campaign_step_body).strip().replace('\r', '').replace('\n', '') in prev_li_messages:
+                                continue
+                            step_index = post_cnxn_steps.index(step)
+                            if step.janium_campaign_step_delay <= day_diff:
+                                if num_sent_li_messages < i + 1:
+                                    if i == 0:
                                         body = step.janium_campaign_step_body
+                                        add_contact = True
                                         break
                                     else:
-                                        continue
-                                else: 
-                                    continue
-                            else:
-                                # if step.janium_campaign_step_delay <= day_diff <= step.janium_campaign_step_delay + 1:
-                                if step.janium_campaign_step_delay <= day_diff:
-                                    if num_sent_li_messages < i + 1:
-                                        add_contact = True
-                                        body = step.janium_campaign_step_body
-                                        break
-                                    else:
-                                        continue
-                                else:
-                                    continue
+                                        if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
+                                            if (networkdays(prev_li_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_li_steps[i-1].janium_campaign_step_delay):
+                                                body = step.janium_campaign_step_body
+                                                add_contact = True
+                                                break
 
                     if add_contact:
                         li_message_targets_list.append(
@@ -728,15 +736,15 @@ class Janium_campaign(db.Model):
                                 "ulinc_client_id": self.janium_campaign_ulinc_config.ulinc_client_id
                             }
                         )
-            def is_boxerman(x):
-                if x['contact_full_name'] == 'Keith Lovegrove':
-                    return True
-                else:
-                    return False
-            return list(filter(is_boxerman, li_message_targets_list))
+        # def is_boxerman(x):
+        #     if x['contact_full_name'] == 'Keith Lovegrove':
+        #         return True
+        #     else:
+        #         return False
+        # return list(filter(is_boxerman, li_message_targets_list))
 
-            # return sorted(li_message_targets_list, key = lambda item: item['contact_first_name'])
-        return li_message_targets_list
+        # return sorted(li_message_targets_list, key = lambda item: item['contact_first_name'])
+        return sorted(li_message_targets_list, key = lambda item: item['contact_first_name'])
 
 
 class Janium_campaign_step(db.Model):
