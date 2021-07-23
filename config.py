@@ -18,11 +18,11 @@ SQLALCHEMY_DATABASE_URI = engine.url.URL(
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-SECRET_KEY = 'super_secret_key'
+SECRET_KEY = os.getenv('APP_SECRET_KEY', 'secret_key')
 
 # WTF_CSRF_ENABLED = False # Set to False because the flask app does not render and serve the forms in templates
 
-JWT_SECRET_KEY = 'super_secret_jwt_key'
+JWT_SECRET_KEY = os.getenv('APP_SECRET_KEY', 'jwt_secret_key')
 # JWT_COOKIE_SECURE = True if os.getenv('FLASK_ENV') == 'production' else False
 # JWT_TOKEN_LOCATION = ['cookies']
 # JWT_COOKIE_CSRF_PROTECT = False

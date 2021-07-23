@@ -18,8 +18,8 @@ steps:
 # 5
 # Set environment variables and write to .env
 - name: bash
-  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217 $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY']
-  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET']
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217 $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY us-central1 $$APP_SECRET_KEY']
+  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET', 'APP_SECRET_KEY']
 
 # 6
 # Whitelist the build container's ip in the SQL configuration
@@ -128,3 +128,5 @@ availableSecrets:
     env: 'TESTING_DB_USER_SECRET'
   - versionName: projects/foundation-staging-305217/secrets/testing_db_database/versions/latest
     env: 'TESTING_DB_DATABASE_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/app_secret_key/versions/latest
+    env: 'APP_SECRET_KEY'

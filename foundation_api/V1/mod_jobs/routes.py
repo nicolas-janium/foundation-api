@@ -61,7 +61,7 @@ def poll_ulinc_webhooks_job():
                         
                     }
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='poll-ulinc-webhook')
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-webhook')
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
@@ -113,7 +113,7 @@ def poll_ulinc_csv_job():
                         'ulinc_campaign_id': ulinc_campaign.ulinc_campaign_id
                     }
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='poll-ulinc-csv')
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-csv')
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
@@ -162,7 +162,7 @@ def process_contact_sources_job():
                     'contact_source_id': contact_source.contact_source_id
                 }
                 if os.getenv('FLASK_ENV') == 'production':
-                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='process-cs-queue')
+                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='process-cs-queue')
                     task = {
                         'app_engine_http_request': {
                             'http_method': tasks_v2.HttpMethod.POST,
@@ -216,7 +216,7 @@ def refresh_ulinc_data():
                     'ulinc_config_id': ulinc_config.ulinc_config_id,
                 }
                 if os.getenv('FLASK_ENV') == 'production':
-                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='refresh-ulinc-data')
+                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='refresh-ulinc-data')
                     task = {
                         'app_engine_http_request': {
                             'http_method': tasks_v2.HttpMethod.POST,
@@ -267,7 +267,7 @@ def data_enrichment_job():
                         'contact_id': contact.contact_id,
                     }
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='data-enrichment')
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='data-enrichment')
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
@@ -325,7 +325,7 @@ def send_email():
                             'email_target_details': target,
                         }
                         if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='send_email')
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_email')
                             task = {
                                 'app_engine_http_request': {
                                     'http_method': tasks_v2.HttpMethod.POST,
@@ -389,7 +389,7 @@ def send_li_message_job():
                             'li_message_target_details': target,
                         }
                         if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('PROJECT_LOCATION'), queue='send_li_message')
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_li_message')
                             task = {
                                 'app_engine_http_request': {
                                     'http_method': tasks_v2.HttpMethod.POST,

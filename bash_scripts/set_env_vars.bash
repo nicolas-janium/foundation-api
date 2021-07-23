@@ -18,3 +18,5 @@ echo "TESTING_DB_PASSWORD=$2" >> .env
 echo "TESTING_DB_PRIVATE_HOST=$3" >> .env
 echo "TESTING_DB_PUBLIC_HOST=$4" >> .env
 echo "TESTING_DB_DATABASE=testing_db" >> .env
+echo "TASK_QUEUE_LOCATION=${10}" >> .env
+echo "APP_SECRET_KEY=${11}" >> .env
