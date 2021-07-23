@@ -9,7 +9,7 @@ from google.cloud import tasks_v2
 
 from foundation_api.V1.sa_db.model import Email_config, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign, Contact
-from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie
+from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie, refresh_ulinc_account_status
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_and_save_webhook
 from foundation_api.V1.utils.poll_ulinc_csv import poll_and_save_csv
 from foundation_api.V1.utils.process_contact_source_handler import process_contact_source_function
@@ -78,6 +78,7 @@ def refresh_ulinc_data_task():
     
     refresh_ulinc_cookie(ulinc_config)
     if ulinc_config.is_working:
+        refresh_ulinc_account_status(ulinc_config)
         if refresh_ulinc_campaigns(ulinc_config):
             return jsonify({"message": "success"})
         else:

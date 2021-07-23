@@ -181,7 +181,21 @@ def refresh_ulinc_campaigns(ulinc_config):
         print('Ulinc cookie does not exist for ulinc_config {}'.format(ulinc_config.ulinc_config_id))
         return None
 
-def main(account_id, ulinc_config_id, ulinc_client_id, ulinc_config_cookie_id, cookie_json_value, username, password):
+def refresh_ulinc_account_status(ulinc_config):
+    url = "https://ulinc.co/{}/?do=accounts&act=settings".format(ulinc_config.ulinc_client_id)
+    if cookie_jar := ulinc_config.create_cookie_jar():
+        res = requests.get(url=url, cookies=cookie_jar)
+        if res.ok:
+            soup = Soup(res.text, 'html.parser')
+            if danger_btn := soup.find('a', {"class": "btn-danger"}):
+                ulinc_config.ulinc_is_active = 1
+                db.session.commit()
+            else:
+                ulinc_config.ulinc_is_active = 0
+                db.session.commit()
+
+
+def main(account_id, ulinc_config_id, ulinc_config_cookie_id, cookie_json_value, username, password):
     if account := db.session.query(Account).filter(Account.account_id == account_id).first():
         refresh_ulinc_cookie(account_id, ulinc_config_id, ulinc_config_cookie_id, username, password)
 
@@ -191,8 +205,9 @@ def main(account_id, ulinc_config_id, ulinc_client_id, ulinc_config_cookie_id, c
 
 
 if __name__ == '__main__':
+    pass
     # account_id = "ccddacca-2106-46ea-911a-41c46040e60a"
     # main(account_id)
     # print(get_cookie('jhawkes20@gmail.com', 'JA12345!'))
-    print(get_cnxn_req_message('5676186', '2', '48527', '93fd3060131f8f9e8410775809f0a231'))
+    # print(get_cnxn_req_message('5676186', '2', '48527', '93fd3060131f8f9e8410775809f0a231'))
     # print(get_cookie('jhawkes20@gmail.com', 'JA12345!123'))

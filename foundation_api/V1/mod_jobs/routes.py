@@ -1,11 +1,8 @@
 from datetime import datetime, timedelta
-from foundation_api.V1.utils import ulinc
 import logging
 from functools import wraps
-import pytz
 import json
 import os
-import random
 from pprint import pprint
 
 from flask import Blueprint, jsonify, request, make_response
@@ -14,10 +11,7 @@ from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
 from foundation_api.V1.sa_db.model import Contact_source, db
-from foundation_api.V1.sa_db.model import Account, Ulinc_config, Action, Contact
-from foundation_api.V1.utils.data_enrichment import data_enrichment_function
-from foundation_api.V1.utils.send_email import send_email_function
-from foundation_api.V1.utils.send_li_message import send_li_message_function
+from foundation_api.V1.sa_db.model import Account, Ulinc_config
 
 
 logger = logging.getLogger('api_jobs')
@@ -52,7 +46,7 @@ def poll_ulinc_webhooks_job():
     tasks = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
-            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
+            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
                 for webhook in ulinc_config.get_webhooks():
                     payload = {
                         'ulinc_config_id': ulinc_config.ulinc_config_id,
@@ -106,7 +100,7 @@ def poll_ulinc_csv_job():
     tasks = []
     for account in accounts:
         for ulinc_config in account.ulinc_configs:
-            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
+            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
                 for ulinc_campaign in ulinc_config.ulinc_campaigns:
                     payload = {
                         'ulinc_config_id': ulinc_config.ulinc_config_id,
@@ -245,7 +239,6 @@ def refresh_ulinc_data():
                     "ulinc_config_id": ulinc_config.ulinc_config_id,
                     "task_id": task_response.name
                 })
-                # print(task_response.name)
     return jsonify(tasks)
 
 @mod_jobs.route('/data_enrichment', methods=['GET'])
@@ -379,7 +372,7 @@ def send_li_message_job():
         for ulinc_config in account.ulinc_configs:
             for janium_campaign in ulinc_config.janium_campaigns:
                 # Generate the timestamp to be used in task
-                if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
+                if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval() and ulinc_config.ulinc_is_active and ulinc_config.is_working:
                     # Create Timestamp protobuf
                     timestamp = timestamp_pb2.Timestamp()
                     timestamp.FromDatetime(scheduled_timestamp)

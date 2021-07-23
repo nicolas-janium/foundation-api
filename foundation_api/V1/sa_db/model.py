@@ -3,6 +3,7 @@ import pytz
 from datetime import datetime, timedelta
 import random
 
+import requests
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_, exists)
 from sqlalchemy.orm import backref, relationship
@@ -151,6 +152,14 @@ class Ulinc_config(db.Model):
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_ulinc_config', uselist=False), uselist=True)
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
     contact_sources = relationship('Contact_source', uselist=True, lazy='dynamic')
+
+    def create_cookie_jar(self):
+        if cookie := self.cookie:
+            jar = requests.cookies.RequestsCookieJar()
+            jar.set('usr', cookie.cookie_json_value['usr'])
+            jar.set('pwd', cookie.cookie_json_value['pwd'])
+            return jar
+        return None
 
     def get_webhooks(self):
         return [

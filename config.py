@@ -33,4 +33,3 @@ JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 SENDGRID_DEFAULT_FROM = 'nic@janium.io'
-BACKEND_API_URL = ""
