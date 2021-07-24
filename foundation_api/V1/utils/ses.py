@@ -83,7 +83,7 @@ def send_forwarding_verification_email(recipient):
         </html>
     """
 
-    email_html = add_tracker(email_html)
+    email_html = add_identifier(email_html)
     email_html = minify(email_html, minify_js=False, minify_css=False)
 
     main_email.add_alternative(email_html, 'html')
