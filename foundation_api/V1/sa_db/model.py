@@ -1041,6 +1041,7 @@ class Ulinc_campaign(db.Model):
                         "janium_campaign_id": self.parent_janium_campaign.janium_campaign_id,
                         "janium_campaign_name": self.parent_janium_campaign.janium_campaign_name,
                         "msg_timestamp": msg_action.action_timestamp,
+                        "msg_type": "email" if msg_action.action_type_id == 6 else "li_message",
                         "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
                         "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
                     }
