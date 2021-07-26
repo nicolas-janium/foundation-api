@@ -29,7 +29,8 @@ def get_ulinc_configs():
                     "ulinc_is_active": ulinc_config.ulinc_is_active,
                     "ulinc_is_working": ulinc_config.is_working,
                     "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
-                    "summary_data": ulinc_config.get_summary_data()
+                    "summary_data": ulinc_config.get_summary_data(),
+                    "janium_account_is_active": janium_account.is_active()
                 }
             )
 

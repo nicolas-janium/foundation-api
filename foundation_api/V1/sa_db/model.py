@@ -106,6 +106,11 @@ class Account(db.Model):
     time_zone = relationship('Time_zone', backref=backref('tz_account', uselist=True), uselist=False, lazy=True)
     dte = relationship('Dte', uselist=False, lazy=True)
 
+    def is_active(self):
+        if self.effective_start_date < datetime.utcnow() <= self.effective_end_date:
+            return True
+        return False
+
 
 class Ulinc_config(db.Model):
     __tablename__ = 'ulinc_config'
