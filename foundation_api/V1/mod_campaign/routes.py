@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from foundation_api import check_json_header
 from foundation_api.V1.sa_db.model import db
-from foundation_api.V1.sa_db.model import Janium_campaign, Ulinc_campaign, Janium_campaign_step, Ulinc_config 
+from foundation_api.V1.sa_db.model import Janium_campaign, Ulinc_campaign, Janium_campaign_step, Ulinc_config, Account
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns
 
 
@@ -34,6 +34,8 @@ def get_janium_campaign():
     user_id = get_jwt_identity()
     if janium_campaign_id := request.args.get('janium_campaign_id'):
         if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == janium_campaign_id).first():
+            janium_account = db.session.query(Account).filter(Account.user_id == user_id).first()
+
             ulinc_config = janium_campaign.janium_campaign_ulinc_config
             refreshed_ulinc_campaigns = False
             try:
@@ -50,8 +52,8 @@ def get_janium_campaign():
                     "email_config_id": janium_campaign.email_config_id,
                     "email_config_from_full_name": janium_campaign.email_config.from_full_name,
                     "email_config_from_address": janium_campaign.email_config.from_address,
-                    "queue_start_time": janium_campaign.queue_start_time,
-                    "queue_end_time": janium_campaign.queue_end_time,
+                    "queue_start_time": janium_account.convert_utc_to_account_local(janium_campaign.queue_start_time),
+                    "queue_end_time": janium_account.convert_utc_to_account_local(janium_campaign.queue_end_time),
                     "refreshed_ulinc_campaigns": refreshed_ulinc_campaigns,
                     "child_ulinc_campaigns": janium_campaign.get_ulinc_campaigns(),
                     "total_ulinc_campaigns": ulinc_config.get_ulinc_campaigns(),
@@ -102,12 +104,14 @@ def update_janium_campaign():
     user_id = get_jwt_identity()
     if json_body := request.get_json():
         if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
+            janium_account = db.session.query(Account).filter(Account.user_id == user_id).first()
+
             janium_campaign.janium_campaign_name = json_body['janium_campaign_name']
             janium_campaign.janium_campaign_description = json_body['janium_campaign_description']
             janium_campaign.email_config_id = json_body['email_config_id']
             janium_campaign.is_reply_in_email_thread = json_body['is_reply_in_email_thread'],
-            janium_campaign.queue_start_time = json_body['queue_start_time']
-            janium_campaign.queue_end_time = json_body['queue_end_time']
+            janium_campaign.queue_start_time = janium_account.convert_utc_to_account_local(json_body['queue_start_time'])
+            janium_campaign.queue_end_time = janium_account.convert_utc_to_account_local(json_body['queue_end_time'])
             janium_campaign.effective_start_date = datetime.utcnow()
             janium_campaign.effective_end_date = datetime.utcnow() + timedelta(days=365000) if json_body['is_active'] else datetime.utcnow()
             db.session.commit()

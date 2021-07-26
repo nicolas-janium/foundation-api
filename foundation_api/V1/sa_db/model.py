@@ -86,6 +86,7 @@ class Account(db.Model):
     is_sending_emails = Column(Boolean, server_default=false(), nullable=False)
     is_sending_li_messages = Column(Boolean, server_default=false(), nullable=False)
     is_receiving_dte = Column(Boolean, server_default=false(), nullable=False)
+    is_polling_ulinc = Column(Boolean, server_default=false(), nullable=False)
 
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
@@ -117,6 +118,12 @@ class Account(db.Model):
         if self.payment_effective_start_date < datetime.utcnow() <= self.payment_effective_end_date:
             return True
         return False
+    
+    def convert_utc_to_account_local(self, dt_object):
+        return pytz.utc.localize(dt_object).astimezone(pytz.timezone(self.time_zone.time_zone_code)).replace(tzinfo=None)
+    
+    def convert_account_local_to_utc(self, dt_object):
+        return pytz.utc.localize(dt_object).astimezone(pytz.timezone(self.time_zone.time_zone_code)).replace(tzinfo=None)
 
 
 class Ulinc_config(db.Model):

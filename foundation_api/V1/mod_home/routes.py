@@ -28,6 +28,7 @@ def get_account():
                 "is_sending_emails": janium_account.is_sending_emails,
                 "is_sending_li_messages": janium_account.is_sending_li_messages,
                 "is_receiving_dte": janium_account.is_receiving_dte,
+                "is_polling_ulinc": janium_account.is_polling_ulinc,
                 "time_zone_code": janium_account.time_zone.time_zone_code,
                 "is_active": janium_account.is_active(),
                 "is_payment_active": janium_account.is_payment_active()
@@ -40,7 +41,7 @@ def get_account():
 @check_json_header
 def update_account():
     """
-    Required JSON keys: is_sending_emails, is_sending_li_messages, is_receiving_dte, is_active, time_zone_code
+    Required JSON keys: is_sending_emails, is_sending_li_messages, is_receiving_dte, is_polling_ulinc, is_active, time_zone_code
     """
     user_id = get_jwt_identity()
     if user := db.session.query(User).filter(User.user_id == user_id).first():
@@ -52,6 +53,7 @@ def update_account():
                 janium_account.is_sending_emails = json_body['is_sending_emails']
                 janium_account.is_sending_li_messages = json_body['is_sending_li_messages']
                 janium_account.is_receiving_dte = json_body['is_receiving_dte']
+                janium_account.is_polling_ulinc = json_body['is_polling_ulinc']
                 janium_account.is_active = json_body['is_active']
                 janium_account.time_zone_id = time_zone.time_zone_id
                 return jsonify({"message": "success"})
