@@ -245,7 +245,7 @@ class Email_config(db.Model):
 
     def __init__(
         self,
-        email_config_id, account_id, from_full_name, from_address, reply_to_address,
+        email_config_id, account_id, from_full_name, from_address,
         credentials_id='264f534f-d36e-4c3c-9614-9760f47ee0e3',
         email_server_id='936dce84-b50f-4b72-824f-b01989b20500',
         is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False,
@@ -260,7 +260,6 @@ class Email_config(db.Model):
         self.is_email_forward_verified = is_email_forward_verified
         self.from_full_name = from_full_name
         self.from_address = from_address
-        self.reply_to_address = reply_to_address
         self.is_sendgrid = is_sendgrid
         self.is_sendgrid_domain_verified = is_sendgrid_domain_verified 
         self.is_smtp = is_smtp
@@ -283,7 +282,7 @@ class Email_config(db.Model):
     # Common Columns
     from_full_name = Column(String(64), nullable=False)
     from_address = Column(String(64), nullable=False)
-    reply_to_address = Column(String(64), nullable=False)
+    # reply_to_address = Column(String(64), nullable=False)
     is_sendgrid = Column(Boolean, nullable=False, server_default=false())
     is_sendgrid_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_smtp = Column(Boolean, nullable=False, server_default=false())

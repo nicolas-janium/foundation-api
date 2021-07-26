@@ -84,7 +84,7 @@ def create_ulinc_config():
 @check_json_header
 def create_email_config():
     """
-    Required JSON keys: from_address, from_full_name, reply_to_address
+    Required JSON keys: from_address, from_full_name
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
@@ -96,8 +96,7 @@ def create_email_config():
                     str(uuid4()),
                     janium_account.account_id,
                     json_body['from_full_name'],
-                    json_body['from_address'],
-                    json_body['reply_to_address']
+                    json_body['from_address']
                 )
                 db.session.add(new_email_config)
                 db.session.commit()
