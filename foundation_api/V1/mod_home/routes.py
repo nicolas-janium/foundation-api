@@ -4,11 +4,61 @@ from uuid import uuid4
 from flask import Blueprint, jsonify, request, current_app, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from foundation_api.V1.sa_db.model import db
-from foundation_api.V1.sa_db.model import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action, Janium_campaign, Ulinc_campaign
+from foundation_api import check_json_header
+from foundation_api import check_json_header
+
+from foundation_api.V1.sa_db.model import Time_zone, db
+from foundation_api.V1.sa_db.model import User, Account, Ulinc_config, Credentials, Cookie, Contact, Action, Janium_campaign, Ulinc_campaign, Time_zone
 from foundation_api.V1.utils.ulinc import get_ulinc_tasks_count
 
 mod_home = Blueprint('home', __name__, url_prefix='/api/v1')
+
+@mod_home.route('/account', methods=['GET'])
+@jwt_required()
+def get_account():
+    """
+    Required query params: None
+    """
+    user_id = get_jwt_identity()
+    if user := db.session.query(User).filter(User.user_id == user_id).first():
+        janium_account = user.account
+        return jsonify(
+            {
+                # "janium_account_id": janium_account.account_id,
+                "is_sending_emails": janium_account.is_sending_emails,
+                "is_sending_li_messages": janium_account.is_sending_li_messages,
+                "is_receiving_dte": janium_account.is_receiving_dte,
+                "time_zone_code": janium_account.time_zone.time_zone_code,
+                "is_active": janium_account.is_active(),
+                "is_payment_active": janium_account.is_payment_active()
+            }
+        )
+    return make_response(jsonify({"message": "User not found"}), 401)
+
+@mod_home.route('/account', methods=['PUT'])
+@jwt_required()
+@check_json_header
+def update_account():
+    """
+    Required JSON keys: is_sending_emails, is_sending_li_messages, is_receiving_dte, is_active, time_zone_code
+    """
+    user_id = get_jwt_identity()
+    if user := db.session.query(User).filter(User.user_id == user_id).first():
+        if json_body := request.get_json():
+            if time_zone := db.session.query(Time_zone).filter(Time_zone.time_zone_code == json_body['time_zone_code']).first():
+                janium_account = user.account
+
+                # Update Account fields
+                janium_account.is_sending_emails = json_body['is_sending_emails']
+                janium_account.is_sending_li_messages = json_body['is_sending_li_messages']
+                janium_account.is_receiving_dte = json_body['is_receiving_dte']
+                janium_account.is_active = json_body['is_active']
+                janium_account.time_zone_id = time_zone.time_zone_id
+                return jsonify({"message": "success"})
+            return make_response(jsonify({"message": "Unknown time_zone_code"}), 400)
+        return jsonify({"message": "JSON body is missing"})
+    return make_response(jsonify({"message": "User not found"}), 401)
+
 
 @mod_home.route('/ulinc_configs', methods=['GET'])
 @jwt_required()

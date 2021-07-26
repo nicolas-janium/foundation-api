@@ -81,7 +81,7 @@ def create_user():
             db.session.commit()
 
             return jsonify({"message": "success"})
-        return make_response(jsonify({"message": "Invalid time_zone_code"}), 422)
+        return make_response(jsonify({"message": "Unknown time_zone_code"}), 400)
     return make_response(jsonify({"message": "Missing JSON body"}), 422)
 
 @mod_auth.route('/login', methods=['POST'])
