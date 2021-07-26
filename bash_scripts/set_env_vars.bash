@@ -20,3 +20,4 @@ echo "TESTING_DB_PUBLIC_HOST=$4" >> .env
 echo "TESTING_DB_DATABASE=testing_db" >> .env
 echo "TASK_QUEUE_LOCATION=${10}" >> .env
 echo "APP_SECRET_KEY=${11}" >> .env
+echo "JANIUM_EMAIL_IDENTIFIER_KEY=${12}" >> .env
