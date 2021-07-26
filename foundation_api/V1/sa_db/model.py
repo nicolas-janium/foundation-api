@@ -91,6 +91,8 @@ class Account(db.Model):
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
     effective_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     effective_end_date = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
+    payment_effective_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
+    payment_effective_end_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     data_enrichment_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     data_enrichment_end_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
@@ -108,6 +110,11 @@ class Account(db.Model):
 
     def is_active(self):
         if self.effective_start_date < datetime.utcnow() <= self.effective_end_date:
+            return True
+        return False
+    
+    def is_payment_active(self):
+        if self.payment_effective_start_date < datetime.utcnow() <= self.payment_effective_end_date:
             return True
         return False
 
