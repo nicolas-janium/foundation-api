@@ -56,7 +56,7 @@ def update_account():
                 janium_account.time_zone_id = time_zone.time_zone_id
                 return jsonify({"message": "success"})
             return make_response(jsonify({"message": "Unknown time_zone_code"}), 400)
-        return jsonify({"message": "JSON body is missing"})
+        return make_response(jsonify({"message": "JSON body is missing"}), 400)
     return make_response(jsonify({"message": "User not found"}), 401)
 
 
@@ -79,9 +79,9 @@ def get_ulinc_configs():
                     "ulinc_is_active": ulinc_config.ulinc_is_active,
                     "ulinc_is_working": ulinc_config.is_working,
                     "ulinc_tasks_in_queue": get_ulinc_tasks_count(ulinc_config.ulinc_client_id, ulinc_config.cookie),
-                    "summary_data": ulinc_config.get_summary_data(),
-                    "janium_account_is_active": janium_account.is_active(),
-                    "janium_account_is_payment_active": janium_account.is_payment_active()
+                    "summary_data": ulinc_config.get_summary_data()
+                    # "janium_account_is_active": janium_account.is_active(),
+                    # "janium_account_is_payment_active": janium_account.is_payment_active()
                 }
             )
 
@@ -113,6 +113,7 @@ def get_ulinc_config():
                 {
                     "ulinc_config_id": ulinc_config.ulinc_config_id,
                     "ulinc_is_working": ulinc_config.is_working,
+                    "ulinc_is_active": ulinc_config.ulinc_is_active,
                     "janium_campaigns": janium_campaigns,
                     "new_connections": ulinc_config.get_dte_new_connections(),
                     "new_messages": ulinc_config.get_dte_new_messages(),
