@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, request, make_response
+from flask import Blueprint, json, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from foundation_api import check_json_header
@@ -37,24 +37,18 @@ def get_janium_campaign():
             janium_account = db.session.query(Account).filter(Account.user_id == user_id).first()
 
             ulinc_config = janium_campaign.janium_campaign_ulinc_config
-            refreshed_ulinc_campaigns = False
-            try:
-                refresh_ulinc_campaigns(ulinc_config.ulinc_config_account, ulinc_config)
-                refreshed_ulinc_campaigns = True
-            except Exception as err:
-                print(err)
 
             return jsonify(
                 {
                     "janium_campaign_id": janium_campaign_id,
                     "janium_campaign_name": janium_campaign.janium_campaign_name,
                     "janium_campaign_description": janium_campaign.janium_campaign_description,
+                    "janium_campaign_is_active": janium_campaign.is_active(),
                     "email_config_id": janium_campaign.email_config_id,
                     "email_config_from_full_name": janium_campaign.email_config.from_full_name,
                     "email_config_from_address": janium_campaign.email_config.from_address,
                     "queue_start_time": janium_account.convert_utc_to_account_local(janium_campaign.queue_start_time),
                     "queue_end_time": janium_account.convert_utc_to_account_local(janium_campaign.queue_end_time),
-                    "refreshed_ulinc_campaigns": refreshed_ulinc_campaigns,
                     "child_ulinc_campaigns": janium_campaign.get_ulinc_campaigns(),
                     "total_ulinc_campaigns": ulinc_config.get_ulinc_campaigns(),
                     "janium_campaign_steps": janium_campaign.get_steps(),
@@ -70,12 +64,14 @@ def get_janium_campaign():
 def create_janium_campaign():
     """
     Required JSON keys: ulinc_config_id, email_config_id, janium_campaign_name,
-    janium_campaign_description, is_messenger, is_reply_in_email_thread, queue_start_time, queue_end_time
+    janium_campaign_description, is_messenger, is_reply_in_email_thread, queue_start_hour (int), queue_start_minute (int), queue_end_hour (int), queue_end_minute (int)
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
         if db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_name == json_body['janium_campaign_name']).first():
             return make_response(jsonify({"message": "A Janium campaign with that name already exists"}), 409)
+        
+        janium_account = db.session.query(Account).filter(Account.user_id == user_id).first()
 
         janium_campaign = Janium_campaign(
             str(uuid4()),
@@ -85,8 +81,8 @@ def create_janium_campaign():
             json_body['janium_campaign_description'],
             json_body['is_messenger'],
             json_body['is_reply_in_email_thread'],
-            json_body['queue_start_time'],
-            json_body['queue_end_time']
+            janium_account.create_campaign_queue_time(json_body['queue_start_hour'], json_body['queue_start_minute']),
+            janium_account.create_campaign_queue_time(json_body['queue_end_hour'], json_body['queue_end_minute'])
         )
         db.session.add(janium_campaign)
         db.session.commit()
@@ -99,7 +95,7 @@ def create_janium_campaign():
 def update_janium_campaign():
     """
     Required JSON keys: janium_campaign_id, email_config_id, janium_campaign_name,
-    janium_campaign_description, queue_start_time, queue_end_time, is_active, is_reply_in_email_thread
+    janium_campaign_description, queue_start_hour, queue_start_minute, queue_end_hour, queue_end_minute, is_active, is_reply_in_email_thread
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
@@ -109,9 +105,9 @@ def update_janium_campaign():
             janium_campaign.janium_campaign_name = json_body['janium_campaign_name']
             janium_campaign.janium_campaign_description = json_body['janium_campaign_description']
             janium_campaign.email_config_id = json_body['email_config_id']
-            janium_campaign.is_reply_in_email_thread = json_body['is_reply_in_email_thread'],
-            janium_campaign.queue_start_time = janium_account.convert_utc_to_account_local(json_body['queue_start_time'])
-            janium_campaign.queue_end_time = janium_account.convert_utc_to_account_local(json_body['queue_end_time'])
+            janium_campaign.is_reply_in_email_thread = json_body['is_reply_in_email_thread']
+            janium_campaign.queue_start_time = janium_account.create_campaign_queue_time(json_body['queue_start_hour'], json_body['queue_start_minute'])
+            janium_campaign.queue_end_time = janium_account.create_campaign_queue_time(json_body['queue_end_hour'], json_body['queue_end_minute'])
             janium_campaign.effective_start_date = datetime.utcnow()
             janium_campaign.effective_end_date = datetime.utcnow() + timedelta(days=365000) if json_body['is_active'] else datetime.utcnow()
             db.session.commit()
@@ -157,7 +153,7 @@ def create_janium_campaign_step():
 def update_janium_campaign_step():
     """
     Required JSON keys: janium_campaign_step_id, janium_campaign_step_delay, janium_campaign_step_body,
-                        janium_campaign_step_type, janium_campaign_step_subject
+                        janium_campaign_step_subject
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
@@ -208,7 +204,7 @@ def get_ulinc_campaign():
 def refresh_ulinc_campaigns_endpoint():
     """
     Required query params: ulinc_config_id
-    """
+    """ 
     user_id = get_jwt_identity()
     if ulinc_config_id := request.args.get('ulinc_config_id'):
         if ulinc_config := db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == ulinc_config_id).first():

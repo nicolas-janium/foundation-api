@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from flask import Blueprint, jsonify, request, current_app, make_response
@@ -54,7 +54,8 @@ def update_account():
                 janium_account.is_sending_li_messages = json_body['is_sending_li_messages']
                 janium_account.is_receiving_dte = json_body['is_receiving_dte']
                 janium_account.is_polling_ulinc = json_body['is_polling_ulinc']
-                janium_account.is_active = json_body['is_active']
+                janium_account.effective_start_date = datetime.utcnow()
+                janium_account.effective_end_date = datetime.utcnow() + timedelta(days=365000) if json_body['is_active'] else datetime.utcnow()
                 janium_account.time_zone_id = time_zone.time_zone_id
                 return jsonify({"message": "success"})
             return make_response(jsonify({"message": "Unknown time_zone_code"}), 400)

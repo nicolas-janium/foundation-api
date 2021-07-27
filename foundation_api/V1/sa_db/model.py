@@ -11,6 +11,7 @@ from sqlalchemy.sql import false, text, true, func
 from sqlalchemy.sql.expression import cast, null
 from sqlalchemy.dialects.mysql import JSON as MYSQL_JSON
 from sqlalchemy.dialects import mysql
+from sqlalchemy.sql.functions import localtime
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
 
@@ -123,7 +124,17 @@ class Account(db.Model):
         return pytz.utc.localize(dt_object).astimezone(pytz.timezone(self.time_zone.time_zone_code)).replace(tzinfo=None)
     
     def convert_account_local_to_utc(self, dt_object):
-        return pytz.utc.localize(dt_object).astimezone(pytz.timezone(self.time_zone.time_zone_code)).replace(tzinfo=None)
+        local_tz = pytz.timezone(self.time_zone.time_zone_code)
+        local_time = local_tz.localize(dt_object)
+        utc_time = local_time.astimezone(pytz.utc)
+        return utc_time
+
+    def create_campaign_queue_time(self, hour, minute):
+        local_tz = pytz.timezone(self.time_zone.time_zone_code)
+        queue_time =  datetime(9999, 1, 1, hour, minute, 00) # Doesn't really matter
+        queue_time = local_tz.localize(queue_time)
+        queue_time = queue_time.astimezone(pytz.utc)
+        return queue_time
 
 
 class Ulinc_config(db.Model):
@@ -371,18 +382,12 @@ class Janium_campaign(db.Model):
             return True
         return False
 
-    def get_effective_dates(self, timezone):
-        start_date = pytz.utc.localize(self.effective_start_date).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        end_date = pytz.utc.localize(self.effective_end_date).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        # start_date = self.effective_start_date.astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        # end_date = self.effective_end_date.astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        return {"start": start_date, "end": end_date}
-    
-    def get_queue_times(self, timezone):
-        start_date = pytz.utc.localize(self.queue_start_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        end_date = pytz.utc.localize(self.queue_end_time).astimezone(pytz.timezone(timezone)).replace(tzinfo=None)
-        return {"start": start_date, "end": end_date}
-    
+    def get_utc_effective_dates(self):
+        return {"start": self.effective_start_date, "end": self.effective_end_date}
+
+    def get_utc_queue_times(self):
+        return {"start": self.queue_start_time, "end": self.queue_end_time}
+
     def generate_random_timestamp_in_queue_interval(self):
         now = datetime.utcnow()
         queue_start_time = datetime(now.year, now.month, now.day, self.queue_start_time.hour, self.queue_start_time.minute, 00)
@@ -395,9 +400,6 @@ class Janium_campaign(db.Model):
             return now + timedelta(seconds=sec_to_add)
         else:
             return None
-
-    def get_utc_queue_times(self):
-        return {"start": self.queue_start_time, "end": self.queue_end_time}
 
     def get_steps(self):
         steps = []
