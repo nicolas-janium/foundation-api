@@ -40,6 +40,8 @@ def check_cron_header(f):
 def poll_ulinc_webhooks_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+        Account.is_polling_ulinc == 1,
         Account.account_id != Account.unassigned_account_id
     )).all()
 
@@ -94,6 +96,8 @@ def poll_ulinc_csv_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+        Account.is_polling_ulinc == 1,
         Account.account_id != Account.unassigned_account_id
     )).all()
 
@@ -144,6 +148,8 @@ def poll_ulinc_csv_job():
 def process_contact_sources_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+        Account.is_polling_ulinc == 1,
         Account.account_id != Account.unassigned_account_id
     )).all()
     tasks = []
@@ -200,6 +206,7 @@ def process_contact_sources_job():
 def refresh_ulinc_data():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
     tasks = []
@@ -246,6 +253,7 @@ def refresh_ulinc_data():
 def data_enrichment_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
         and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
         Account.account_id != Account.unassigned_account_id
     )).all()
@@ -299,8 +307,9 @@ def data_enrichment_job():
 def send_email():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        Account.account_id != Account.unassigned_account_id,
-        Account.is_sending_emails
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+        Account.is_sending_emails == 1,
+        Account.account_id != Account.unassigned_account_id
     )).all()
 
     tasks = []
@@ -363,8 +372,9 @@ def send_email():
 def send_li_message_job():
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        Account.account_id != Account.unassigned_account_id,
-        Account.is_sending_li_messages
+        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+        Account.is_sending_li_messages == 1,
+        Account.account_id != Account.unassigned_account_id
     )).all()
 
     tasks = []
