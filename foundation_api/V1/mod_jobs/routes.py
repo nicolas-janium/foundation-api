@@ -38,16 +38,20 @@ def check_cron_header(f):
 @mod_jobs.route('/poll_ulinc_webhooks', methods=['GET'])
 @check_cron_header
 def poll_ulinc_webhooks_job():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.is_polling_ulinc == 1,
-        Account.account_id != Account.unassigned_account_id
-    )).all()
+    accounts = db.session.query(Account).filter(
+        and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_polling_ulinc == 1,
+            Account.account_id != Account.unassigned_account_id
+        )
+    ).all()
 
     tasks = []
     for account in accounts:
+        print(account.account_id)
         for ulinc_config in account.ulinc_configs:
+            print(ulinc_config.ulinc_config_id)
             if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
                 for webhook in ulinc_config.get_webhooks():
                     payload = {

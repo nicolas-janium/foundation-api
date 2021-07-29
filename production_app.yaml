@@ -1,5 +1,5 @@
 runtime: python38
-entrypoint: gunicorn -b :$PORT foundation_api:app
+# entrypoint: gunicorn -b :$PORT foundation_api:app --timeout=90
 service: backend
 
 runtime_config:
@@ -7,3 +7,5 @@ runtime_config:
 
 vpc_access_connector:
   name: projects/foundation-production/locations/us-west3/connectors/prod-vpc-connector
+
+instance_class: F4

@@ -82,7 +82,7 @@ steps:
 # Deploy the app to GAE
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
-  args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml ./cron.yaml ./dispatch.yaml']
+  args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./staging_app.yaml ./dispatch.yaml']
 
 # 15
 # Reset the allowed networks in the cloud sql configuration
