@@ -24,7 +24,7 @@ def get_account():
         janium_account = user.account
         return jsonify(
             {
-                # "janium_account_id": janium_account.account_id,
+                "janium_account_id": janium_account.account_id,
                 "is_sending_emails": janium_account.is_sending_emails,
                 "is_sending_li_messages": janium_account.is_sending_li_messages,
                 "is_receiving_dte": janium_account.is_receiving_dte,

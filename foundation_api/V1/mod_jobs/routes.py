@@ -318,10 +318,14 @@ def send_email():
 
     tasks = []
     for account in accounts:
+        print(account.account_id)
         for ulinc_config in account.ulinc_configs:
+            print(ulinc_config.ulinc_config_id)
             for janium_campaign in ulinc_config.janium_campaigns:
+                print(janium_campaign.janium_campaign_id)
                 # Generate the timestamp to be used in task
                 if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
+                    print(scheduled_timestamp)
                     # Create Timestamp protobuf
                     timestamp = timestamp_pb2.Timestamp()
                     timestamp.FromDatetime(scheduled_timestamp)

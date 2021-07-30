@@ -115,9 +115,46 @@ class AuthActions(object):
             '/api/v1/login',
             headers=headers
         )
+    
+    def setup_janium_account(self, token):
+        headers = {"Content-Type": "application/json", 'Authorization': 'Bearer {}'.format(token)}
+        json_body = {
+            "is_active": True,
+            "is_sending_emails": True,
+            "is_sending_li_messages": True,
+            "is_receiving_dte": True,
+            "is_polling_ulinc": True,
+            "time_zone_code": "US/Mountain"
+        }
+        return self._client.put('/api/v1/account', headers=headers, data=json.dumps(json_body))
+    
+    def get_janium_account(self, token):
+        headers = {'Authorization': 'Bearer {}'.format(token)}
+        return self._client.get('/api/v1/account', headers=headers)
+
 @pytest.fixture
 def auth(test_app):
     return AuthActions(test_app)
+
+
+class OnboardActions(object):
+    def __init__(self, test_app):
+        self._client = test_app
+    
+    def create_ulinc_config(self, token):
+        headers = {"Content-Type": "application/json", 'Authorization': 'Bearer {}'.format(token)}
+        json_body = {
+            "ulinc_username": "jhawkes20@gmail.com",
+            "ulinc_password": "JA12345!",
+            "ulinc_li_email": "jason@janium.io"
+        }
+        return self._client.post('/api/v1/ulinc_config', headers=headers, data=json.dumps(json_body))
+
+
+@pytest.fixture
+def onbaord(test_app):
+    return OnboardActions(test_app)
+
 
 
 class CampaignActions(object):
