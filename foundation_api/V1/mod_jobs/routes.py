@@ -65,7 +65,7 @@ def poll_ulinc_webhooks_job():
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/tasks/poll_ulinc_webhook',
+                                'relative_uri': '/api/v1/tasks/poll_ulinc_webhook',
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -119,7 +119,7 @@ def poll_ulinc_csv_job():
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/tasks/poll_ulinc_csv',
+                                'relative_uri': '/api/v1/tasks/poll_ulinc_csv',
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -170,7 +170,7 @@ def process_contact_sources_job():
                     task = {
                         'app_engine_http_request': {
                             'http_method': tasks_v2.HttpMethod.POST,
-                            'relative_uri': '/tasks/process_contact_source',
+                            'relative_uri': '/api/v1/tasks/process_contact_source',
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
@@ -225,7 +225,7 @@ def refresh_ulinc_data():
                     task = {
                         'app_engine_http_request': {
                             'http_method': tasks_v2.HttpMethod.POST,
-                            'relative_uri': '/tasks/refresh_ulinc_data',
+                            'relative_uri': '/api/v1/tasks/refresh_ulinc_data',
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
@@ -276,7 +276,7 @@ def data_enrichment_job():
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/tasks/data_enrichment',
+                                'relative_uri': '/api/v1/tasks/data_enrichment',
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -335,7 +335,7 @@ def send_email():
                             task = {
                                 'app_engine_http_request': {
                                     'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/tasks/send_email',
+                                    'relative_uri': '/api/v1/tasks/send_email',
                                     'body': json.dumps(payload).encode(),
                                     'headers': {
                                         'Content-type': 'application/json'
@@ -400,7 +400,7 @@ def send_li_message_job():
                             task = {
                                 'app_engine_http_request': {
                                     'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/tasks/send_li_message',
+                                    'relative_uri': '/api/v1/tasks/send_li_message',
                                     'body': json.dumps(payload).encode(),
                                     'headers': {
                                         'Content-type': 'application/json'

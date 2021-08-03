@@ -75,7 +75,7 @@ def refresh_ulinc_data_task():
     """
     json_body = request.get_json(force=True)
     ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
-    
+
     refresh_ulinc_cookie(ulinc_config)
     if ulinc_config.is_working:
         refresh_ulinc_account_status(ulinc_config)
