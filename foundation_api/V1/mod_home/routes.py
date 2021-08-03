@@ -126,21 +126,23 @@ def get_ulinc_config():
         return make_response(jsonify({"message": "Unknown ulinc_config_id value"}), 400)
     return make_response(jsonify({"message": "Missing ulinc_config_id param"}), 400)
 
-# @mod_home.route('/dte_click', methods=['POST'])
-# @jwt_required()
-# def dte_click():
-#     """
-#     Required JSON keys: click_type (new_connection, dq, continue), contact_id
-#     """
-#     json_body = request.get_json(force=True)
+@mod_home.route('/dte_click', methods=['POST'])
+@jwt_required()
+@check_json_header
+def dte_click():
+    """
+    Required JSON keys: click_type (new_connection, dq, continue), contact_id
+    """
+    user_id = get_jwt_identity()
+    if json_body := request.get_json():
+        if json_body['click_type'] == 'new_connection':
+            new_action = Action(str(uuid4()), json_body['contact_id'], 8, datetime.utcnow(), None)
+        elif json_body['click_type'] == 'dq':
+            new_action = Action(str(uuid4()), json_body['contact_id'], 11, datetime.utcnow(), None)
+        elif json_body['click_type'] == 'continue':
+            new_action = Action(str(uuid4()), json_body['contact_id'], 14, datetime.utcnow(), None)
 
-#     if json_body['click_type'] == 'new_connection':
-#         new_action = Action(str(uuid4()), json_body['contact_id'], 8, datetime.utcnow(), None)
-#     elif json_body['click_type'] == 'dq':
-#         new_action = Action(str(uuid4()), json_body['contact_id'], 11, datetime.utcnow(), None)
-#     elif json_body['click_type'] == 'continue':
-#         new_action = Action(str(uuid4()), json_body['contact_id'], 14, datetime.utcnow(), None)
-    
-#     db.session.add(new_action)
-#     db.session.commit()
-#     return jsonify({"message": "Action recorded successfully"})
+        db.session.add(new_action)
+        db.session.commit()
+        return jsonify({"message": "success"})
+    return make_response(jsonify({"message": "JSON body is missing"}), 400)
