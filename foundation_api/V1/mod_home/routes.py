@@ -135,14 +135,21 @@ def dte_click():
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
-        if json_body['click_type'] == 'new_connection':
-            new_action = Action(str(uuid4()), json_body['contact_id'], 8, datetime.utcnow(), None)
-        elif json_body['click_type'] == 'dq':
-            new_action = Action(str(uuid4()), json_body['contact_id'], 11, datetime.utcnow(), None)
-        elif json_body['click_type'] == 'continue':
-            new_action = Action(str(uuid4()), json_body['contact_id'], 14, datetime.utcnow(), None)
-
-        db.session.add(new_action)
-        db.session.commit()
-        return jsonify({"message": "success"})
+        if contact := db.session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
+            if json_body['click_type'] in ['nc_visit', 'nm_visit', 'vm_visit', 'dq', 'continue']:
+                if json_body['click_type'] == 'nc_visit':
+                    new_action = Action(str(uuid4()), contact.contact_id, 8, datetime.utcnow(), None)
+                elif json_body['click_type'] == 'nm_visit':
+                    new_action = Action(str(uuid4()), contact.contact_id, 9, datetime.utcnow(), None)
+                elif json_body['click_type'] == 'vm_visit':
+                    new_action = Action(str(uuid4()), contact.contact_id, 10, datetime.utcnow(), None)
+                elif json_body['click_type'] == 'dq':
+                    new_action = Action(str(uuid4()), contact.contact_id, 11, datetime.utcnow(), None)
+                elif json_body['click_type'] == 'continue':
+                    new_action = Action(str(uuid4()), contact.contact_id, 14, datetime.utcnow(), None)
+                db.session.add(new_action)
+                db.session.commit()
+                return jsonify({"message": "success"})
+            return make_response(jsonify({"message": "Unknown click_type"}), 400)
+        return make_response(jsonify({"message": "Unknown contact_id"}), 400)
     return make_response(jsonify({"message": "JSON body is missing"}), 400)
