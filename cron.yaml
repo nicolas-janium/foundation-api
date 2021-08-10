@@ -1,7 +1,7 @@
 cron:
 - description: "Poll Ulinc Webhooks"
   url: /api/v1/jobs/poll_ulinc_webhooks
-  schedule: every 60 mins
+  schedule: every 240 mins
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
@@ -11,7 +11,7 @@ cron:
 
 - description: "Poll Ulinc CSV"
   url: /api/v1/jobs/poll_ulinc_csv
-  schedule: every 60 mins
+  schedule: every 240 mins
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
@@ -21,7 +21,7 @@ cron:
 
 - description: "Process Contact Sources"
   url: /api/v1/jobs/process_contact_sources
-  schedule: every 40 mins
+  schedule: every 30 mins
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
