@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import json
+import os
 
 from flask import Blueprint, jsonify, request, make_response
 from sqlalchemy import and_
@@ -16,6 +17,7 @@ from foundation_api.V1.utils.process_contact_source_handler import process_conta
 from foundation_api.V1.utils.data_enrichment import data_enrichment_function
 from foundation_api.V1.utils.send_email import send_email_function
 from foundation_api.V1.utils.send_li_message import send_li_message_function, update_ulinc_contact_status
+from foundation_api.V1.utils import google_tasks
 
 
 logger = logging.getLogger('api_tasks')
@@ -106,8 +108,12 @@ def send_email_task():
     json_body = request.get_json(force=True)
 
     if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == json_body['email_target_details']['email_config_id']).first():
-        send_email_function(email_config, json_body['email_target_details'])
-        return jsonify({"message": "success"})
+        if contact := db.session.query(Contact.contact_id == json_body['email_target_details']['contact_id']).first():
+            if contact.is_messaging_task_valid():
+                send_email_function(email_config, json_body['email_target_details'])
+                return jsonify({"message": "success"})
+            return jsonify({"message": "Messaging task no longer valid"})
+        return jsonify({"message": "Unknown contact_id"})
     else:
         return jsonify({"message": "Failure. Email config does not exist"}) # Should not repeat
 
@@ -118,25 +124,24 @@ def send_li_message_task():
     """
     json_body = request.get_json(force=True)
 
-    if send_li_message_function(json_body['li_message_target_details']) == 'Message sent':
-        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='update-ulinc-contact-status')
-        payload = {
-            'li_message_target_details': json_body['li_message_target_details'],
-        }
-        task = {
-            "http_request": {  # Specify the type of request.
-                "http_method": tasks_v2.HttpMethod.POST,
-                "url": "https://19e107b98787.ngrok.io/api/v1/tasks/update_ulinc_contact_status",
-                'body': json.dumps(payload).encode(),
-                'headers': {
-                    'Content-type': 'application/json'
+    if contact := db.session.query(Contact.contact_id == json_body['li_message_target_details']['contact_id']).first():
+        if contact.is_messaging_task_valid():
+            if send_li_message_function(json_body['li_message_target_details']) == 'Message sent':
+                gct_client = google_tasks.create_tasks_client()
+                payload = {
+                    'li_message_target_details': json_body['li_message_target_details'],
                 }
-            }
-        }
-        task_response = gc_tasks_client.create_task(parent=parent, task=task)
-        return jsonify({"message": "success"})
-
-    return make_response(jsonify({"message": "failure"}), 300) # Task should repeat
+                if os.getenv('FLASK_ENV') == 'production':
+                    gct_parent = google_tasks.create_tasks_parent(gct_client, os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), 'update-ulinc-contact-status')
+                    task = google_tasks.create_app_engine_task('/api/v1/tasks/update_ulinc_contact_status', payload)
+                else:
+                    gct_parent = google_tasks.create_tasks_parent(gct_client, 'foundation-staging-305217', 'us-central1', 'update-ulinc-contact-status')
+                    task = google_tasks.create_url_task('/api/v1/tasks/update_ulinc_contact_status', payload)
+                task_response = google_tasks.send_task(gct_client, gct_parent, task)
+                return jsonify({"message": "success"})
+            return make_response(jsonify({"message": "failure"}), 300) # Task should repeat
+        return jsonify({"message": "Messaging task no longer valid"})
+    return jsonify({"message": "Unknown contact_id"})
 
 @mod_tasks.route('/update_ulinc_contact_status', methods=['POST'])
 def update_ulinc_contact_status_task():

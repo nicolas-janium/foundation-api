@@ -1203,6 +1203,16 @@ class Contact(db.Model):
     actions = relationship('Action', backref=backref('contact', uselist=False), uselist=True, lazy='dynamic')
     # info = relationship('Contact_info', uselist=True, lazy='dynamic')
 
+    def is_messaging_task_valid(self):
+        utc_now = datetime.utcnow()
+        if stop_actions := self.actions.filter(Action.action_type_id.in_([2,6,7,11])).filter(Action.action_timestamp >= utc_now - timedelta(hours=18)).order_by(Action.action_timestamp.desc()).all():
+            if continue_action := self.actions.filter(Action.action_type_id == 14).filter(Action.action_timestamp >= utc_now - timedelta(hours=18)).first():
+                if continue_action.action_timestamp >= stop_actions[0].action_timestamp:
+                    return True
+                return False
+            return False
+        return True
+
     def get_short_ulinc_id(self, ulinc_client_id):
         return str(self.ulinc_id).replace(ulinc_client_id, '')
 
