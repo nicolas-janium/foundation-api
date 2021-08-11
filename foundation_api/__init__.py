@@ -50,6 +50,7 @@ def create_app(test_config=False):
     from foundation_api.V1.mod_jobs.routes import mod_jobs as jobs_module
     # from foundation_api.V1.mod_email.routes import mod_email as email_module
     from foundation_api.V1.mod_tasks.routes import mod_tasks as tasks_module
+    from foundation_api.V1.mod_ulinc.routes import mod_ulinc as ulinc_module
 
 
     # Register blueprint(s)
@@ -60,6 +61,7 @@ def create_app(test_config=False):
     app.register_blueprint(jobs_module)
     # app.register_blueprint(email_module)
     app.register_blueprint(tasks_module)
+    app.register_blueprint(ulinc_module)
 
     return app
 

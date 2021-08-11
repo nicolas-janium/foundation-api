@@ -58,7 +58,6 @@ def poll_ulinc_webhooks_job():
                         'ulinc_config_id': ulinc_config.ulinc_config_id,
                         'webhook_url': webhook['url'],
                         'webhook_type': webhook['type']
-                        
                     }
                     if os.getenv('FLASK_ENV') == 'production':
                         parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-webhook')
