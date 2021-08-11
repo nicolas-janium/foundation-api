@@ -21,7 +21,7 @@ cron:
 
 - description: "Process Contact Sources"
   url: /api/v1/jobs/process_contact_sources
-  schedule: every 30 mins
+  schedule: every 5 mins from 03:00 to 20:00
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
@@ -31,7 +31,7 @@ cron:
 
 - description: "Refresh Ulinc Data"
   url: /api/v1/jobs/refresh_ulinc_data
-  schedule: every 6 hours from 02:00 to 21:00
+  schedule: every 12 hours
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
@@ -41,7 +41,8 @@ cron:
 
 - description: "Data Enrichment"
   url: /api/v1/jobs/data_enrichment
-  schedule: every 6 hours from 02:00 to 21:00
+  # schedule: every 6 hours from 02:00 to 21:00
+  schedule: every 12 hours
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
