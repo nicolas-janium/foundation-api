@@ -10,11 +10,11 @@ def create_tasks_client():
 def create_tasks_parent(client, project_id, location, queue):
     return client.queue_path(project_id, location, queue=queue)
 
-def create_app_engine_task(relative_uri, payload):
+def create_app_engine_task(relative_uri_path, payload):
     return {
         'app_engine_http_request': {
             'http_method': tasks_v2.HttpMethod.POST,
-            'relative_uri': relative_uri,
+            'relative_uri': relative_uri_path,
             'body': json.dumps(payload).encode(),
             'headers': {
                 'Content-type': 'application/json'
@@ -22,11 +22,11 @@ def create_app_engine_task(relative_uri, payload):
         }
     }
 
-def create_url_task(url, payload):
+def create_url_task(url, relative_uri_path, payload):
     return {
         "http_request": {  # Specify the type of request.
             "http_method": tasks_v2.HttpMethod.POST,
-            "url": "{}{}".format(os.getenv("BACKEND_API_URL"), url),
+            "url": "{}{}".format(url, relative_uri_path),
             'body': json.dumps(payload).encode(),
             'headers': {
                 'Content-type': 'application/json'

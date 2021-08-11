@@ -136,7 +136,7 @@ def send_li_message_task():
                     task = google_tasks.create_app_engine_task('/api/v1/tasks/update_ulinc_contact_status', payload)
                 else:
                     gct_parent = google_tasks.create_tasks_parent(gct_client, 'foundation-staging-305217', 'us-central1', 'update-ulinc-contact-status')
-                    task = google_tasks.create_url_task('/api/v1/tasks/update_ulinc_contact_status', payload)
+                    task = google_tasks.create_url_task(os.getenv("BACKEND_API_URL"), '/api/v1/tasks/update_ulinc_contact_status', payload)
                 task_response = google_tasks.send_task(gct_client, gct_parent, task)
                 return jsonify({"message": "success"})
             return make_response(jsonify({"message": "failure"}), 300) # Task should repeat
