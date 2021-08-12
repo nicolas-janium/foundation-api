@@ -68,7 +68,7 @@ def process_contact_source_task():
     
     if process_contact_source_function(ulinc_config, contact_source):
         return jsonify({"message": "success"})
-    return make_response(jsonify({"message": "failure"}), 300)
+    return make_response(jsonify({"message": "failure"}), 200) # Should not repeat
 
 @mod_tasks.route('/refresh_ulinc_data', methods=['POST'])
 def refresh_ulinc_data_task():
