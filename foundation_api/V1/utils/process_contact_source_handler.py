@@ -179,12 +179,12 @@ def process_webhook(ulinc_config, contact_source):
                 if existing_ulinc_campaign.ulinc_is_messenger:
                     if origin_message := str(existing_ulinc_campaign.messenger_origin_message):
                         origin_message = origin_message.strip().replace('\r', '').replace('\n', '')
-                        if lev.ration(origin_message, item_message) > 0.9:
+                        if lev.ratio(origin_message, item_message) > 0.9:
                             is_origin = True
                 else:
                     if cnxn_req_message := str(existing_ulinc_campaign.connection_request_message):
                         cnxn_req_message = cnxn_req_message.strip().replace('\r', '').replace('\n', '')
-                        if lev.ration(cnxn_req_message, item_message) > 0.9:
+                        if lev.ratio(cnxn_req_message, item_message) > 0.9:
                             continue
 
             new_action = Action(
