@@ -31,6 +31,7 @@ class User(db.Model):
         self.company = company
         self.location = location
         self.primary_email = primary_email
+        self.parse_email = "{}.{}@parse.janium.io".format(first_name, last_name)
         self.additional_contact_info = additional_contact_info
         self.phone = phone
     
@@ -45,6 +46,7 @@ class User(db.Model):
     company = Column(String(256), nullable=True)
     location = Column(String(256), nullable=True)
     primary_email = Column(String(256), nullable=False)
+    parse_email = Column(String(256), nullable=False)
     phone = Column(String(256), nullable=True)
     additional_contact_info = Column(JSON, nullable=True)
 
@@ -1137,6 +1139,21 @@ class Ulinc_campaign(db.Model):
         ).filter(
             ~Contact.actions.any(Action.action_type_id.in_([7,11]))
         ).all()
+
+
+class Ulinc_campaign_origin_messages(db.Model):
+    __tablename__ = 'ulinc_campaign_origin_message'
+
+    def __init__(self, ulinc_campaign_origin_message_id, ulinc_campaign_id, message, is_messenger=False):
+        self.ulinc_campaign_origin_message_id = ulinc_campaign_origin_message_id
+        self.ulinc_campaign_id = ulinc_campaign_id
+        self.message = message
+        self.is_messenger = is_messenger
+
+    ulinc_campaign_origin_message_id = Column(String(36), primary_key=True, nullable=False)
+    ulinc_campaign_id = Column(String(36), ForeignKey('ulinc_campaign.ulinc_campaign_id'), nullable=False)
+    message = Column(Text, nullable=False)
+    is_messenger = Column(Boolean, nullable=False, server_default=false())
 
 
 class Contact_source(db.Model):
