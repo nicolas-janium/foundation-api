@@ -7,6 +7,7 @@ import os
 from proto import message
 
 import requests
+import Levenshtein as lev
 from bs4 import BeautifulSoup as Soup
 from foundation_api.V1.sa_db.model import *
 
@@ -143,13 +144,16 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
             )
             db.session.add(new_ulinc_campaign)
         if ulinc_campaign['origin_message']:
-            ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
-                str(uuid4()),
-                ulinc_campaign_id,
-                ulinc_campaign['connection_request_message'],
-                False
-            )
-            db.session.add(ulinc_campaign_origin_message)
+            if existing_origin_message := db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
+                pass
+            else:
+                ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
+                    str(uuid4()),
+                    ulinc_campaign_id,
+                    ulinc_campaign['origin_message'],
+                    False
+                )
+                db.session.add(ulinc_campaign_origin_message)
         db.session.commit()
 
     for ulinc_campaign in ulinc_campaign_dict['messenger']:
@@ -170,13 +174,16 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
             )
             db.session.add(new_ulinc_campaign)
         if ulinc_campaign['origin_message']:
-            ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
-                str(uuid4()),
-                ulinc_campaign_id,
-                ulinc_campaign['connection_request_message'],
-                True
-            )
-            db.session.add(ulinc_campaign_origin_message)
+            if existing_origin_message := db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
+                pass
+            else:
+                ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
+                    str(uuid4()),
+                    ulinc_campaign_id,
+                    ulinc_campaign['origin_message'],
+                    True
+                )
+                db.session.add(ulinc_campaign_origin_message)
         db.session.commit()
     db.session.commit()
 

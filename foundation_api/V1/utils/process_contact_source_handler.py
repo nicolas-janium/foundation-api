@@ -151,7 +151,7 @@ def process_webhook(ulinc_config, contact_source):
             db.session.add(new_message_action)
         elif contact_source.contact_source_type_id == 3:
             if existing_contact:
-                # Update contat information. CSV has lets info than webhook responses
+                # Update contat information. CSV has less info than webhook responses
                 contact_id = existing_contact.contact_id
                 existing_contact_info = existing_contact.contact_info
                 new_contact_info = {**base_contact_dict, **item}
@@ -172,25 +172,25 @@ def process_webhook(ulinc_config, contact_source):
                 db.session.add(new_contact)
                 contact_id = new_contact.contact_id
 
-            is_origin = False
+            ### If message item is origin message, handle accordingly ###
+            is_c_origin = False
+            is_m_origin = False
+            item_message = str(item['message']).strip().replace('\r', '').replace('\n', '')
             if existing_ulinc_campaign:
-                item_message = str(item['message'])
-                item_message = item_message.strip().replace('\r', '').replace('\n', '')
-                if existing_ulinc_campaign.ulinc_is_messenger:
-                    if origin_message := str(existing_ulinc_campaign.messenger_origin_message):
-                        origin_message = origin_message.strip().replace('\r', '').replace('\n', '')
-                        if lev.ratio(origin_message, item_message) > 0.9:
-                            is_origin = True
-                else:
-                    if cnxn_req_message := str(existing_ulinc_campaign.connection_request_message):
-                        cnxn_req_message = cnxn_req_message.strip().replace('\r', '').replace('\n', '')
-                        if lev.ratio(cnxn_req_message, item_message) > 0.9:
-                            continue
+                for origin_message in db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.ulinc_campaign_id == existing_ulinc_campaign.ulinc_campaign_id).all():
+                    origin_message = origin_message.strip().replace('\r', '').replace('\n', '')
+                    if lev.ratio(origin_message, item_message) > 0.8:
+                        if existing_ulinc_campaign.ulinc_is_messenger:
+                            is_m_origin = True
+                            break
+                        else:
+                            is_c_origin = True
+                            break
 
             new_action = Action(
                 str(uuid4()),
                 contact_id,
-                13 if is_origin else 3,
+                13 if is_m_origin else 23 if is_c_origin else 3,
                 datetime.utcnow(),
                 item['message'],
                 None
