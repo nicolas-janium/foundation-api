@@ -1141,7 +1141,7 @@ class Ulinc_campaign(db.Model):
         ).all()
 
 
-class Ulinc_campaign_origin_messages(db.Model):
+class Ulinc_campaign_origin_message(db.Model):
     __tablename__ = 'ulinc_campaign_origin_message'
 
     def __init__(self, ulinc_campaign_origin_message_id, ulinc_campaign_id, message, is_messenger=False):

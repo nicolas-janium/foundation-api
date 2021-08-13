@@ -103,7 +103,7 @@ def get_ulinc_campaigns(ulinc_config):
                     "name": td_list[0].text,
                     "ulinc_campaign_id": str(extract_campaign_id(td_list[0].find('a')['href'])),
                     "is_active": True if td_list[1].find('span').text == 'Active' else False,
-                    "connection_request_message": get_campaign_message(ulinc_config.ulinc_client_id, str(extract_campaign_id(td_list[0].find('a')['href'])), usr, pwd, is_messenger=False)
+                    "origin_message": get_campaign_message(ulinc_config.ulinc_client_id, str(extract_campaign_id(td_list[0].find('a')['href'])), usr, pwd, is_messenger=False)
                 }
                 campaigns['connector'].append(camp_dict)
 
@@ -118,52 +118,66 @@ def get_ulinc_campaigns(ulinc_config):
                     "name": td_list[0].text,
                     "ulinc_campaign_id": ulinc_campaign_id,
                     "is_active": True if td_list[1].find('span').text == 'Active' else False,
-                    "messenger_origin_message": get_campaign_message(ulinc_config.ulinc_client_id, str(extract_campaign_id(td_list[0].find('a')['href'])), usr, pwd, is_messenger=True)
+                    "origin_message": get_campaign_message(ulinc_config.ulinc_client_id, str(extract_campaign_id(td_list[0].find('a')['href'])), usr, pwd, is_messenger=True)
                 }
                 campaigns['messenger'].append(camp_dict)
-
         return campaigns
     return None
 
 def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
     for ulinc_campaign in ulinc_campaign_dict['connector']:
-        existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first()
-        if existing_ulinc_campaign:
+        if existing_ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
             existing_ulinc_campaign.ulinc_campaign_name = ulinc_campaign['name']
             existing_ulinc_campaign.ulinc_is_active = ulinc_campaign['is_active']
-            existing_ulinc_campaign.connection_request_message = ulinc_campaign['connection_request_message']
+            ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
         else:
+            ulinc_campaign_id = str(uuid4())
             new_ulinc_campaign = Ulinc_campaign(
-                str(uuid4()),
+                ulinc_campaign_id,
                 ulinc_config_id,
                 Janium_campaign.unassigned_janium_campaign_id,
                 ulinc_campaign['name'],
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
-                False,
-                connection_request_message=ulinc_campaign['connection_request_message']
+                False
             )
             db.session.add(new_ulinc_campaign)
+        if ulinc_campaign['origin_message']:
+            ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
+                str(uuid4()),
+                ulinc_campaign_id,
+                ulinc_campaign['connection_request_message'],
+                False
+            )
+            db.session.add(ulinc_campaign_origin_message)
+        db.session.commit()
 
     for ulinc_campaign in ulinc_campaign_dict['messenger']:
-        existing_ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first()
-        if existing_ulinc_campaign:
+        if existing_ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
             existing_ulinc_campaign.ulinc_campaign_name = ulinc_campaign['name']
             existing_ulinc_campaign.ulinc_is_active = ulinc_campaign['is_active']
-            existing_ulinc_campaign.messenger_origin_message = ulinc_campaign['messenger_origin_message']
+            ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
         else:
+            ulinc_campaign_id = str(uuid4())
             new_ulinc_campaign = Ulinc_campaign(
-                str(uuid4()),
+                ulinc_campaign_id,
                 ulinc_config_id,
                 Janium_campaign.unassigned_janium_campaign_id,
                 ulinc_campaign['name'],
                 ulinc_campaign['is_active'],
                 ulinc_campaign['ulinc_campaign_id'],
-                True,
-                ulinc_messenger_origin_message=ulinc_campaign['messenger_origin_message']
+                True
             )
             db.session.add(new_ulinc_campaign)
-
+        if ulinc_campaign['origin_message']:
+            ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
+                str(uuid4()),
+                ulinc_campaign_id,
+                ulinc_campaign['connection_request_message'],
+                True
+            )
+            db.session.add(ulinc_campaign_origin_message)
+        db.session.commit()
     db.session.commit()
 
 def refresh_ulinc_campaigns(ulinc_config):
