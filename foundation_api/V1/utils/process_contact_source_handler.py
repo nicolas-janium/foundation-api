@@ -178,7 +178,7 @@ def process_webhook(ulinc_config, contact_source):
             item_message = str(item['message']).strip().replace('\r', '').replace('\n', '')
             if existing_ulinc_campaign:
                 for origin_message in db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.ulinc_campaign_id == existing_ulinc_campaign.ulinc_campaign_id).all():
-                    origin_message = origin_message.strip().replace('\r', '').replace('\n', '')
+                    origin_message = str(origin_message.message).strip().replace('\r', '').replace('\n', '')
                     if lev.ratio(origin_message, item_message) > 0.8:
                         if existing_ulinc_campaign.ulinc_is_messenger:
                             is_m_origin = True
