@@ -9,15 +9,15 @@ cron:
     max_backoff_seconds: 10
     max_doublings: 2
 
-- description: "Poll Ulinc CSV"
-  url: /api/v1/jobs/poll_ulinc_csv
-  schedule: every 240 mins from 03:00 to 19:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Poll Ulinc CSV"
+#   url: /api/v1/jobs/poll_ulinc_csv
+#   schedule: every 240 mins from 03:00 to 19:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
 - description: "Process Contact Sources"
   url: /api/v1/jobs/process_contact_sources
@@ -29,43 +29,43 @@ cron:
     max_backoff_seconds: 10
     max_doublings: 2
 
-- description: "Refresh Ulinc Data"
-  url: /api/v1/jobs/refresh_ulinc_data
-  schedule: every 12 hours
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Refresh Ulinc Data"
+#   url: /api/v1/jobs/refresh_ulinc_data
+#   schedule: every 12 hours
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
-- description: "Data Enrichment"
-  url: /api/v1/jobs/data_enrichment
-  # schedule: every 6 hours from 02:00 to 21:00
-  schedule: every 12 hours
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Data Enrichment"
+#   url: /api/v1/jobs/data_enrichment
+#   # schedule: every 6 hours from 02:00 to 21:00
+#   schedule: every 12 hours
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
-- description: "Send Email"
-  url: /api/v1/jobs/send_email
-  schedule: every monday,tuesday,wednesday,thursday,friday 03:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Send Email"
+#   url: /api/v1/jobs/send_email
+#   schedule: every monday,tuesday,wednesday,thursday,friday 03:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
-- description: "Send LI Message"
-  url: /api/v1/jobs/send_li_message
-  schedule: every monday,tuesday,wednesday,thursday,friday 03:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Send LI Message"
+#   url: /api/v1/jobs/send_li_message
+#   schedule: every monday,tuesday,wednesday,thursday,friday 03:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
