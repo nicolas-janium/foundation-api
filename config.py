@@ -17,6 +17,7 @@ SQLALCHEMY_DATABASE_URI = engine.url.URL(
     port= os.getenv('DB_PORT', 3306)
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+# SQLALCHEMY_ENGINE_OPTIONS = {"autocommit": False, "autoflush": False}
 
 SECRET_KEY = os.getenv('APP_SECRET_KEY', 'secret_key')
 

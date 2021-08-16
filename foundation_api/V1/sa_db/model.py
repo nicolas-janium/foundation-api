@@ -3,10 +3,13 @@ import pytz
 from datetime import datetime, timedelta
 import random
 
+from flask import config, current_app
+import foundation_api
+
 import requests
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
-                        Integer, String, Text, and_, exists)
-from sqlalchemy.orm import backref, relationship
+                        Integer, String, Text, and_, exists, create_engine)
+from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy.sql import false, text, true, func
 from sqlalchemy.sql.expression import cast, null
 from sqlalchemy.dialects.mysql import JSON as MYSQL_JSON
@@ -16,6 +19,11 @@ from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
+
+# def create_session(db_uri):
+#     engine = create_engine(db_uri, connect_args={"check_same_thread": False})
+#     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+#     return SessionLocal
 
 class User(db.Model):
     __tablename__ = 'user'

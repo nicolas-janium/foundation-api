@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request, make_response
 from sqlalchemy import and_
 from pprint import pprint
 from google.cloud import tasks_v2
+from sqlalchemy.orm.session import Session
 
 from foundation_api.V1.sa_db.model import Email_config, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign, Contact

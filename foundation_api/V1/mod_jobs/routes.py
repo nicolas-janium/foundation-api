@@ -5,10 +5,12 @@ import json
 import os
 from pprint import pprint
 
-from flask import Blueprint, jsonify, request, make_response
+from flask import Blueprint, jsonify, request, make_response, current_app
 from sqlalchemy import and_
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from foundation_api.V1.sa_db.model import Contact_source, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config
@@ -201,12 +203,14 @@ def process_contact_sources_job():
                     "task_id": task_response.name,
                     "contact_source_id": contact_source.contact_source_id
                 })
-
     return jsonify(tasks)
 
 @mod_jobs.route('/refresh_ulinc_data', methods=['GET'])
 @check_cron_header
 def refresh_ulinc_data():
+    # Session = db.create_scoped_session()
+    # session = Session()
+
     accounts = db.session.query(Account).filter(and_(
         and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
         and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
@@ -249,6 +253,7 @@ def refresh_ulinc_data():
                     "ulinc_config_id": ulinc_config.ulinc_config_id,
                     "task_id": task_response.name
                 })
+    # session.close()
     return jsonify(tasks)
 
 @mod_jobs.route('/data_enrichment', methods=['GET'])
