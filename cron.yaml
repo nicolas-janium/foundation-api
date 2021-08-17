@@ -1,33 +1,33 @@
 cron:
-- description: "Poll Ulinc Webhooks"
-  url: /api/v1/jobs/poll_ulinc_webhooks
-  schedule: every 10 mins from 03:00 to 19:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Poll Ulinc Webhooks"
+#   url: /api/v1/jobs/poll_ulinc_webhooks
+#   schedule: every 10 mins from 03:00 to 19:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
-- description: "Poll Ulinc CSV"
-  url: /api/v1/jobs/poll_ulinc_csv
-  schedule: every 240 mins from 03:00 to 19:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Poll Ulinc CSV"
+#   url: /api/v1/jobs/poll_ulinc_csv
+#   schedule: every 240 mins from 03:00 to 19:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
-- description: "Process Contact Sources"
-  url: /api/v1/jobs/process_contact_sources
-  schedule: every 5 mins from 03:00 to 20:00
-  timezone: US/Mountain
-  retry_parameters:
-    job_retry_limit: 0 # Max is 5 and min is 0
-    min_backoff_seconds: 5
-    max_backoff_seconds: 10
-    max_doublings: 2
+# - description: "Process Contact Sources"
+#   url: /api/v1/jobs/process_contact_sources
+#   schedule: every 5 mins from 03:00 to 20:00
+#   timezone: US/Mountain
+#   retry_parameters:
+#     job_retry_limit: 0 # Max is 5 and min is 0
+#     min_backoff_seconds: 5
+#     max_backoff_seconds: 10
+#     max_doublings: 2
 
 # - description: "Refresh Ulinc Data"
 #   url: /api/v1/jobs/refresh_ulinc_data
@@ -60,12 +60,12 @@ cron:
 #     max_backoff_seconds: 10
 #     max_doublings: 2
 
-# - description: "Send LI Message"
-#   url: /api/v1/jobs/send_li_message
-#   schedule: every monday,tuesday,wednesday,thursday,friday 03:00
-#   timezone: US/Mountain
-#   retry_parameters:
-#     job_retry_limit: 0 # Max is 5 and min is 0
-#     min_backoff_seconds: 5
-#     max_backoff_seconds: 10
-#     max_doublings: 2
+- description: "Send LI Message"
+  url: /api/v1/jobs/send_li_message
+  schedule: every monday,tuesday,wednesday,thursday,friday 03:00
+  timezone: US/Mountain
+  retry_parameters:
+    job_retry_limit: 0 # Max is 5 and min is 0
+    min_backoff_seconds: 5
+    max_backoff_seconds: 10
+    max_doublings: 2
