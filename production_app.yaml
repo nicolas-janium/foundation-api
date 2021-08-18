@@ -1,5 +1,5 @@
 runtime: python38
-entrypoint: gunicorn -b :$PORT foundation_api:create_app() --timeout=90
+entrypoint: gunicorn -b :$PORT "foundation_api:create_app()" --timeout=90
 service: backend
 
 runtime_config:
