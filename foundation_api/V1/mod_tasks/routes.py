@@ -49,14 +49,17 @@ def poll_ulinc_csv_task():
     """
     Required JSON keys: ulinc_config_id, ulinc_campaign_id
     """
-    with get_db_session() as session:
-        json_body = request.get_json()
-        ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
-        ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first()
-        if poll_and_save_csv(ulinc_config, ulinc_campaign, session) == "success":
-            return jsonify({"message": "success"})
-        else:
-            return make_response(jsonify({"message": "failure"}), 300)
+    print("hello from poll ulinc csv task handler")
+    return jsonify({"message": "success"})
+
+    # with get_db_session() as session:
+    #     json_body = request.get_json()
+    #     ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
+    #     ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first()
+    #     if poll_and_save_csv(ulinc_config, ulinc_campaign, session) == "success":
+    #         return jsonify({"message": "success"})
+    #     else:
+    #         return make_response(jsonify({"message": "failure"}), 300)
 
 @mod_tasks.route('/process_contact_source', methods=['POST'])
 def process_contact_source_task():
