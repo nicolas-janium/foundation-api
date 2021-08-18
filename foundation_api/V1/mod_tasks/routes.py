@@ -63,14 +63,15 @@ def process_contact_source_task():
     """
     Required JSON keys: account_id, ulinc_config_id, contact_source_id
     """
-    json_body = request.get_json(force=True)
-    account = db.session.query(Account).filter(Account.account_id == json_body['account_id']).first()
-    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
-    contact_source = db.session.query(Contact_source).filter(Contact_source.contact_source_id == json_body['contact_source_id']).first()
-    
-    if process_contact_source_function(ulinc_config, contact_source):
-        return jsonify({"message": "success"})
-    return make_response(jsonify({"message": "failure"}), 200) # Should not repeat
+    with get_db_session() as session:
+        json_body = request.get_json(force=True)
+        account = session.query(Account).filter(Account.account_id == json_body['account_id']).first()
+        ulinc_config = session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
+        contact_source = session.query(Contact_source).filter(Contact_source.contact_source_id == json_body['contact_source_id']).first()
+        
+        if process_contact_source_function(ulinc_config, contact_source, session):
+            return jsonify({"message": "success"})
+        return make_response(jsonify({"message": "failure"}), 200) # Should not repeat
 
 @mod_tasks.route('/refresh_ulinc_data', methods=['POST'])
 def refresh_ulinc_data_task():

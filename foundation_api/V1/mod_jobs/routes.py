@@ -151,58 +151,59 @@ def poll_ulinc_csv_job():
 @mod_jobs.route('/process_contact_sources', methods=['GET'])
 @check_cron_header
 def process_contact_sources_job():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.is_polling_ulinc == 1,
-        Account.account_id != Account.unassigned_account_id
-    )).all()
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).order_by(Contact_source.contact_source_type_id.asc()).all()):    
-                payload = {
-                    'account_id': account.account_id,
-                    'ulinc_config_id': ulinc_config.ulinc_config_id,
-                    'contact_source_id': contact_source.contact_source_id
-                }
-                if os.getenv('FLASK_ENV') == 'production':
-                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='process-cs-queue')
-                    task = {
-                        'app_engine_http_request': {
-                            'http_method': tasks_v2.HttpMethod.POST,
-                            'relative_uri': '/api/v1/tasks/process_contact_source',
-                            'body': json.dumps(payload).encode(),
-                            'headers': {
-                                'Content-type': 'application/json'
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_polling_ulinc == 1,
+            Account.account_id != Account.unassigned_account_id
+        )).all()
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).order_by(Contact_source.contact_source_type_id.asc()).all()):    
+                    payload = {
+                        'account_id': account.account_id,
+                        'ulinc_config_id': ulinc_config.ulinc_config_id,
+                        'contact_source_id': contact_source.contact_source_id
+                    }
+                    if os.getenv('FLASK_ENV') == 'production':
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='process-cs-queue')
+                        task = {
+                            'app_engine_http_request': {
+                                'http_method': tasks_v2.HttpMethod.POST,
+                                'relative_uri': '/api/v1/tasks/process_contact_source',
+                                'body': json.dumps(payload).encode(),
+                                'headers': {
+                                    'Content-type': 'application/json'
+                                }
                             }
                         }
-                    }
-                else:
-                    parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='process-cs-queue')
-                    task = {
-                        "http_request": {  # Specify the type of request.
-                            "http_method": tasks_v2.HttpMethod.POST,
-                            "url": "{}/api/v1/tasks/process_contact_source".format(os.getenv("BACKEND_API_URL")),
-                            'body': json.dumps(payload).encode(),
-                            'headers': {
-                                'Content-type': 'application/json'
+                    else:
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='process-cs-queue')
+                        task = {
+                            "http_request": {  # Specify the type of request.
+                                "http_method": tasks_v2.HttpMethod.POST,
+                                "url": "{}/api/v1/tasks/process_contact_source".format(os.getenv("BACKEND_API_URL")),
+                                'body': json.dumps(payload).encode(),
+                                'headers': {
+                                    'Content-type': 'application/json'
+                                }
                             }
                         }
-                    }
 
-                # Create Timestamp protobuf.
-                timestamp = timestamp_pb2.Timestamp()
-                timestamp.FromDatetime(datetime.utcnow() + timedelta(seconds=(i * 10)))
-                task['schedule_time'] = timestamp
+                    # Create Timestamp protobuf.
+                    timestamp = timestamp_pb2.Timestamp()
+                    timestamp.FromDatetime(datetime.utcnow() + timedelta(seconds=(i * 10)))
+                    task['schedule_time'] = timestamp
 
-                task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                tasks.append({
-                    "account_id": account.account_id,
-                    "ulinc_config_id": ulinc_config.ulinc_config_id,
-                    "task_id": task_response.name,
-                    "contact_source_id": contact_source.contact_source_id
-                })
+                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                    tasks.append({
+                        "account_id": account.account_id,
+                        "ulinc_config_id": ulinc_config.ulinc_config_id,
+                        "task_id": task_response.name,
+                        "contact_source_id": contact_source.contact_source_id
+                    })
     return jsonify(tasks)
 
 @mod_jobs.route('/refresh_ulinc_data', methods=['GET'])
