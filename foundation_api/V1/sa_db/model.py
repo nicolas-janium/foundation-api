@@ -18,7 +18,7 @@ from sqlalchemy.sql.functions import localtime
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
+db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={"pool_size": 5, "max_overflow": 2})
 
 # def create_session(db_uri):
 #     engine = create_engine(db_uri, connect_args={"check_same_thread": False})
