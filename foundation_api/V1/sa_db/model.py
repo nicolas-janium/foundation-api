@@ -17,13 +17,10 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.sql.functions import localtime
 from workdays import networkdays
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.pool import NullPool, StaticPool
 
-db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={"pool_size": 5, "max_overflow": 2})
+db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={'pool_size': 10, 'max_overflow': 2})
 
-# def create_session(db_uri):
-#     engine = create_engine(db_uri, connect_args={"check_same_thread": False})
-#     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-#     return SessionLocal
 
 class User(db.Model):
     __tablename__ = 'user'

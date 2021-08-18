@@ -9,8 +9,6 @@ from flask import Blueprint, jsonify, request, make_response, current_app
 from sqlalchemy import and_
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from foundation_api.V1.sa_db.model import Contact_source, db
 from foundation_api.V1.sa_db.model import Account, Ulinc_config
