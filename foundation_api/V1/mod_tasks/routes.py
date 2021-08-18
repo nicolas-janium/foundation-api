@@ -9,7 +9,7 @@ from pprint import pprint
 from google.cloud import tasks_v2
 from sqlalchemy.orm.session import Session
 
-from foundation_api.V1.sa_db.model import Email_config, db
+from foundation_api.V1.sa_db.model import Email_config, db, get_db_session
 from foundation_api.V1.sa_db.model import Account, Ulinc_config, Contact_source, Ulinc_campaign, Janium_campaign, Contact
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns, refresh_ulinc_cookie, refresh_ulinc_account_status
 from foundation_api.V1.utils.poll_ulinc_webhook import poll_and_save_webhook
@@ -49,13 +49,14 @@ def poll_ulinc_csv_task():
     """
     Required JSON keys: ulinc_config_id, ulinc_campaign_id
     """
-    json_body = request.get_json()
-    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
-    ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first()
-    if poll_and_save_csv(ulinc_config, ulinc_campaign) == "success":
-        return jsonify({"message": "success"})
-    else:
-        return make_response(jsonify({"message": "failure"}), 300)
+    with get_db_session() as session:
+        json_body = request.get_json()
+        ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
+        ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first()
+        if poll_and_save_csv(ulinc_config, ulinc_campaign, session) == "success":
+            return jsonify({"message": "success"})
+        else:
+            return make_response(jsonify({"message": "failure"}), 300)
 
 @mod_tasks.route('/process_contact_source', methods=['POST'])
 def process_contact_source_task():

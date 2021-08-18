@@ -10,7 +10,7 @@ from sqlalchemy import and_
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
-from foundation_api.V1.sa_db.model import Contact_source, db
+from foundation_api.V1.sa_db.model import Contact_source, db, get_db_session
 from foundation_api.V1.sa_db.model import Account, Ulinc_config
 
 
@@ -24,6 +24,7 @@ logger.addHandler(logHandler)
 gc_tasks_client = tasks_v2.CloudTasksClient()
 
 mod_jobs = Blueprint('jobs', __name__, url_prefix='/api/v1/jobs')
+
 
 def check_cron_header(f):
     @wraps(f)
@@ -96,54 +97,55 @@ def poll_ulinc_webhooks_job():
 @mod_jobs.route('/poll_ulinc_csv', methods=['GET'])
 @check_cron_header
 def poll_ulinc_csv_job():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.is_polling_ulinc == 1,
-        Account.account_id != Account.unassigned_account_id
-    )).all()
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_polling_ulinc == 1,
+            Account.account_id != Account.unassigned_account_id
+        )).all()
 
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
-                for ulinc_campaign in ulinc_config.ulinc_campaigns:
-                    payload = {
-                        'ulinc_config_id': ulinc_config.ulinc_config_id,
-                        'ulinc_campaign_id': ulinc_campaign.ulinc_campaign_id
-                    }
-                    if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-csv')
-                        task = {
-                            'app_engine_http_request': {
-                                'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/api/v1/tasks/poll_ulinc_csv',
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
+                    for ulinc_campaign in ulinc_config.ulinc_campaigns:
+                        payload = {
+                            'ulinc_config_id': ulinc_config.ulinc_config_id,
+                            'ulinc_campaign_id': ulinc_campaign.ulinc_campaign_id
+                        }
+                        if os.getenv('FLASK_ENV') == 'production':
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-csv')
+                            task = {
+                                'app_engine_http_request': {
+                                    'http_method': tasks_v2.HttpMethod.POST,
+                                    'relative_uri': '/api/v1/tasks/poll_ulinc_csv',
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
                                 }
                             }
-                        }
-                    else:
-                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-csv')
-                        task = {
-                            "http_request": {  # Specify the type of request.
-                                "http_method": tasks_v2.HttpMethod.POST,
-                                "url": "{}/api/v1/tasks/poll_ulinc_csv".format(os.getenv("BACKEND_API_URL")),
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
+                        else:
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-csv')
+                            task = {
+                                "http_request": {  # Specify the type of request.
+                                    "http_method": tasks_v2.HttpMethod.POST,
+                                    "url": "{}/api/v1/tasks/poll_ulinc_csv".format(os.getenv("BACKEND_API_URL")),
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
                                 }
                             }
-                        }
-                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                    tasks.append({
-                        "account_id": account.account_id,
-                        "ulinc_config_id": ulinc_config.ulinc_config_id,
-                        "task_id": task_response.name,
-                        "ulinc_campaign_id": ulinc_campaign.ulinc_campaign_id
-                    })
+                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                        tasks.append({
+                            "account_id": account.account_id,
+                            "ulinc_config_id": ulinc_config.ulinc_config_id,
+                            "task_id": task_response.name,
+                            "ulinc_campaign_id": ulinc_campaign.ulinc_campaign_id
+                        })
     return jsonify(tasks)
 
 @mod_jobs.route('/process_contact_sources', methods=['GET'])

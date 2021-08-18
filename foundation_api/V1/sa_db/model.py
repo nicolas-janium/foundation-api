@@ -2,6 +2,7 @@ from operator import not_
 import pytz
 from datetime import datetime, timedelta
 import random
+from contextlib import contextmanager
 
 from flask import config, current_app
 import foundation_api
@@ -21,6 +22,12 @@ from sqlalchemy.pool import NullPool, StaticPool
 
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={'pool_size': 10, 'max_overflow': 2})
 
+@contextmanager
+def get_db_session():
+    try:
+        yield db.session
+    finally:
+        db.session.remove()
 
 class User(db.Model):
     __tablename__ = 'user'

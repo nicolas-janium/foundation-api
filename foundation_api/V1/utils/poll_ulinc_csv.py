@@ -58,7 +58,7 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
     )
 
 
-def poll_and_save_csv(ulinc_config, ulinc_campaign):
+def poll_and_save_csv(ulinc_config, ulinc_campaign, session):
     header = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
@@ -82,8 +82,8 @@ def poll_and_save_csv(ulinc_config, ulinc_campaign):
         contact_source_id = str(uuid4())
         if csv_data := list(reader):
             contact_source = Contact_source(contact_source_id, ulinc_config.ulinc_config_id, 4, csv_data)
-            db.session.add(contact_source)
-            db.session.commit()
+            session.add(contact_source)
+            session.commit()
             # return contact_source_id
             return "success"
         return "success"
