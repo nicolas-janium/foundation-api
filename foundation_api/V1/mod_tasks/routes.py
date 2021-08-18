@@ -49,7 +49,10 @@ def poll_ulinc_csv_task():
     """
     Required JSON keys: ulinc_config_id, ulinc_campaign_id
     """
-    print("hello from poll ulinc csv task handler")
+    json_body = request.get_json()
+    ulinc_config = db.session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first()
+    ulinc_campaign = db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first()
+    print("hello from poll ulinc csv task handler. Ulinc_config_id = {} and ulinc_campaign = {}".format(ulinc_config.ulinc_config_id, ulinc_campaign.ulinc_campaign_id))
     return jsonify({"message": "success"})
 
     # with get_db_session() as session:
