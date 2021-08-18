@@ -10,7 +10,7 @@ from sqlalchemy import and_
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
-from foundation_api.V1.sa_db.model import Contact_source, db, get_db_session
+from foundation_api.V1.sa_db.model import Contact_source, get_db_session
 from foundation_api.V1.sa_db.model import Account, Ulinc_config
 
 
