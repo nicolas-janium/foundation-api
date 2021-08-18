@@ -27,7 +27,7 @@ def get_kendo_person(li_profile_id):
         return res.json()
     return None
 
-def data_enrichment_function(contact):
+def data_enrichment_function(contact, session):
     contact_info = contact.contact_info
     li_profile_url = contact_info['ulinc']['li_profile_url']
     li_profile_id = get_li_profile_id(li_profile_url)
@@ -61,8 +61,8 @@ def data_enrichment_function(contact):
             contact.contact_info = contact_info
             flag_modified(contact, 'contact_info')
             new_action = Action(action_id, contact.contact_id, 22, datetime.utcnow(), None)
-            db.session.add(new_action)
-            db.session.commit()
+            session.add(new_action)
+            session.commit()
             return 'success'
         else:
             return 'success'

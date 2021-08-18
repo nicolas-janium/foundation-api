@@ -56,17 +56,16 @@ def create_new_contact(contact_info, account_id, campaign_id, existing_ulinc_cam
                 'li_profile_url': data['profile']
             }
         },
-        None,
-        User.system_user_id
+        None
     )
 
-def poll_and_save_webhook(ulinc_config, wh_url, wh_type):
+def poll_and_save_webhook(ulinc_config, wh_url, wh_type, session):
     res = requests.get(wh_url, verify=False)
     if res.ok:
         if res_json := res.json():
             contact_source = Contact_source(str(uuid4()), ulinc_config.ulinc_config_id, wh_type, res_json)
-            db.session.add(contact_source)
-            db.session.commit()
+            session.add(contact_source)
+            session.commit()
             return "success"
         print("Webhook is empty")
         return "success"

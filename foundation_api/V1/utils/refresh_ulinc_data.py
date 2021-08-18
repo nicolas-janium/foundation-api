@@ -34,23 +34,23 @@ def get_cookie(username, password):
     else:
         return None
 
-def refresh_ulinc_cookie(ulinc_config):
+def refresh_ulinc_cookie(ulinc_config, session):
     if ulinc_cookie := get_cookie(ulinc_config.credentials.username, ulinc_config.credentials.password):
         if ulinc_config.cookie_id == Cookie.unassigned_cookie_id:
             new_cookie = Cookie(str(uuid4()), 1, ulinc_cookie)
-            db.session.add(new_cookie)
+            session.add(new_cookie)
             ulinc_config.cookie_id = new_cookie.cookie_id
             print("Created new ulinc cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
         else:
-            cookie = db.session.query(Cookie).filter(Cookie.cookie_id == ulinc_config.cookie_id).first()
+            cookie = session.query(Cookie).filter(Cookie.cookie_id == ulinc_config.cookie_id).first()
             cookie.cookie_json_value = ulinc_cookie
             print("Updated existing cookie for ulinc config {}".format(ulinc_config.ulinc_config_id))
         ulinc_config.is_working = True
-        db.session.commit()
+        session.commit()
     else:
         print("Error while refreshing ulinc cookie")
         ulinc_config.is_working = False
-        db.session.commit()
+        session.commit()
 
 def extract_campaign_id(url):
     return url.split('/')[-2]
@@ -125,9 +125,9 @@ def get_ulinc_campaigns(ulinc_config):
         return campaigns
     return None
 
-def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
+def insert_campaigns(ulinc_config_id, ulinc_campaign_dict, session):
     for ulinc_campaign in ulinc_campaign_dict['connector']:
-        if existing_ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
+        if existing_ulinc_campaign := session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
             existing_ulinc_campaign.ulinc_campaign_name = ulinc_campaign['name']
             existing_ulinc_campaign.ulinc_is_active = ulinc_campaign['is_active']
             ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
@@ -142,9 +142,9 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
                 ulinc_campaign['ulinc_campaign_id'],
                 False
             )
-            db.session.add(new_ulinc_campaign)
+            session.add(new_ulinc_campaign)
         if ulinc_campaign['origin_message']:
-            if existing_origin_message := db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
+            if existing_origin_message := session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
                 pass
             else:
                 ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
@@ -153,11 +153,11 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
                     ulinc_campaign['origin_message'],
                     False
                 )
-                db.session.add(ulinc_campaign_origin_message)
-        db.session.commit()
+                session.add(ulinc_campaign_origin_message)
+        session.commit()
 
     for ulinc_campaign in ulinc_campaign_dict['messenger']:
-        if existing_ulinc_campaign := db.session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
+        if existing_ulinc_campaign := session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_config_id == ulinc_config_id).filter(Ulinc_campaign.ulinc_ulinc_campaign_id == ulinc_campaign['ulinc_campaign_id']).first():
             existing_ulinc_campaign.ulinc_campaign_name = ulinc_campaign['name']
             existing_ulinc_campaign.ulinc_is_active = ulinc_campaign['is_active']
             ulinc_campaign_id = existing_ulinc_campaign.ulinc_campaign_id
@@ -172,9 +172,9 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
                 ulinc_campaign['ulinc_campaign_id'],
                 True
             )
-            db.session.add(new_ulinc_campaign)
+            session.add(new_ulinc_campaign)
         if ulinc_campaign['origin_message']:
-            if existing_origin_message := db.session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
+            if existing_origin_message := session.query(Ulinc_campaign_origin_message).filter(Ulinc_campaign_origin_message.message == ulinc_campaign['origin_message']).first():
                 pass
             else:
                 ulinc_campaign_origin_message = Ulinc_campaign_origin_message(
@@ -183,15 +183,15 @@ def insert_campaigns(ulinc_config_id, ulinc_campaign_dict):
                     ulinc_campaign['origin_message'],
                     True
                 )
-                db.session.add(ulinc_campaign_origin_message)
-        db.session.commit()
-    db.session.commit()
+                session.add(ulinc_campaign_origin_message)
+        session.commit()
+    session.commit()
 
-def refresh_ulinc_campaigns(ulinc_config):
+def refresh_ulinc_campaigns(ulinc_config, session):
     if ulinc_config.cookie_id != Cookie.unassigned_cookie_id:
         if ulinc_campaign_dict := get_ulinc_campaigns(ulinc_config):
             if ulinc_campaign_dict['connector'] or ulinc_campaign_dict['messenger']:
-                insert_campaigns(ulinc_config.ulinc_config_id, ulinc_campaign_dict)
+                insert_campaigns(ulinc_config.ulinc_config_id, ulinc_campaign_dict, session)
                 return 1
             else:
                 print('Campaign dict empty. No campaigns')
@@ -202,7 +202,7 @@ def refresh_ulinc_campaigns(ulinc_config):
         print('Ulinc cookie does not exist for ulinc_config {}'.format(ulinc_config.ulinc_config_id))
         return None
 
-def refresh_ulinc_account_status(ulinc_config):
+def refresh_ulinc_account_status(ulinc_config, session):
     url = "https://ulinc.co/{}/?do=accounts&act=settings".format(ulinc_config.ulinc_client_id)
     if cookie_jar := ulinc_config.create_cookie_jar():
         res = requests.get(url=url, cookies=cookie_jar)
@@ -210,10 +210,10 @@ def refresh_ulinc_account_status(ulinc_config):
             soup = Soup(res.text, 'html.parser')
             if danger_btn := soup.find('a', {"class": "btn-danger"}):
                 ulinc_config.ulinc_is_active = 1
-                db.session.commit()
+                session.commit()
             else:
                 ulinc_config.ulinc_is_active = 0
-                db.session.commit()
+                session.commit()
 
 
 def main(account_id, ulinc_config_id, ulinc_config_cookie_id, cookie_json_value, username, password):

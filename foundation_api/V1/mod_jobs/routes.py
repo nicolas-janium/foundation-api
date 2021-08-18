@@ -39,59 +39,58 @@ def check_cron_header(f):
 @mod_jobs.route('/poll_ulinc_webhooks', methods=['GET'])
 @check_cron_header
 def poll_ulinc_webhooks_job():
-    accounts = db.session.query(Account).filter(
-        and_(
-            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-            Account.is_polling_ulinc == 1,
-            Account.account_id != Account.unassigned_account_id
-        )
-    ).all()
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(
+            and_(
+                and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+                and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+                Account.is_polling_ulinc == 1,
+                Account.account_id != Account.unassigned_account_id
+            )
+        ).all()
 
-    tasks = []
-    for account in accounts:
-        print(account.account_id)
-        for ulinc_config in account.ulinc_configs:
-            print(ulinc_config.ulinc_config_id)
-            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
-                for webhook in ulinc_config.get_webhooks():
-                    payload = {
-                        'ulinc_config_id': ulinc_config.ulinc_config_id,
-                        'webhook_url': webhook['url'],
-                        'webhook_type': webhook['type']
-                    }
-                    if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-webhook')
-                        task = {
-                            'app_engine_http_request': {
-                                'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/api/v1/tasks/poll_ulinc_webhook',
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.ulinc_is_active and ulinc_config.is_working:
+                    for webhook in ulinc_config.get_webhooks():
+                        payload = {
+                            'ulinc_config_id': ulinc_config.ulinc_config_id,
+                            'webhook_url': webhook['url'],
+                            'webhook_type': webhook['type']
+                        }
+                        if os.getenv('FLASK_ENV') == 'production':
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-webhook')
+                            task = {
+                                'app_engine_http_request': {
+                                    'http_method': tasks_v2.HttpMethod.POST,
+                                    'relative_uri': '/api/v1/tasks/poll_ulinc_webhook',
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
                                 }
                             }
-                        }
-                    else:
-                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-webhook')
-                        task = {
-                            "http_request": {  # Specify the type of request.
-                                "http_method": tasks_v2.HttpMethod.POST,
-                                "url": "{}/api/v1/tasks/poll_ulinc_webhook".format(os.getenv("BACKEND_API_URL")),
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
+                        else:
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-webhook')
+                            task = {
+                                "http_request": {  # Specify the type of request.
+                                    "http_method": tasks_v2.HttpMethod.POST,
+                                    "url": "{}/api/v1/tasks/poll_ulinc_webhook".format(os.getenv("BACKEND_API_URL")),
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
                                 }
                             }
-                        }
-                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                    tasks.append({
-                        "account_id": account.account_id,
-                        "ulinc_config_id": ulinc_config.ulinc_config_id,
-                        "task_id": task_response.name,
-                        "webhook_url": webhook['url'],
-                        "webhook_type": webhook['type']
-                    })
+                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                        tasks.append({
+                            "account_id": account.account_id,
+                            "ulinc_config_id": ulinc_config.ulinc_config_id,
+                            "task_id": task_response.name,
+                            "webhook_url": webhook['url'],
+                            "webhook_type": webhook['type']
+                        })
     return jsonify(tasks)
 
 @mod_jobs.route('/poll_ulinc_csv', methods=['GET'])
@@ -209,79 +208,25 @@ def process_contact_sources_job():
 @mod_jobs.route('/refresh_ulinc_data', methods=['GET'])
 @check_cron_header
 def refresh_ulinc_data():
-    # Session = db.create_scoped_session()
-    # session = Session()
-
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.account_id != Account.unassigned_account_id
-    )).all()
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
-                payload = {
-                    'ulinc_config_id': ulinc_config.ulinc_config_id,
-                }
-                if os.getenv('FLASK_ENV') == 'production':
-                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='refresh-ulinc-data')
-                    task = {
-                        'app_engine_http_request': {
-                            'http_method': tasks_v2.HttpMethod.POST,
-                            'relative_uri': '/api/v1/tasks/refresh_ulinc_data',
-                            'body': json.dumps(payload).encode(),
-                            'headers': {
-                                'Content-type': 'application/json'
-                            }
-                        }
-                    }
-                else:
-                    parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='refresh-ulinc-data')
-                    task = {
-                        "http_request": {  # Specify the type of request.
-                            "http_method": tasks_v2.HttpMethod.POST,
-                            "url": "{}/api/v1/tasks/refresh_ulinc_data".format(os.getenv("BACKEND_API_URL")),
-                            'body': json.dumps(payload).encode(),
-                            'headers': {
-                                'Content-type': 'application/json'
-                            }
-                        }
-                    }
-                task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                tasks.append({
-                    "account_id": account.account_id,
-                    "ulinc_config_id": ulinc_config.ulinc_config_id,
-                    "task_id": task_response.name
-                })
-    # session.close()
-    return jsonify(tasks)
-
-@mod_jobs.route('/data_enrichment', methods=['GET'])
-@check_cron_header
-def data_enrichment_job():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
-        Account.account_id != Account.unassigned_account_id
-    )).all()
-
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            for janium_campaign in ulinc_config.janium_campaigns:
-                contacts  = janium_campaign.get_data_enrichment_targets()
-                for contact in contacts:
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.account_id != Account.unassigned_account_id
+        )).all()
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id:
                     payload = {
-                        'contact_id': contact.contact_id,
+                        'ulinc_config_id': ulinc_config.ulinc_config_id,
                     }
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='data-enrichment')
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='refresh-ulinc-data')
                         task = {
                             'app_engine_http_request': {
                                 'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/api/v1/tasks/data_enrichment',
+                                'relative_uri': '/api/v1/tasks/refresh_ulinc_data',
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -289,11 +234,11 @@ def data_enrichment_job():
                             }
                         }
                     else:
-                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='refresh-ulinc-data')
                         task = {
                             "http_request": {  # Specify the type of request.
                                 "http_method": tasks_v2.HttpMethod.POST,
-                                "url": "{}/api/v1/tasks/data_enrichment".format(os.getenv("BACKEND_API_URL")),
+                                "url": "{}/api/v1/tasks/refresh_ulinc_data".format(os.getenv("BACKEND_API_URL")),
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -304,139 +249,189 @@ def data_enrichment_job():
                     tasks.append({
                         "account_id": account.account_id,
                         "ulinc_config_id": ulinc_config.ulinc_config_id,
-                        "janium_campaign_id": janium_campaign.janium_campaign_id,
-                        "contact_id": contact.contact_id,
                         "task_id": task_response.name
                     })
-                    
+    return jsonify(tasks)
+
+@mod_jobs.route('/data_enrichment', methods=['GET'])
+@check_cron_header
+def data_enrichment_job():
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            and_(Account.data_enrichment_start_date < datetime.utcnow(), Account.data_enrichment_end_date > datetime.utcnow()),
+            Account.account_id != Account.unassigned_account_id
+        )).all()
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                for janium_campaign in ulinc_config.janium_campaigns:
+                    contacts  = janium_campaign.get_data_enrichment_targets()
+                    for contact in contacts:
+                        payload = {
+                            'contact_id': contact.contact_id,
+                        }
+                        if os.getenv('FLASK_ENV') == 'production':
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='data-enrichment')
+                            task = {
+                                'app_engine_http_request': {
+                                    'http_method': tasks_v2.HttpMethod.POST,
+                                    'relative_uri': '/api/v1/tasks/data_enrichment',
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
+                                }
+                            }
+                        else:
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
+                            task = {
+                                "http_request": {  # Specify the type of request.
+                                    "http_method": tasks_v2.HttpMethod.POST,
+                                    "url": "{}/api/v1/tasks/data_enrichment".format(os.getenv("BACKEND_API_URL")),
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
+                                }
+                            }
+                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                        tasks.append({
+                            "account_id": account.account_id,
+                            "ulinc_config_id": ulinc_config.ulinc_config_id,
+                            "janium_campaign_id": janium_campaign.janium_campaign_id,
+                            "contact_id": contact.contact_id,
+                            "task_id": task_response.name
+                        })
     return jsonify(tasks)
 
 @mod_jobs.route('/send_email', methods=['GET'])
 @check_cron_header
 def send_email():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.is_sending_emails == 1,
-        Account.account_id != Account.unassigned_account_id
-    )).all()
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_sending_emails == 1,
+            Account.account_id != Account.unassigned_account_id
+        )).all()
 
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            for janium_campaign in ulinc_config.janium_campaigns:
-                # Generate the timestamp to be used in task
-                if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
-                    # Create Timestamp protobuf
-                    timestamp = timestamp_pb2.Timestamp()
-                    timestamp.FromDatetime(scheduled_timestamp)
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                for janium_campaign in ulinc_config.janium_campaigns:
+                    # Generate the timestamp to be used in task
+                    if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
+                        # Create Timestamp protobuf
+                        timestamp = timestamp_pb2.Timestamp()
+                        timestamp.FromDatetime(scheduled_timestamp)
 
-                    for target in janium_campaign.get_email_targets():
-                        payload = {
-                            'email_target_details': target,
-                        }
-                        if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_email')
-                            task = {
-                                'app_engine_http_request': {
-                                    'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/api/v1/tasks/send_email',
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
+                        for target in janium_campaign.get_email_targets():
+                            payload = {
+                                'email_target_details': target,
+                            }
+                            if os.getenv('FLASK_ENV') == 'production':
+                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_email')
+                                task = {
+                                    'app_engine_http_request': {
+                                        'http_method': tasks_v2.HttpMethod.POST,
+                                        'relative_uri': '/api/v1/tasks/send_email',
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
                                     }
                                 }
-                            }
-                        else:
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_email')
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": "{}/api/v1/tasks/send_email".format(os.getenv("BACKEND_API_URL")),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
+                            else:
+                                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_email')
+                                task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": "{}/api/v1/tasks/send_email".format(os.getenv("BACKEND_API_URL")),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
                                     }
                                 }
-                            }
 
-                        # Add the timestamp to the tasks.
-                        task['schedule_time'] = timestamp
+                            # Add the timestamp to the tasks.
+                            task['schedule_time'] = timestamp
 
-                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                        tasks.append({
-                            "account_id": account.account_id,
-                            "ulinc_config_id": ulinc_config.ulinc_config_id,
-                            "janium_campaign_id": janium_campaign.janium_campaign_id,
-                            "email_target_details": target,
-                            "task_id": task_response.name,
-                            "scheduled_time": scheduled_timestamp
-                        })
-                        # break
-
+                            task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                            tasks.append({
+                                "account_id": account.account_id,
+                                "ulinc_config_id": ulinc_config.ulinc_config_id,
+                                "janium_campaign_id": janium_campaign.janium_campaign_id,
+                                "email_target_details": target,
+                                "task_id": task_response.name,
+                                "scheduled_time": scheduled_timestamp
+                            })
+                            # break
     return jsonify(tasks)
 
 @mod_jobs.route('/send_li_message', methods=['GET'])
 @check_cron_header
 def send_li_message_job():
-    accounts = db.session.query(Account).filter(and_(
-        and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
-        and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
-        Account.is_sending_li_messages == 1,
-        Account.account_id != Account.unassigned_account_id
-    )).all()
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_sending_li_messages == 1,
+            Account.account_id != Account.unassigned_account_id
+        )).all()
 
-    tasks = []
-    for account in accounts:
-        for ulinc_config in account.ulinc_configs:
-            for janium_campaign in ulinc_config.janium_campaigns:
-                # Generate the timestamp to be used in task
-                if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval() and ulinc_config.ulinc_is_active and ulinc_config.is_working:
-                    # Create Timestamp protobuf
-                    timestamp = timestamp_pb2.Timestamp()
-                    timestamp.FromDatetime(scheduled_timestamp)
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                for janium_campaign in ulinc_config.janium_campaigns:
+                    # Generate the timestamp to be used in task
+                    if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval() and ulinc_config.ulinc_is_active and ulinc_config.is_working:
+                        # Create Timestamp protobuf
+                        timestamp = timestamp_pb2.Timestamp()
+                        timestamp.FromDatetime(scheduled_timestamp)
 
-                    for target in janium_campaign.get_li_message_targets():
-                        payload = {
-                            'li_message_target_details': target,
-                        }
-                        if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_li_message')
-                            task = {
-                                'app_engine_http_request': {
-                                    'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/api/v1/tasks/send_li_message',
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
+                        for target in janium_campaign.get_li_message_targets():
+                            payload = {
+                                'li_message_target_details': target,
+                            }
+                            if os.getenv('FLASK_ENV') == 'production':
+                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_li_message')
+                                task = {
+                                    'app_engine_http_request': {
+                                        'http_method': tasks_v2.HttpMethod.POST,
+                                        'relative_uri': '/api/v1/tasks/send_li_message',
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
                                     }
                                 }
-                            }
-                        else:
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_li_message')
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": "{}/api/v1/tasks/send_li_message".format(os.getenv("BACKEND_API_URL")),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
+                            else:
+                                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_li_message')
+                                task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": "{}/api/v1/tasks/send_li_message".format(os.getenv("BACKEND_API_URL")),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
                                     }
                                 }
-                            }
 
-                        # Add the timestamp to the tasks.
-                        task['schedule_time'] = timestamp
+                            # Add the timestamp to the tasks.
+                            task['schedule_time'] = timestamp
 
-                        task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                        tasks.append({
-                            "account_id": account.account_id,
-                            "ulinc_config_id": ulinc_config.ulinc_config_id,
-                            "janium_campaign_id": janium_campaign.janium_campaign_id,
-                            "email_target_details": target,
-                            "task_id": task_response.name,
-                            "scheduled_time": scheduled_timestamp
-                        })
-                        # break
-
+                            task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                            tasks.append({
+                                "account_id": account.account_id,
+                                "ulinc_config_id": ulinc_config.ulinc_config_id,
+                                "janium_campaign_id": janium_campaign.janium_campaign_id,
+                                "email_target_details": target,
+                                "task_id": task_response.name,
+                                "scheduled_time": scheduled_timestamp
+                            })
+                            # break
     return jsonify(tasks)
