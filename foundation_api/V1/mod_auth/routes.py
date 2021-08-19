@@ -74,8 +74,7 @@ def create_user():
                 datetime.utcnow(),
                 datetime.utcnow(),
                 datetime.utcnow(),
-                time_zone_id,
-                Dte.unassigned_dte_id
+                time_zone_id
             )
             db.session.add(account)
             db.session.commit()

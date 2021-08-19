@@ -9,8 +9,8 @@ from urllib.parse import parse_qs
 import requests
 from bs4 import BeautifulSoup as Soup
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity
-from foundation_api.V1.sa_db.model import db
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from foundation_api.V1.sa_db.model import db, Dte, Dte_sender
 from foundation_api.V1.sa_db.model import Action, Email_config, User, Contact
 from sqlalchemy import and_, or_
 
@@ -154,3 +154,39 @@ def catch_sns():
             db.session.commit()
 
     return "Message received"
+
+@mod_email.route('/dte', methods=['GET'])
+@jwt_required()
+def get_dtes():
+    """
+    Required Query Params: None
+    """
+    user_id = get_jwt_identity()
+
+    dte_list = []
+    for dte in db.sesison.query(Dte).all():
+        dte_list.append({
+            "dte_id": dte.dte_id,
+            "dte_name": dte.dte_name,
+            "dte_description": dte.dte_description,
+            "dte_subject": dte.dte_subject,
+            "dte_body": dte.dte_body
+        })
+    return jsonify(dte_list)
+
+@mod_email.route('/dte_senders', methods=['GET'])
+@jwt_required()
+def get_dte_senders():
+    """
+    Required Query Params: None
+    """
+    user_id = get_jwt_identity()
+
+    dte_sender_list = []
+    for dte in db.sesison.query(Dte_sender).all():
+        dte_sender_list.append({
+            "dte_sender_id": dte.dte_sender_id,
+            "dte_sender_full_name": dte.dte_sender_full_name,
+            "dte_sender_from_email": dte.dte_sender_from_email
+        })
+    return jsonify(dte_sender_list)

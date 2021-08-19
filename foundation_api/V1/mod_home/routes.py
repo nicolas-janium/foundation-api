@@ -31,7 +31,13 @@ def get_account():
                 "is_polling_ulinc": janium_account.is_polling_ulinc,
                 "time_zone_code": janium_account.time_zone.time_zone_code,
                 "is_active": janium_account.is_active(),
-                "is_payment_active": janium_account.is_payment_active()
+                "is_payment_active": janium_account.is_payment_active(),
+                "dte_id": janium_account.dte.dte_id,
+                "dte_name": janium_account.dte.dte_name,
+                "dte_sender_id": janium_account.dte_sender.dte_sender_id,
+                "dte_sender_full_name": janium_account.dte_sender.dte_sender_full_name,
+                "dte_sender_from_email": janium_account.dte_sender.dte_sender_from_email
+
             }
         )
     return make_response(jsonify({"message": "User not found"}), 401)
@@ -57,6 +63,8 @@ def update_account():
                 janium_account.effective_start_date = datetime.utcnow()
                 janium_account.effective_end_date = datetime.utcnow() + timedelta(days=365000) if json_body['is_active'] else datetime.utcnow()
                 janium_account.time_zone_id = time_zone.time_zone_id
+                janium_account.dte_id = json_body['dte_id']
+                janium_account.dte_sender_id = json_body['dte_sender_id']
                 return jsonify({"message": "success"})
             return make_response(jsonify({"message": "Unknown time_zone_code"}), 400)
         return make_response(jsonify({"message": "JSON body is missing"}), 400)

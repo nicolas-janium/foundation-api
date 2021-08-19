@@ -67,9 +67,6 @@ class User(db.Model):
 
     account = relationship('Account', uselist=False, lazy=True)
     credentials = relationship('Credentials', backref=backref('credentials_user', uselist=False), uselist=False)
-    # permissions = relationship('User_permission_map', back_populates='permission_user')
-    # accounts = relationship('User_account_map')
-    # permissions = relationship('User_permission_map')
 
 class Account(db.Model):
     __tablename__ = 'account'
@@ -77,7 +74,7 @@ class Account(db.Model):
 
     def __init__(self, account_id, user_id, is_sending_emails, is_sending_li_messages,
                        is_receiving_dte, effective_start_date, effective_end_date, data_enrichment_start_date,
-                       data_enrichment_end_date, time_zone_id, dte_id):
+                       data_enrichment_end_date, time_zone_id, dte_id='e18bd1b0-b404-41ac-a5e4-bcb112ced90d', dte_sender_id='70f29ac6-edc0-452b-8d7b-3d3ee87c09f0'):
         self.account_id = account_id
         self.user_id = user_id
         self.is_sending_emails = is_sending_emails
@@ -89,14 +86,14 @@ class Account(db.Model):
         self.data_enrichment_end_date = data_enrichment_end_date
         self.time_zone_id = time_zone_id
         self.dte_id = dte_id
+        self.dte_sender_id = dte_sender_id
 
     account_id = Column(String(36), primary_key=True)
 
-    # account_type_id = Column(Integer, ForeignKey('account_type.account_type_id'), nullable=False)
-    # account_group_id = Column(String(36), ForeignKey('account_group.account_group_id'), nullable=False)
     user_id = Column(String(36), ForeignKey('user.user_id'), nullable=False)
     time_zone_id = Column(String(36), ForeignKey('time_zone.time_zone_id'), nullable=False)
     dte_id = Column(String(36), ForeignKey('dte.dte_id'), nullable=False)
+    dte_sender_id = Column(String(36), ForeignKey('dte_sender.dte_sender_id'), nullable=False)
 
     is_sending_emails = Column(Boolean, server_default=false(), nullable=False)
     is_sending_li_messages = Column(Boolean, server_default=false(), nullable=False)
@@ -111,18 +108,13 @@ class Account(db.Model):
     payment_effective_end_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     data_enrichment_start_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     data_enrichment_end_date = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
-    # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
     # SQLAlchemy Relationships and Backreferences
-    # user = relationship('User_account_map', backref=backref('account', uselist=False), uselist=False)
-    # users = relationship('User_account_map')
-    # janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_account', uselist=False), uselist=True, lazy='dynamic')
-    # ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_campaign_account', uselist=False), uselist=True, lazy='dynamic')
-    # contacts = relationship('Contact', backref=backref('contact_account', uselist=False), uselist=True, lazy='dynamic')
     email_configs = relationship('Email_config', backref=backref('email_config_account', uselist=False), uselist=True, lazy=True)
     ulinc_configs = relationship('Ulinc_config', backref=backref('ulinc_config_account', uselist=False), uselist=True, lazy=True)
     time_zone = relationship('Time_zone', backref=backref('tz_account', uselist=True), uselist=False, lazy=True)
     dte = relationship('Dte', uselist=False, lazy=True)
+    dte_sender = relationship('Dte_sender', uselist=False, lazy=True)
 
     def is_active(self):
         if self.effective_start_date < datetime.utcnow() <= self.effective_end_date:
@@ -1327,6 +1319,25 @@ class Dte(db.Model):
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
     # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
     # SQLAlchemy Relationships and Backreferences
+
+class Dte_sender(db.Model):
+    __tablename__ = 'dte_sender'
+    janium_default_dte_sender_id = 'aecf4b11-7bd4-41e0-9a75-8b457bdbe07a'
+    unassigned_dte_sender_id = '70f29ac6-edc0-452b-8d7b-3d3ee87c09f0'
+
+    def __init__(self, dte_sender_id, dte_sender_full_name, dte_sender_from_email):
+        self.dte_sender_id = dte_sender_id
+        self.dte_sender_full_name = dte_sender_full_name
+        self.dte_sender_from_email = dte_sender_from_email
+    
+    dte_sender_id = Column(String(36), primary_key=True, nullable=False)
+    dte_sender_full_name = Column(String(128), nullable=False)
+    dte_sender_from_email = Column(String(128), nullable=False)
+
+    is_ses_dkim_requested = Column(Boolean, nullable=False, server_default=false())
+    is_ses_dkim_verified = Column(Boolean, nullable=False, server_default=false())
+    is_ses_domain_verified = Column(Boolean, nullable=False, server_default=false())
+
 
 class Email_server(db.Model):
     __tablename__ = 'email_server'
