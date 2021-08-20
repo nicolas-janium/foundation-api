@@ -155,7 +155,7 @@ def catch_sns():
 
     return "Message received"
 
-@mod_email.route('/dte', methods=['GET'])
+@mod_email.route('/dtes', methods=['GET'])
 @jwt_required()
 def get_dtes():
     """
@@ -164,7 +164,7 @@ def get_dtes():
     user_id = get_jwt_identity()
 
     dte_list = []
-    for dte in db.sesison.query(Dte).all():
+    for dte in db.session.query(Dte).all():
         dte_list.append({
             "dte_id": dte.dte_id,
             "dte_name": dte.dte_name,
@@ -183,7 +183,7 @@ def get_dte_senders():
     user_id = get_jwt_identity()
 
     dte_sender_list = []
-    for dte in db.sesison.query(Dte_sender).all():
+    for dte in db.session.query(Dte_sender).all():
         dte_sender_list.append({
             "dte_sender_id": dte.dte_sender_id,
             "dte_sender_full_name": dte.dte_sender_full_name,
