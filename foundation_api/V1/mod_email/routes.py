@@ -12,11 +12,12 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from foundation_api.V1.sa_db.model import db, Dte, Dte_sender
 from foundation_api.V1.sa_db.model import Action, Email_config, User, Contact
+from foundation_api.V1.utils.ses import is_single_sender_verified
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
 
-def verify_single_sender(email_message):
+def verify_sendgrid_single_sender(email_message):
     body = None
     html_body = None
     for part in email_message.walk():
@@ -75,6 +76,19 @@ def update_email_config():
         return jsonify({"message": "Email config updated successfully"})
 
     return jsonify({"message": "Invalid email_config_id"})
+
+@mod_email.route('/is_single_sender_verified', methods=['GET'])
+@jwt_required()
+def is_single_sender_verified_route():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        if is_single_sender_verified(email_config.from_address):
+            return jsonify({"message": True})
+        return jsonify({"message": False})
+    return jsonify({"message": "Email config not found"})
 
 @mod_email.route('/parse_email', methods=['POST'])
 def parse_email():

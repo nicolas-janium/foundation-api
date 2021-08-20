@@ -34,9 +34,9 @@ def send_simple_email(recipient, body, subject):
 
 def create_custom_verification_email_template():
     response = client.create_custom_verification_email_template(
-        TemplateName='janium-sender-verification',
-        FromEmailAddress='nic@janium.io',
-        TemplateSubject='Janium Sender Verification',
+        TemplateName='janium-single-sender-email-verification-template',
+        FromEmailAddress='support@janium.io',
+        TemplateSubject='Janium Single Sender Email Verification',
         TemplateContent="""
             <html>
             <head></head>
@@ -48,19 +48,19 @@ def create_custom_verification_email_template():
                 you can start sending email. Just click the following
                 link to verify your email address. Once we confirm that 
                 you're really you, we'll give you some additional 
-                information to help you get started with ProductName.</p>
+                information to help you get started.</p>
             </body>
             </html>
         """,
-        SuccessRedirectionURL='https://janium.io/',
+        SuccessRedirectionURL='https://app.janium.io',
         FailureRedirectionURL='https://janium.io/failed_verification'
     )
     print(response)
 
-def send_verification_email(recipient):
+def send_single_sender_verification_email(recipient):
     response = client.send_custom_verification_email(
         EmailAddress=recipient,
-        TemplateName='janium-sender-verification'
+        TemplateName='janium-single-sender-email-verification-template'
     )
     print(response)
 
@@ -124,13 +124,21 @@ def verify_ses_dkim(from_address):
             "dkim_tokens": dkim_status_response['DkimAttributes'][from_address]['DkimTokens']
         }
 
+def is_single_sender_verified(email_address):
+    identities = client.list_identities()['Identities']
+    if email_address in identities:
+        return True
+    return False
+
 def main():
     # create_custom_verification_email_template()
     # send_verification_email('narnold113@gmail.com')
     # send_forwarding_verification_email('nic@janium.io')
     # from_address = 'nic@janium.io'
-    verify_dkim_response = verify_ses_dkim('nic@janium.io')
+    # verify_dkim_response = verify_ses_dkim('nic@janium.io')
     # verify_dkim('narnold113@gmail.com')
+
+    print(is_single_sender_verified('support@janium.io'))
 
     # pprint({
     #     'message': 'Dkim verification pending',

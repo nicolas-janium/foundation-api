@@ -7,7 +7,7 @@ from foundation_api import check_json_header
 from foundation_api.V1.sa_db.model import db
 from foundation_api.V1.sa_db.model import User, Ulinc_config, Credentials, Cookie, Email_config
 from foundation_api.V1.utils.ulinc import get_ulinc_client_info
-from foundation_api.V1.utils.ses import send_forwarding_verification_email, verify_ses_dkim
+from foundation_api.V1.utils.ses import send_single_sender_verification_email, verify_ses_dkim, is_single_sender_verified
 
 mod_onboard = Blueprint('onboard', __name__, url_prefix='/api/v1')
 
@@ -99,6 +99,10 @@ def create_email_config():
                     json_body['from_address']
                 )
                 db.session.add(new_email_config)
+
+                send_single_sender_verification_email(new_email_config.from_address)
+                new_email_config.is_ses_single_sender_requested = True
+
                 db.session.commit()
                 return jsonify({"message": "Email config created successfully"})
             return jsonify({"message": "Janium account not found"})
