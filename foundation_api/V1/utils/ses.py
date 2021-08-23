@@ -34,7 +34,7 @@ def send_simple_email(recipient, body, subject):
 
 def create_custom_verification_email_template():
     response = client.create_custom_verification_email_template(
-        TemplateName='janium-single-sender-email-verification-template',
+        TemplateName='janium-ses-identity-verification-template',
         FromEmailAddress='support@janium.io',
         TemplateSubject='Janium Single Sender Email Verification',
         TemplateContent="""
@@ -57,19 +57,12 @@ def create_custom_verification_email_template():
     )
     print(response)
 
-def send_single_sender_verification_email(recipient):
-    response = client.send_custom_verification_email(
-        EmailAddress=recipient,
-        TemplateName='janium-single-sender-email-verification-template'
-    )
-    print(response)
-
-def send_forwarding_verification_email(recipient):
+def send_forwarding_rule_test_email(recipient):
     main_email = EmailMessage()
     main_email.make_alternative()
 
-    main_email['Subject'] = "Janium Forwarding Verification"
-    main_email['From'] = str(Header('{} <{}>')).format('Janium', 'noreply@janium.io')
+    main_email['Subject'] = "Janium Forwarding Rule Test Email"
+    main_email['From'] = str(Header('{} <{}>')).format('Janium', 'support@janium.io')
     main_email['To'] = recipient
     main_email.add_header('jid', os.getenv('JANIUM_EMAIL_ID'))
     main_email['MIME-Version'] = '1.0'
@@ -88,7 +81,7 @@ def send_forwarding_verification_email(recipient):
 
     main_email.add_alternative(email_html, 'html')
 
-    response = client.send_raw_email(
+    return client.send_raw_email(
         Source=main_email['From'],
         Destinations=[main_email['To']],
         RawMessage={
@@ -96,41 +89,74 @@ def send_forwarding_verification_email(recipient):
         }
     )
 
-def verify_ses_dkim(from_address):
-    dkim_status_response = client.get_identity_dkim_attributes(
-        Identities=[from_address]
+
+
+
+
+### Onboarding steps ###
+
+def send_ses_identity_verification_email(recipient):
+    response = client.send_custom_verification_email(
+        EmailAddress=recipient,
+        TemplateName='janium-single-sender-email-verification-template'
     )
-    if dkim_status_response['DkimAttributes'][from_address]['DkimVerificationStatus'] == 'NotStarted':
-        enable_dkim_response = client.set_identity_dkim_enabled(
-            Identity=from_address,
-            DkimEnabled=True
-        )
-        get_dkim_response = client.verify_domain_dkim(
-            Domain=from_address[from_address.index('@') + 1 : ]
-        )
 
-        return {
-            "status": "started",
-            "dkim_tokens": get_dkim_response['DkimTokens']
-        }
-    elif dkim_status_response['DkimAttributes'][from_address]['DkimVerificationStatus'] == 'Pending':
-        return {
-            "status": "pending",
-            "dkim_tokens": dkim_status_response['DkimAttributes'][from_address]['DkimTokens']
-        }
-    elif dkim_status_response['DkimAttributes'][from_address]['DkimVerificationStatus'] == 'Success':
-        return {
-            "status": "success",
-            "dkim_tokens": dkim_status_response['DkimAttributes'][from_address]['DkimTokens']
-        }
-
-def is_single_sender_verified(email_address):
-    identities = client.list_identities()['Identities']
-    if email_address in identities:
+def is_ses_identity_verified(email_address):
+    response = client.get_identity_verification_attributes(
+        Identities=[
+            email_address,
+        ]
+    )
+    if response['VerificationAttributes'][email_address]['VerificationStatus'] == 'Success':
         return True
     return False
 
+def create_ses_identiy_dkim_tokens(email_address):
+    get_dkim_response = client.verify_domain_dkim(
+        Domain=email_address[email_address.index('@') + 1 : ]
+    )
+    enable_dkim_signing_response = client.set_identity_dkim_enabled(
+        Identity=email_address,
+        DkimEnabled=True
+    )
+    return {
+        "dkim_tokens": get_dkim_response['DkimTokens']
+    }
+
+# def enable_ses_identity_dkim_signing(email_address):
+#     return client.set_identity_dkim_enabled(
+#         Identity=email_address,
+#         DkimEnabled=True
+#     )
+
+def is_ses_identity_dkim_verified(email_address):
+    dkim_status_response = client.get_identity_dkim_attributes(
+        Identities=[email_address]
+    )
+    if dkim_status_response['DkimAttributes'][email_address]['DkimVerificationStatus'] == 'Success':
+        return True
+    return False
+
+def list_identity_policies(identity):
+    response = client.list_identity_policies(
+        Identity=identity,
+    )
+
+    print(response)
+
+def get_ses_identity_verification_status(identity):
+    response = client.get_identity_verification_attributes(
+        Identities=[
+            identity,
+        ]
+    )
+    print(response)
+
 def main():
+    # get_ses_identity_verification_status('jason@cxo.org')
+    create_ses_identiy_dkim_tokens('jason@cxo.org')
+    # enable_ses_identity_dkim_signing('jason@cxo.org')
+    # pass
     # create_custom_verification_email_template()
     # send_verification_email('narnold113@gmail.com')
     # send_forwarding_verification_email('nic@janium.io')
@@ -138,7 +164,7 @@ def main():
     # verify_dkim_response = verify_ses_dkim('nic@janium.io')
     # verify_dkim('narnold113@gmail.com')
 
-    print(is_single_sender_verified('support@janium.io'))
+    # print(is_ses_identity_verified('support@janium.io'))
 
     # pprint({
     #     'message': 'Dkim verification pending',

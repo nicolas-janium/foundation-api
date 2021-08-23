@@ -285,7 +285,7 @@ class Email_config(db.Model):
         credentials_id='264f534f-d36e-4c3c-9614-9760f47ee0e3',
         email_server_id='936dce84-b50f-4b72-824f-b01989b20500',
         is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False,
-        is_ses_single_sender_requested=False, is_ses_single_sender_verified=False, is_ses_dkim_requested=False, is_ses_dkim_verified=False,
+        is_ses_identity_requested=False, is_ses_identity_verified=False, is_ses_dkim_requested=False, is_ses_dkim_verified=False,
         is_ses_domain_requested=False, is_ses_domain_verified=False,
         is_email_forward=False, is_email_forward_verified=False, is_reply_proxy=False):
         self.email_config_id = email_config_id
@@ -300,8 +300,8 @@ class Email_config(db.Model):
         self.is_sendgrid_domain_verified = is_sendgrid_domain_verified 
         self.is_smtp = is_smtp
         self.is_ses = is_ses
-        self.is_ses_single_sender_requested = is_ses_single_sender_requested
-        self.is_ses_single_sender_verified = is_ses_single_sender_verified
+        self.is_ses_identity_requested = is_ses_identity_requested
+        self.is_ses_identity_verified = is_ses_identity_verified
         self.is_ses_dkim_requested = is_ses_dkim_requested
         self.is_ses_dkim_verified = is_ses_dkim_verified
         self.is_ses_domain_requested = is_ses_domain_requested
@@ -325,13 +325,13 @@ class Email_config(db.Model):
     is_sendgrid_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_smtp = Column(Boolean, nullable=False, server_default=false())
     is_ses = Column(Boolean, nullable=False, server_default=false())
-    is_ses_singler_sender_requested = Column(Boolean, nullable=False, server_default=false())
-    is_ses_singler_sender_verified = Column(Boolean, nullable=False, server_default=false())
+    is_ses_identity_requested = Column(Boolean, nullable=False, server_default=false())
+    is_ses_identity_verified = Column(Boolean, nullable=False, server_default=false())
     is_ses_dkim_requested = Column(Boolean, nullable=False, server_default=false())
     is_ses_dkim_verified = Column(Boolean, nullable=False, server_default=false())
     is_ses_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_email_forward = Column(Boolean, nullable=False, server_default=false())
-    is_email_forward_verified = Column(Boolean, nullable=False, server_default=false())
+    is_email_forwarding_rule_verified = Column(Boolean, nullable=False, server_default=false())
     is_reply_proxy = Column(Boolean, nullable=False, server_default=false())
 
     # Table Metadata

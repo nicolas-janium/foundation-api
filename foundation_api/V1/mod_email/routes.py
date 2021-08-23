@@ -1,66 +1,60 @@
 import email
 import json
 import os
-from datetime import datetime
-from uuid import uuid4
 import urllib.parse as urlparse
+from datetime import datetime
 from urllib.parse import parse_qs
+from uuid import uuid4
 
 import requests
 from bs4 import BeautifulSoup as Soup
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from foundation_api.V1.sa_db.model import db, Dte, Dte_sender
-from foundation_api.V1.sa_db.model import Action, Email_config, User, Contact
-from foundation_api.V1.utils.ses import is_single_sender_verified
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from foundation_api import check_json_header
+from foundation_api.V1.sa_db.model import (Action, Contact, Dte, Dte_sender,
+                                           Email_config, User, db)
+from foundation_api.V1.utils.ses import (create_ses_identiy_dkim_tokens,
+                                         is_ses_identity_dkim_verified,
+                                         is_ses_identity_verified,
+                                         send_forwarding_rule_test_email,
+                                         send_ses_identity_verification_email)
 from sqlalchemy import and_, or_
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
 
-def verify_sendgrid_single_sender(email_message):
-    body = None
-    html_body = None
-    for part in email_message.walk():
-        ctype = part.get_content_type()
-        cdispo = str(part.get('Content-Disposition'))
 
-        if ctype == 'text/plain' and 'attachment' not in cdispo:
-            body = part.get_payload(decode=True)  # decode
-        elif ctype == 'text/html' and 'attachment' not in cdispo:
-            html_body = part.get_payload(decode=True)  # decode
-    if html_body:
-        soup = Soup(html_body, 'html.parser')
-        links = soup.find_all('a')
-        for link in links:
-            # print(link)
-            # print('\n')
-            if link.text == 'Verify Single Sender':
-                verify_link = link['href']
+@mod_email.route('/email_config', methods=['POST'])
+@jwt_required()
+@check_json_header
+def create_email_config():
+    """
+    Required JSON keys: from_address, from_full_name
+    """
+    user_id = get_jwt_identity()
+    if json_body := request.get_json():
+        if user := db.session.query(User).filter(User.user_id == user_id).first():
+            if janium_account := user.account:
+                if existing_email_config := db.session.query(Email_config).filter(Email_config.from_address == json_body['from_address']).first():
+                    return jsonify({"message": "Email config already exists"})
+                new_email_config = Email_config(
+                    str(uuid4()),
+                    janium_account.account_id,
+                    json_body['from_full_name'],
+                    json_body['from_address']
+                )
+                db.session.add(new_email_config)
+                db.session.commit()
 
-        # verify_link = links[4]['href']
-        # print(verify_link)
-
-        req_session = requests.Session()
-        response = req_session.get(verify_link)
-        for item in response.history:
-            if 'token' in item.headers.get('Location'):
-                location = item.headers.get('Location')
-                parsed = urlparse.urlparse(location)
-                token = parse_qs(parsed.query)['token'][0]
-                print(token)
-
-                sendgrid_headers = {
-                    'authorization': "Bearer {}".format(os.getenv('SENDGRID_API_KEY'))
-                }
-                url = "https://api.sendgrid.com/v3/verified_senders/verify/{}".format(token)
-                response = requests.get(url=url, headers=sendgrid_headers)
-                if response.ok:
-                    return 1
-                else:
-                    return None
-    return None
+                send_ses_identity_verification_email(new_email_config.from_address)
+                new_email_config.is_ses_identity_requested = True
+                db.session.commit()
+                return jsonify({"message": "Email config created successfully"})
+            return jsonify({"message": "Janium account not found"})
+        return jsonify({"message": "User not found"})
+    return jsonify({"message": "JSON body is missing"})
 
 @mod_email.route('/email_config', methods=['PUT'])
+@jwt_required()
 def update_email_config():
     """
     Required JSON keys: email_config_id, from_full_name
@@ -75,20 +69,121 @@ def update_email_config():
         db.session.commit()
         return jsonify({"message": "Email config updated successfully"})
 
-    return jsonify({"message": "Invalid email_config_id"})
+    return jsonify({"message": "Unknown email_config_id"})
 
-@mod_email.route('/is_single_sender_verified', methods=['GET'])
+@mod_email.route('/email_config', methods=['GET'])
 @jwt_required()
-def is_single_sender_verified_route():
+def get_email_config():
+    """
+    Required query params: email_config_id
+    """
+    if email_config_id := request.args.get('email_config_id'):
+        if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+            return jsonify(
+                {
+                    "email_config_id": email_config.email_config_id,
+                    "from_address": email_config.from_address,
+                    "from_full_name": email_config.from_full_name,
+                    "is_ses_identity_requested": email_config.is_ses_identity_requested,
+                    "is_ses_identity_verified": email_config.is_ses_identity_verified,
+                    "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
+                    "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
+                    "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified
+                }
+            )
+        return jsonify({"message": "Unknown email_config_id"})
+    return jsonify({"message": "Missing email_config_id parameter"})
+
+@mod_email.route('/email_configs', methods=['GET'])
+@jwt_required()
+def get_email_configs():
+    """
+    Required query params: None
+    """
+    user_id = get_jwt_identity()
+    if user := db.session.query(User).filter(User.user_id == user_id).first():
+        if janium_account := user.account:
+            email_configs = []
+            for email_config in janium_account.email_configs:
+                email_configs.append(
+                    {
+                        "email_config_id": email_config.email_config_id,
+                        "from_address": email_config.from_address,
+                        "from_full_name": email_config.from_full_name,
+                        "is_ses_identity_requested": email_config.is_ses_identity_requested,
+                        "is_ses_identity_verified": email_config.is_ses_identity_verified,
+                        "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
+                        "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
+                        "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified
+                    }
+                )
+            return jsonify(email_configs)
+        return jsonify({"message": "Janium account not found"})
+    return jsonify({"message": "User not found"})
+
+@mod_email.route('/is_ses_identity_verified', methods=['GET'])
+@jwt_required()
+def is_ses_identity_verified_route():
     """
     Required query params: email_config_id
     """
     email_config_id = request.args.get('email_config_id')
     if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
-        if is_single_sender_verified(email_config.from_address):
+        if is_ses_identity_verified(email_config.from_address):
+            email_config.is_ses_identity_verified = True
+            db.session.commit()
             return jsonify({"message": True})
         return jsonify({"message": False})
-    return jsonify({"message": "Email config not found"})
+    return jsonify({"message": "Unknown email_config_id"})
+
+@mod_email.route('/send_forwarding_rule_test_email', methods=['GET'])
+@jwt_required()
+def send_forwarding_rule_test_email_route():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        send_forwarding_rule_test_email(email_config.from_address)
+        return jsonify({"message": "Forwarding test email sent"})
+    return jsonify({"message": "Unknown email_config_id"})
+
+@mod_email.route('/create_ses_identity_dkim_tokens', methods=['GET'])
+@jwt_required()
+def create_ses_identity_dkim_tokens_route():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        tokens = create_ses_identiy_dkim_tokens(email_config.from_address)
+        return jsonify(tokens)
+    return jsonify({"message": "Unknown email_config_id"})
+
+# @mod_email.route('/enable_ses_identity_dkim_signing', methods=['GET'])
+# @jwt_required()
+# def enable_ses_identity_dkim_signing_route():
+#     """
+#     Required query params: email_config_id
+#     """
+#     email_config_id = request.args.get('email_config_id')
+#     if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+#         enable_ses_identity_dkim_signing(email_config.from_address)
+#         return jsonify({"message": "DKIM signing enabled"})
+#     return jsonify({"message": "Unknown email_config_id"})
+
+@mod_email.route('/is_ses_identity_dkim_verified', methods=['GET'])
+@jwt_required()
+def is_ses_identity_dkim_verified_route():
+    """
+    Required query params: email_config_id
+    """
+    email_config_id = request.args.get('email_config_id')
+    if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
+        if is_ses_identity_dkim_verified(email_config.from_address):
+            return jsonify({"message": True})
+        return jsonify({"message": False})
+    return jsonify({"message": "Unknown email_config_id"})
 
 @mod_email.route('/parse_email', methods=['POST'])
 def parse_email():
@@ -114,11 +209,11 @@ def parse_email():
         body = email_message.get_payload(decode=True)
 
     if os.getenv('JANIUM_EMAIL_ID') in json.dumps(req_dict):
-        if 'Janium Forwarding Verification' in json.dumps(req_dict):
+        if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
             recipient_address = str(email_message.get('To'))
             recipient_address = recipient_address[recipient_address.index('<') + 1: recipient_address.index('>')] if '<' in recipient_address else recipient_address
             if email_config := db.session.query(Email_config).filter(Email_config.from_address == recipient_address).first():
-                email_config.is_email_forward_verified = 1
+                email_config.is_email_forwarding_rule_verified = True
                 db.session.commit()
         else:
             references = str(email_message.get('References')).split(',')
@@ -204,3 +299,49 @@ def get_dte_senders():
             "dte_sender_from_email": dte.dte_sender_from_email
         })
     return jsonify(dte_sender_list)
+
+
+
+
+# def verify_sendgrid_single_sender(email_message):
+#     body = None
+#     html_body = None
+#     for part in email_message.walk():
+#         ctype = part.get_content_type()
+#         cdispo = str(part.get('Content-Disposition'))
+
+#         if ctype == 'text/plain' and 'attachment' not in cdispo:
+#             body = part.get_payload(decode=True)  # decode
+#         elif ctype == 'text/html' and 'attachment' not in cdispo:
+#             html_body = part.get_payload(decode=True)  # decode
+#     if html_body:
+#         soup = Soup(html_body, 'html.parser')
+#         links = soup.find_all('a')
+#         for link in links:
+#             # print(link)
+#             # print('\n')
+#             if link.text == 'Verify Single Sender':
+#                 verify_link = link['href']
+
+#         # verify_link = links[4]['href']
+#         # print(verify_link)
+
+#         req_session = requests.Session()
+#         response = req_session.get(verify_link)
+#         for item in response.history:
+#             if 'token' in item.headers.get('Location'):
+#                 location = item.headers.get('Location')
+#                 parsed = urlparse.urlparse(location)
+#                 token = parse_qs(parsed.query)['token'][0]
+#                 print(token)
+
+#                 sendgrid_headers = {
+#                     'authorization': "Bearer {}".format(os.getenv('SENDGRID_API_KEY'))
+#                 }
+#                 url = "https://api.sendgrid.com/v3/verified_senders/verify/{}".format(token)
+#                 response = requests.get(url=url, headers=sendgrid_headers)
+#                 if response.ok:
+#                     return 1
+#                 else:
+#                     return None
+#     return None
