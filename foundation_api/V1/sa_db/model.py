@@ -22,6 +22,10 @@ from sqlalchemy.pool import NullPool, StaticPool
 
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={'pool_size': 10, 'max_overflow': 2})
 
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
 @contextmanager
 def get_db_session():
     try:
