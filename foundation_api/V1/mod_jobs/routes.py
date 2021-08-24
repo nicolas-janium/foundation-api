@@ -435,3 +435,20 @@ def send_li_message_job():
                             })
                             # break
     return jsonify(tasks)
+
+@mod_jobs.route('/send_dte', methods=['GET'])
+@check_cron_header
+def send_dte():
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.is_receiving_dte == 1,
+            Account.account_id != Account.unassigned_account_id
+        )).all()
+
+        tasks = []
+        for account in accounts:
+            pass
+        
+    return jsonify(tasks)
