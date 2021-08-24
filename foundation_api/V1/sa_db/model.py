@@ -1,27 +1,20 @@
 import random
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from operator import not_
+import os
 
-import foundation_api
 import pytz
 import requests
-from flask import config, current_app
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
-                        Integer, String, Text, and_, create_engine, exists)
-from sqlalchemy.dialects import mysql
-from sqlalchemy.dialects.mysql import JSON as MYSQL_JSON
+                        Integer, String, Text, and_, create_engine, engine)
 from sqlalchemy.orm import backref, relationship, sessionmaker
-from sqlalchemy.pool import NullPool, StaticPool
-from sqlalchemy.sql import false, func, text, true
-from sqlalchemy.sql.expression import cast, null
-from sqlalchemy.sql.functions import localtime
+from sqlalchemy.sql import false, text, true
+from sqlalchemy.sql.expression import cast
 from sqlalchemy.ext.declarative import declarative_base
 from workdays import networkdays
 
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False}, engine_options={'pool_size': 10, 'max_overflow': 2})
-
 Base = declarative_base()
 
 @contextmanager
@@ -30,6 +23,25 @@ def get_db_session():
         yield db.session
     finally:
         db.session.remove()
+
+@contextmanager
+def get_gcf_db_session():
+    db_url = engine.url.URL(
+        drivername='mysql+pymysql',
+        username= os.getenv('DB_USER'),
+        password= os.getenv('DB_PASSWORD'),
+        database= os.getenv('DB_NAME'),
+        host= os.getenv('DB_HOST'),
+        port= os.getenv('DB_PORT', 3306)
+    )
+    db_engine = create_engine(db_url)
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.remove()
+
 
 class User(db.Model):
     __tablename__ = 'user'

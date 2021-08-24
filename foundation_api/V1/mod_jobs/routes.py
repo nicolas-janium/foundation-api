@@ -11,7 +11,7 @@ from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
 from foundation_api.V1.sa_db.model import Contact_source, get_db_session
-from foundation_api.V1.sa_db.model import Account, Ulinc_config
+from foundation_api.V1.sa_db.model import Account, Ulinc_config, Cookie
 
 
 logger = logging.getLogger('api_jobs')
@@ -205,9 +205,9 @@ def process_contact_sources_job():
                     })
     return jsonify(tasks)
 
-@mod_jobs.route('/refresh_ulinc_data', methods=['GET'])
+@mod_jobs.route('/refresh_ulinc_cookie', methods=['GET'])
 @check_cron_header
-def refresh_ulinc_data():
+def refresh_ulinc_cookie_route():
     with get_db_session() as session:
         accounts = session.query(Account).filter(and_(
             and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
@@ -221,30 +221,60 @@ def refresh_ulinc_data():
                     payload = {
                         'ulinc_config_id': ulinc_config.ulinc_config_id,
                     }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": os.getenv('REFRESH_ULINC_COOKIE_TRIGGER_URL'),
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
+                            }
+                        }
+                    }
+                    queue = 'refresh-ulinc-cookie'
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='refresh-ulinc-data')
-                        task = {
-                            'app_engine_http_request': {
-                                'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/api/v1/tasks/refresh_ulinc_data',
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
-                                }
-                            }
-                        }
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
                     else:
-                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='refresh-ulinc-data')
-                        task = {
-                            "http_request": {  # Specify the type of request.
-                                "http_method": tasks_v2.HttpMethod.POST,
-                                "url": "{}/api/v1/tasks/refresh_ulinc_data".format(os.getenv("BACKEND_API_URL")),
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
-                                }
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
+                    task_response = gc_tasks_client.create_task(parent=parent, task=task)
+                    tasks.append({
+                        "account_id": account.account_id,
+                        "ulinc_config_id": ulinc_config.ulinc_config_id,
+                        "task_id": task_response.name
+                    })
+    return jsonify(tasks)
+
+@mod_jobs.route('/refresh_ulinc_campaigns', methods=['GET'])
+@check_cron_header
+def refresh_ulinc_campaigns_route():
+    with get_db_session() as session:
+        accounts = session.query(Account).filter(and_(
+            and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
+            and_(Account.payment_effective_start_date < datetime.utcnow(), Account.payment_effective_end_date > datetime.utcnow()),
+            Account.account_id != Account.unassigned_account_id
+        )).all()
+        tasks = []
+        for account in accounts:
+            for ulinc_config in account.ulinc_configs:
+                if ulinc_config.ulinc_config_id != Ulinc_config.unassigned_ulinc_config_id and ulinc_config.cookie_id != Cookie.unassigned_cookie_id:
+                    payload = {
+                        'ulinc_config_id': ulinc_config.ulinc_config_id,
+                    }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": os.getenv('REFRESH_ULINC_CAMPAIGNS_TRIGGER_URL'),
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
                             }
                         }
+                    }
+                    queue = 'refresh-ulinc-campaigns'
+                    if os.getenv('FLASK_ENV') == 'production':
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+                    else:
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
                     task_response = gc_tasks_client.create_task(parent=parent, task=task)
                     tasks.append({
                         "account_id": account.account_id,
