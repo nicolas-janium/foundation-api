@@ -152,11 +152,11 @@ def refresh_ulinc_campaigns(ulinc_config, session):
 
 def main(request):
     json_body = request.get_json(force=True)
-    session = get_gcf_db_session()
-    if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first():
-        if ulinc_config.is_working:
-            if refresh_ulinc_campaigns(ulinc_config, session):
-                return jsonify({"message": "success"}) # Task should not repeat
-            return make_response(jsonify({"message": "try again"}), 300) # Task should repeat
-        return make_response(jsonify({"message": "Ulinc not working"}), 200) # Task should not repeat
-    return make_response(jsonify({"message": "Unknown ulinc_config_id"}), 200) # Task should not repeat
+    with get_gcf_db_session() as session:
+        if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first():
+            if ulinc_config.is_working:
+                if refresh_ulinc_campaigns(ulinc_config, session):
+                    return jsonify({"message": "success"}) # Task should not repeat
+                return make_response(jsonify({"message": "try again"}), 300) # Task should repeat
+            return make_response(jsonify({"message": "Ulinc not working"}), 200) # Task should not repeat
+        return make_response(jsonify({"message": "Unknown ulinc_config_id"}), 200) # Task should not repeat
