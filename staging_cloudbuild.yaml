@@ -30,7 +30,7 @@ steps:
 # 9
 # Update and copy to function requirements and model files
 - name: bash
-  args: ['-c', './bash_scripts/update_function_models.bash && ./bash_scripts/update_function_models.bash']
+  args: ['-c', './bash_scripts/update_function_models.bash && ./bash_scripts/update_function_reqs.bash']
 
 # 10
 # Set environment variables and write to .env
