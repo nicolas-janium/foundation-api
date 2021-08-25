@@ -24,9 +24,8 @@ def get_db_session():
     finally:
         db.session.remove()
 
-@contextmanager
-def get_gcf_db_session():
-    db_url = engine.url.URL(
+def create_gcf_db_engine():
+    db_url = engine.url.URL.create(
         drivername='mysql+pymysql',
         username= os.getenv('DB_USER'),
         password= os.getenv('DB_PASSWORD'),
@@ -34,13 +33,11 @@ def get_gcf_db_session():
         host= os.getenv('DB_HOST'),
         port= os.getenv('DB_PORT', 3306)
     )
-    db_engine = create_engine(db_url)
+    return create_engine(db_url)
+
+def create_gcf_db_session(db_engine):
     Session = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
-    session = Session()
-    try:
-        yield session
-    finally:
-        session.remove()
+    return Session
 
 
 class User(db.Model):
@@ -198,7 +195,6 @@ class Ulinc_config(db.Model):
     # SQLAlchemy Relationships and Backreferences
     credentials = relationship('Credentials', uselist=False)
     cookie = relationship('Cookie', uselist=False)
-    account = relationship('Account', uselist=False)
     janium_campaigns = relationship('Janium_campaign', backref=backref('janium_campaign_ulinc_config', uselist=False), uselist=True)
     ulinc_campaigns = relationship('Ulinc_campaign', backref=backref('ulinc_config', uselist=False), uselist=True)
     contact_sources = relationship('Contact_source', uselist=True, lazy='dynamic')
