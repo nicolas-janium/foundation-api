@@ -9,7 +9,7 @@ load_dotenv()
 FLASK_HOST = os.getenv('FLASK_HOST')
 TESTING = True
 
-SQLALCHEMY_DATABASE_URI = engine.url.URL(
+SQLALCHEMY_DATABASE_URI = engine.url.URL.create(
     drivername='mysql+pymysql',
     username= os.getenv('TESTING_DB_USER'),
     password= os.getenv('TESTING_DB_PASSWORD'),
