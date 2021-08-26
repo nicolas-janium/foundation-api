@@ -7,6 +7,7 @@ from pprint import pprint
 
 from flask import Blueprint, jsonify, request, make_response, current_app
 from sqlalchemy import and_
+from sqlalchemy.orm import defer, undefer
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
@@ -59,30 +60,23 @@ def poll_ulinc_webhooks_job():
                             'webhook_url': webhook['url'],
                             'webhook_type': webhook['type']
                         }
+                        task = {
+                            "http_request": {  # Specify the type of request.
+                                "http_method": tasks_v2.HttpMethod.POST,
+                                "url": os.getenv('POLL_ULINC_WEBHOOK_TRIGGER_URL'),
+                                'body': json.dumps(payload).encode(),
+                                'headers': {
+                                    'Content-type': 'application/json'
+                                }
+                            }
+                        }
+                        queue = 'poll-ulinc-webhook'
                         if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-webhook')
-                            task = {
-                                'app_engine_http_request': {
-                                    'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/api/v1/tasks/poll_ulinc_webhook',
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+                            
                         else:
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-webhook')
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": "{}/api/v1/tasks/poll_ulinc_webhook".format(os.getenv("BACKEND_API_URL")),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
+
                         task_response = gc_tasks_client.create_task(parent=parent, task=task)
                         tasks.append({
                             "account_id": account.account_id,
@@ -114,30 +108,23 @@ def poll_ulinc_csv_job():
                             'ulinc_config_id': ulinc_config.ulinc_config_id,
                             'ulinc_campaign_id': ulinc_campaign.ulinc_campaign_id
                         }
+                        task = {
+                            "http_request": {  # Specify the type of request.
+                                "http_method": tasks_v2.HttpMethod.POST,
+                                "url": os.getenv('POLL_ULINC_CSV_TRIGGER_URL'),
+                                'body': json.dumps(payload).encode(),
+                                'headers': {
+                                    'Content-type': 'application/json'
+                                }
+                            }
+                        }
+                        queue = 'poll-ulinc-csv'
                         if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='poll-ulinc-csv')
-                            task = {
-                                'app_engine_http_request': {
-                                    'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/api/v1/tasks/poll_ulinc_csv',
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+                            
                         else:
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='poll-ulinc-csv')
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": "{}/api/v1/tasks/poll_ulinc_csv".format(os.getenv("BACKEND_API_URL")),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
+
                         task_response = gc_tasks_client.create_task(parent=parent, task=task)
                         tasks.append({
                             "account_id": account.account_id,
@@ -160,36 +147,28 @@ def process_contact_sources_job():
         tasks = []
         for account in accounts:
             for ulinc_config in account.ulinc_configs:
-                for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).order_by(Contact_source.contact_source_type_id.asc()).all()):    
+                for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).options(defer('contact_source_json')).order_by(Contact_source.contact_source_type_id.asc()).all()):    
                     payload = {
                         'account_id': account.account_id,
                         'ulinc_config_id': ulinc_config.ulinc_config_id,
                         'contact_source_id': contact_source.contact_source_id
                     }
+                    task = {
+                        "http_request": {  # Specify the type of request.
+                            "http_method": tasks_v2.HttpMethod.POST,
+                            "url": os.getenv('PROCESS_CONTACT_SOURCE_TRIGGER_URL'),
+                            'body': json.dumps(payload).encode(),
+                            'headers': {
+                                'Content-type': 'application/json'
+                            }
+                        }
+                    }
+                    queue = 'process-cs-queue'
                     if os.getenv('FLASK_ENV') == 'production':
-                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='process-cs-queue')
-                        task = {
-                            'app_engine_http_request': {
-                                'http_method': tasks_v2.HttpMethod.POST,
-                                'relative_uri': '/api/v1/tasks/process_contact_source',
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
-                                }
-                            }
-                        }
+                        parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+                        
                     else:
-                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='process-cs-queue')
-                        task = {
-                            "http_request": {  # Specify the type of request.
-                                "http_method": tasks_v2.HttpMethod.POST,
-                                "url": "{}/api/v1/tasks/process_contact_source".format(os.getenv("BACKEND_API_URL")),
-                                'body': json.dumps(payload).encode(),
-                                'headers': {
-                                    'Content-type': 'application/json'
-                                }
-                            }
-                        }
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
 
                     # Create Timestamp protobuf.
                     timestamp = timestamp_pb2.Timestamp()

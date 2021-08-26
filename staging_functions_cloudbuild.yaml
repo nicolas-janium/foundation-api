@@ -1,0 +1,78 @@
+steps:
+# 0
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/set_env_vars.bash']
+# 1
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/allow_build_ip.bash']
+# 2
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/db_migration.bash']
+# 3
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/clean_app_versions.bash']
+# 4
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/make_sql.bash']
+# 5
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/update_function_models.bash']
+# 6
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/update_function_reqs.bash']
+# 7
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/deploy_functions.bash']
+# 8
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/set_trigger_url_env_vars.bash']
+
+# 9
+# Update and copy to function requirements and model files
+- name: bash
+  args: ['-c', './bash_scripts/update_function_models.bash && ./bash_scripts/update_function_reqs.bash']
+
+# 10
+# Set environment variables and write to .env
+- name: bash
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-staging-305217 $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY us-central1 $$APP_SECRET_KEY $$JANIUM_EMAIL_IDENTIFIER_KEY']
+  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET', 'APP_SECRET_KEY', 'JANIUM_EMAIL_IDENTIFIER_KEY']
+
+# 11
+# Deploy functions
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args: ['-c', './bash_scripts/deploy_functions.bash us-central1 staging-vpc-connector']
+
+timeout: '1600s'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/foundation-staging-305217/secrets/db_password/versions/latest
+    env: 'DB_PASSWORD_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/db_host/versions/latest
+    env: 'DB_HOST_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/db_public_host/versions/latest
+    env: 'DB_PUBLIC_HOST_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/db_user/versions/latest
+    env: 'DB_USER_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/db_name/versions/latest
+    env: 'DB_NAME_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/sendgrid-api-key/versions/latest
+    env: 'SENDGRID_API_KEY_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/ses-access-key-id/versions/latest
+    env: 'SES_ACCESS_KEY_ID'
+  - versionName: projects/foundation-staging-305217/secrets/ses-secret-access-key/versions/latest
+    env: 'SES_SECRET_ACCESS_KEY'
+  - versionName: projects/foundation-staging-305217/secrets/testing_db_password/versions/latest
+    env: 'TESTING_DB_PASSWORD_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/testing_db_public_host/versions/latest
+    env: 'TESTING_DB_PUBLIC_HOST_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/testing_db_user/versions/latest
+    env: 'TESTING_DB_USER_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/testing_db_database/versions/latest
+    env: 'TESTING_DB_DATABASE_SECRET'
+  - versionName: projects/foundation-staging-305217/secrets/app_secret_key/versions/latest
+    env: 'APP_SECRET_KEY'
+  - versionName: projects/foundation-staging-305217/secrets/janium-email-identifier-key/versions/latest
+    env: 'JANIUM_EMAIL_IDENTIFIER_KEY'
