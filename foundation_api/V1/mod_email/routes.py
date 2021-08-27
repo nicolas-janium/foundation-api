@@ -1,4 +1,5 @@
 import email
+from email.message import EmailMessage
 import json
 import os
 import urllib.parse as urlparse
@@ -19,7 +20,7 @@ from foundation_api.V1.utils.ses import (create_ses_identiy_dkim_tokens,
                                          send_forwarding_rule_test_email,
                                          send_ses_identity_verification_email)
 from nameparser import HumanName
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, text
 from sqlalchemy.orm.attributes import flag_modified
 
 
@@ -224,30 +225,38 @@ def parse_email():
     else:
         body = email_message.get_payload(decode=True)
 
-
+    is_from_outlook = True if 'outlook' in email_message.get('Message-ID') else False
     to_address = str(email_message.get('To'))
-    if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email == to_address).first():
-        if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
+    index = to_address.index('<')
+    to_address = to_address[index + 1: len(to_address) - 1]
+
+    forwarded_to_address = str(email_message.get('X-Forwarded-To'))
+
+    ### For gmail, inbound_parse_email is in X-Forwarded-To field. For O365, it's in the To field ###
+    if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
+        if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
             email_config.is_email_forwarding_rule_verified = True
             flag_modified(email_config, 'is_email_forwarding_rule_verified')
             db.session.commit()
-        elif 'forwarding-noreply@google.com' in json.dumps(req_dict) or 'Gmail Forwarding Confirmation' in json.dumps(req_dict):
+    elif 'forwarding-noreply@google.com' in json.dumps(req_dict) or 'Gmail Forwarding Confirmation' in json.dumps(req_dict):
+        if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
             body = str(body)
             confirmation_code_index = body.index('Confirmation code')
             confirmation_code = body[confirmation_code_index + 19: confirmation_code_index + 28]
             email_config.gmail_forwarding_confirmation_code = confirmation_code
             flag_modified(email_config, 'gmail_forwarding_confirmation_code')
             db.session.commit()
-        else:
-            references = str(email_message.get('References')).split(',')
-            for reference in references:
-                if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
-                    if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
-                        pass
-                    else:
-                        new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
-                        db.session.add(new_action)
-                        db.session.commit()
+    else:
+        references = str(email_message.get('References')).split(',')
+        for reference in references:
+            reference = str(reference).replace('<', '').replace('>', '').split('@')[0]
+            if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
+                if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
+                    pass
+                else:
+                    new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
+                    db.session.add(new_action)
+                    db.session.commit()
 
     return jsonify({"message": "text"})
 

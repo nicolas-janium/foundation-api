@@ -6,6 +6,7 @@ import os
 import pytz
 import requests
 from flask_sqlalchemy import SQLAlchemy
+from nameparser import HumanName
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_, create_engine, engine)
 from sqlalchemy.orm import backref, relationship, sessionmaker
@@ -69,7 +70,6 @@ class User(Base):
     company = Column(String(256), nullable=True)
     location = Column(String(256), nullable=True)
     primary_email = Column(String(256), nullable=False)
-    parse_email = Column(String(256), nullable=False)
     phone = Column(String(256), nullable=True)
     additional_contact_info = Column(JSON, nullable=True)
 
@@ -291,7 +291,7 @@ class Email_config(Base):
 
     def __init__(
         self,
-        email_config_id, account_id, from_full_name, from_address,
+        email_config_id, account_id, from_full_name, from_address, inbound_parse_email,
         credentials_id='264f534f-d36e-4c3c-9614-9760f47ee0e3',
         email_server_id='936dce84-b50f-4b72-824f-b01989b20500',
         is_sendgrid=False, is_sendgrid_domain_verified=False, is_smtp=False, is_ses=False,
@@ -317,6 +317,7 @@ class Email_config(Base):
         self.is_ses_domain_requested = is_ses_domain_requested
         self.is_ses_domain_verified = is_ses_domain_verified
         self.is_reply_proxy = is_reply_proxy
+        self.inbound_parse_email = inbound_parse_email
         
 
     # Primary Keys
@@ -330,7 +331,6 @@ class Email_config(Base):
     # Common Columns
     from_full_name = Column(String(64), nullable=False)
     from_address = Column(String(64), nullable=False)
-    # reply_to_address = Column(String(64), nullable=False)
     is_sendgrid = Column(Boolean, nullable=False, server_default=false())
     is_sendgrid_domain_verified = Column(Boolean, nullable=False, server_default=false())
     is_smtp = Column(Boolean, nullable=False, server_default=false())
@@ -343,11 +343,12 @@ class Email_config(Base):
     is_email_forward = Column(Boolean, nullable=False, server_default=false())
     is_email_forwarding_rule_verified = Column(Boolean, nullable=False, server_default=false())
     is_reply_proxy = Column(Boolean, nullable=False, server_default=false())
+    gmail_forwarding_confirmation_code = Column(String(64), nullable=True)
+    inbound_parse_email = Column(String(64), nullable=True)
 
     # Table Metadata
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
-    # updated_by = Column(String(36), ForeignKey('user.user_id'), nullable=False)
 
     # SQLAlchemy Relationships and Backreferences
     credentials = relationship('Credentials', backref=backref('email_config', uselist=False), uselist=False, lazy=True)
