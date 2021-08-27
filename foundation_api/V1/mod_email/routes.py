@@ -18,7 +18,10 @@ from foundation_api.V1.utils.ses import (create_ses_identiy_dkim_tokens,
                                          is_ses_identity_verified,
                                          send_forwarding_rule_test_email,
                                          send_ses_identity_verification_email)
+from nameparser import HumanName
 from sqlalchemy import and_, or_
+from sqlalchemy.orm.attributes import flag_modified
+
 
 mod_email = Blueprint('email', __name__, url_prefix='/api/v1')
 
@@ -36,11 +39,19 @@ def create_email_config():
             if janium_account := user.account:
                 if existing_email_config := db.session.query(Email_config).filter(Email_config.from_address == json_body['from_address']).first():
                     return jsonify({"message": "Email config already exists"})
+                from_full_name = json_body['from_full_name']
+                from_address = json_body['from_address']
+                name = HumanName(full_name=from_full_name)
+                email_server = "8ce10791-240e-4cdc-a95c-c7e0876dc19a"
+                if json_body['is_gmail']:
+                    email_server = "936dce84-b50f-4b72-824f-b01989b20500"
                 new_email_config = Email_config(
                     str(uuid4()),
                     janium_account.account_id,
                     json_body['from_full_name'],
-                    json_body['from_address']
+                    json_body['from_address'],
+                    "{}.{}.{}@inbound.janium.io".format(str(name.first).lower(), str(name.last).lower(), str(str(from_address).split('@')[1]).split('.')[0]),
+                    email_server_id=email_server
                 )
                 db.session.add(new_email_config)
                 db.session.commit()
@@ -88,7 +99,10 @@ def get_email_config():
                     "is_ses_identity_verified": email_config.is_ses_identity_verified,
                     "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
                     "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
-                    "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified
+                    "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified,
+                    "inbound_parse_email": email_config.inbound_parse_email,
+                    "is_gmail": True if email_config.email_server_id == '936dce84-b50f-4b72-824f-b01989b20500' else False,
+                    "gmail_forwarding_confirmation_code": email_config.gmail_forwarding_confirmation_code
                 }
             )
         return jsonify({"message": "Unknown email_config_id"})
@@ -114,7 +128,9 @@ def get_email_configs():
                         "is_ses_identity_verified": email_config.is_ses_identity_verified,
                         "is_ses_dkim_requested": email_config.is_ses_dkim_requested,
                         "is_ses_dkim_verified": email_config.is_ses_dkim_verified,
-                        "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified
+                        "is_email_forwarding_rule_verified": email_config.is_email_forwarding_rule_verified,
+                        "inbound_parse_email": email_config.inbound_parse_email,
+                        "is_gmail": True if email_config.email_server_id == '936dce84-b50f-4b72-824f-b01989b20500' else False
                     }
                 )
             return jsonify(email_configs)
@@ -208,13 +224,20 @@ def parse_email():
     else:
         body = email_message.get_payload(decode=True)
 
-    if os.getenv('JANIUM_EMAIL_ID') in json.dumps(req_dict):
+
+    to_address = str(email_message.get('To'))
+    if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email == to_address).first():
         if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
-            recipient_address = str(email_message.get('To'))
-            recipient_address = recipient_address[recipient_address.index('<') + 1: recipient_address.index('>')] if '<' in recipient_address else recipient_address
-            if email_config := db.session.query(Email_config).filter(Email_config.from_address == recipient_address).first():
-                email_config.is_email_forwarding_rule_verified = True
-                db.session.commit()
+            email_config.is_email_forwarding_rule_verified = True
+            flag_modified(email_config, 'is_email_forwarding_rule_verified')
+            db.session.commit()
+        elif 'forwarding-noreply@google.com' in json.dumps(req_dict) or 'Gmail Forwarding Confirmation' in json.dumps(req_dict):
+            body = str(body)
+            confirmation_code_index = body.index('Confirmation code')
+            confirmation_code = body[confirmation_code_index + 19: confirmation_code_index + 28]
+            email_config.gmail_forwarding_confirmation_code = confirmation_code
+            flag_modified(email_config, 'gmail_forwarding_confirmation_code')
+            db.session.commit()
         else:
             references = str(email_message.get('References')).split(',')
             for reference in references:
