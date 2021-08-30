@@ -438,7 +438,7 @@ def send_li_message_job():
                                 "account_id": account.account_id,
                                 "ulinc_config_id": ulinc_config.ulinc_config_id,
                                 "janium_campaign_id": janium_campaign.janium_campaign_id,
-                                "email_target_details": target,
+                                "li_message_target_details": target,
                                 "task_id": task_response.name,
                                 "scheduled_time": scheduled_timestamp
                             })
