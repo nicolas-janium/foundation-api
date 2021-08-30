@@ -177,18 +177,6 @@ def create_ses_identity_dkim_tokens_route():
         return jsonify(tokens)
     return jsonify({"message": "Unknown email_config_id"})
 
-# @mod_email.route('/enable_ses_identity_dkim_signing', methods=['GET'])
-# @jwt_required()
-# def enable_ses_identity_dkim_signing_route():
-#     """
-#     Required query params: email_config_id
-#     """
-#     email_config_id = request.args.get('email_config_id')
-#     if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
-#         enable_ses_identity_dkim_signing(email_config.from_address)
-#         return jsonify({"message": "DKIM signing enabled"})
-#     return jsonify({"message": "Unknown email_config_id"})
-
 @mod_email.route('/is_ses_identity_dkim_verified', methods=['GET'])
 @jwt_required()
 def is_ses_identity_dkim_verified_route():
@@ -201,64 +189,6 @@ def is_ses_identity_dkim_verified_route():
             return jsonify({"message": True})
         return jsonify({"message": False})
     return jsonify({"message": "Unknown email_config_id"})
-
-# @mod_email.route('/parse_email', methods=['POST'])
-# def parse_email():
-#     """
-#     Required JSON keys: None
-#     """
-#     req_dict = request.form.to_dict()
-#     # pprint(req_dict)
-#     email_message = email.message_from_string(req_dict['email'])
-
-#     body = ''
-#     if email_message.is_multipart():
-#         for part in email_message.walk():
-#             ctype = part.get_content_type()
-#             cdispo = str(part.get('Content-Disposition'))
-
-#             if ctype == 'text/plain' and 'attachment' not in cdispo:
-#                 body = part.get_payload(decode=True)  # decode
-#             elif ctype == 'text/html' and 'attachment' not in cdispo:
-#                 body = part.get_payload(decode=True)  # decode
-#                 break # Default to html body
-#     else:
-#         body = email_message.get_payload(decode=True)
-
-#     is_from_outlook = True if 'outlook' in email_message.get('Message-ID') else False
-#     to_address = str(email_message.get('To'))
-#     index = to_address.index('<')
-#     to_address = to_address[index + 1: len(to_address) - 1]
-
-#     forwarded_to_address = str(email_message.get('X-Forwarded-To'))
-
-#     ### For gmail, inbound_parse_email is in X-Forwarded-To field. For O365, it's in the To field ###
-#     if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
-#         if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
-#             email_config.is_email_forwarding_rule_verified = True
-#             flag_modified(email_config, 'is_email_forwarding_rule_verified')
-#             db.session.commit()
-#     elif 'forwarding-noreply@google.com' in json.dumps(req_dict) or 'Gmail Forwarding Confirmation' in json.dumps(req_dict):
-#         if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
-#             body = str(body)
-#             confirmation_code_index = body.index('Confirmation code')
-#             confirmation_code = body[confirmation_code_index + 19: confirmation_code_index + 28]
-#             email_config.gmail_forwarding_confirmation_code = confirmation_code
-#             flag_modified(email_config, 'gmail_forwarding_confirmation_code')
-#             db.session.commit()
-#     else:
-#         references = str(email_message.get('References')).split(',')
-#         for reference in references:
-#             reference = str(reference).replace('<', '').replace('>', '').split('@')[0]
-#             if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
-#                 if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
-#                     pass
-#                 else:
-#                     new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
-#                     db.session.add(new_action)
-#                     db.session.commit()
-
-#     return jsonify({"message": "text"})
 
 @mod_email.route('/sns', methods=['POST'])
 def catch_sns():
@@ -332,8 +262,63 @@ def get_dte_senders():
         })
     return jsonify(dte_sender_list)
 
+# @mod_email.route('/parse_email', methods=['POST'])
+# def parse_email():
+#     """
+#     Required JSON keys: None
+#     """
+#     req_dict = request.form.to_dict()
+#     # pprint(req_dict)
+#     email_message = email.message_from_string(req_dict['email'])
 
+#     body = ''
+#     if email_message.is_multipart():
+#         for part in email_message.walk():
+#             ctype = part.get_content_type()
+#             cdispo = str(part.get('Content-Disposition'))
 
+#             if ctype == 'text/plain' and 'attachment' not in cdispo:
+#                 body = part.get_payload(decode=True)  # decode
+#             elif ctype == 'text/html' and 'attachment' not in cdispo:
+#                 body = part.get_payload(decode=True)  # decode
+#                 break # Default to html body
+#     else:
+#         body = email_message.get_payload(decode=True)
+
+#     is_from_outlook = True if 'outlook' in email_message.get('Message-ID') else False
+#     to_address = str(email_message.get('To'))
+#     index = to_address.index('<')
+#     to_address = to_address[index + 1: len(to_address) - 1]
+
+#     forwarded_to_address = str(email_message.get('X-Forwarded-To'))
+
+#     ### For gmail, inbound_parse_email is in X-Forwarded-To field. For O365, it's in the To field ###
+#     if 'Janium Forwarding Rule Test Email' in json.dumps(req_dict):
+#         if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
+#             email_config.is_email_forwarding_rule_verified = True
+#             flag_modified(email_config, 'is_email_forwarding_rule_verified')
+#             db.session.commit()
+#     elif 'forwarding-noreply@google.com' in json.dumps(req_dict) or 'Gmail Forwarding Confirmation' in json.dumps(req_dict):
+#         if email_config := db.session.query(Email_config).filter(Email_config.inbound_parse_email.in_([to_address, forwarded_to_address])).first():
+#             body = str(body)
+#             confirmation_code_index = body.index('Confirmation code')
+#             confirmation_code = body[confirmation_code_index + 19: confirmation_code_index + 28]
+#             email_config.gmail_forwarding_confirmation_code = confirmation_code
+#             flag_modified(email_config, 'gmail_forwarding_confirmation_code')
+#             db.session.commit()
+#     else:
+#         references = str(email_message.get('References')).split(',')
+#         for reference in references:
+#             reference = str(reference).replace('<', '').replace('>', '').split('@')[0]
+#             if original_send_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 4)).first():
+#                 if original_receive_action := db.session.query(Action).filter(and_(Action.email_message_id == reference, Action.action_type_id == 6)).first():
+#                     pass
+#                 else:
+#                     new_action = Action(str(uuid4()), original_send_action.contact_id, 6, datetime.utcnow(), None, None, reference)
+#                     db.session.add(new_action)
+#                     db.session.commit()
+
+#     return jsonify({"message": "text"})
 
 # def verify_sendgrid_single_sender(email_message):
 #     body = None
