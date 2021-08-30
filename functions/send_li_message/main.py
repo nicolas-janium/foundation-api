@@ -1,11 +1,4 @@
-from sqlalchemy.sql.expression import insert
-from foundation_api.V1.sa_db.model import Janium_campaign_step_type
-import os
-from datetime import datetime
-from email.header import Header
-from email.message import EmailMessage
 from unittest.mock import Mock
-from uuid import uuid4
 
 import requests
 import urllib3
