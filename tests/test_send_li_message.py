@@ -54,8 +54,11 @@ def test_get_li_message_targets(test_app, auth, campaign, session):
     cnxn_action = Action(str(uuid4()), contact.contact_id, 1, datetime.utcnow() - timedelta(days=50), None)
     session.add(cnxn_action)
 
+    targets = janium_campaign.get_li_message_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign.get_li_message_targets()[0]['message_body'] == 'Test LI Body 1'
+    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test LI Body 1'
 
     session.delete(cnxn_action)
     session.commit()
@@ -69,8 +72,11 @@ def test_get_li_message_targets(test_app, auth, campaign, session):
     msg_action = Action(str(uuid4()), contact.contact_id, 3, datetime.utcnow() - timedelta(days=40), None)
     session.add(msg_action)
 
+    targets = janium_campaign.get_li_message_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign.get_li_message_targets()[0]['message_body'] == 'Test LI Body 2'
+    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test LI Body 2'
 
     session.delete(cnxn_action)
     session.delete(msg_action)
@@ -88,8 +94,11 @@ def test_get_li_message_targets(test_app, auth, campaign, session):
     msg_action2 = Action(str(uuid4()), contact.contact_id, 3, datetime.utcnow() - timedelta(days=30), None)
     session.add(msg_action2)
 
+    targets = janium_campaign.get_li_message_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign.get_li_message_targets()[0]['message_body'] == 'Test LI Body 3'
+    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test LI Body 3'
 
     session.delete(cnxn_action)
     session.delete(msg_action1)
@@ -183,8 +192,11 @@ def test_get_li_message_targets(test_app, auth, campaign, session):
     continue_action = Action(str(uuid4()), contact.contact_id, 14, datetime.utcnow() - timedelta(days=36), None)
     session.add(continue_action)
 
+    targets = janium_campaign.get_li_message_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign.get_li_message_targets()[0]['message_body'] == 'Test LI Body 2'
+    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test LI Body 2'
 
     session.delete(cnxn_action)
     session.delete(msg_action)
@@ -210,8 +222,11 @@ def test_get_li_message_targets(test_app, auth, campaign, session):
     continue_action = Action(str(uuid4()), contact.contact_id, 14, datetime.utcnow() - timedelta(days=26), None)
     session.add(continue_action)
 
+    targets = janium_campaign.get_li_message_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign.get_li_message_targets()[0]['message_body'] == 'Test LI Body 3'
+    assert len(janium_campaign.get_li_message_targets()) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test LI Body 3'
 
     session.delete(cnxn_action)
     session.delete(msg_action1)
