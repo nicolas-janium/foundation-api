@@ -1,9 +1,12 @@
 from unittest.mock import Mock
+import os
+import json
 
 import requests
 import urllib3
 from bs4 import BeautifulSoup as Soup
 from flask import Response
+from google.cloud import tasks_v2
 
 from model import (Contact, Ulinc_config, Ulinc_campaign, Janium_campaign_step, create_gcf_db_engine,
                    create_gcf_db_session)
@@ -64,6 +67,8 @@ def send_li_message(ulinc_config, janium_campaign_step, ulinc_campaign, contact)
 def main(request):
     json_body = request.get_json(force=True)
     with create_gcf_db_session(create_gcf_db_engine())() as session:
+        gct_client = tasks_v2.CloudTasksClient()
+        gct_parent = gct_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='update-ulinc-contact-status')
         if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['li_message_target_details']['ulinc_config_id']).first():
             if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['li_message_target_details']['janium_campaign_step_id']).first():
                 if ulinc_campaign := session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['li_message_target_details']['ulinc_campaign_id']).first():
@@ -71,6 +76,22 @@ def main(request):
                         if contact.is_messaging_task_valid():
                             send_li_message_res = send_li_message(ulinc_config, janium_campaign_step, ulinc_campaign, contact)
                             if send_li_message_res == 'Success':
+                                payload = {
+                                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                                    "ulinc_campaign_id": ulinc_campaign.ulinc_campaign_id,
+                                    "contact_id": contact.contact_id
+                                }
+                                task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": os.getenv('UPDATE_ULINC_CONTACT_STATUS_TRIGGER_URL'),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
+                                    }
+                                }
+                                task_response = gct_client.create_task(parent=gct_parent, task=task)
                                 return Response('Success', 200)
                             else:
                                 return Response(send_li_message_res['error_message'], 200) # Should not retry

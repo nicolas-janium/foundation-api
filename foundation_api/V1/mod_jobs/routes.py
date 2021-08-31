@@ -401,10 +401,8 @@ def send_li_message_job():
                         timestamp = timestamp_pb2.Timestamp()
                         timestamp.FromDatetime(scheduled_timestamp)
 
-                        for target in janium_campaign.get_li_message_targets():
-                            payload = {
-                                'li_message_target_details': target,
-                            }
+                        for target_dict in janium_campaign.get_li_message_targets():
+                            payload = target_dict
                             if os.getenv('FLASK_ENV') == 'production':
                                 parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_li_message')
                                 task = {
