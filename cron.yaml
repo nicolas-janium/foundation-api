@@ -11,7 +11,7 @@ cron:
 
 - description: "Poll Ulinc CSV"
   url: /api/v1/jobs/poll_ulinc_csv
-  schedule: every 240 mins from 03:00 to 19:00
+  schedule: every 60 mins from 03:00 to 19:00
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
