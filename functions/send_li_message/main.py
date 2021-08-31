@@ -14,15 +14,6 @@ from model import (Contact, Ulinc_config, Ulinc_campaign, Janium_campaign_step, 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def update_ulinc_contact_status(ulinc_config, contact, details):
-    jar = requests.cookies.RequestsCookieJar()
-    jar.set('usr', ulinc_config.cookie.cookie_json_value['usr'])
-    jar.set('pwd', ulinc_config.cookie.cookie_json_value['pwd'])
-    status_url = "https://ulinc.co/{}/campaigns/{}/?do=campaigns&act=continue_sending&id={}".format(ulinc_config.ulinc_client_id, int(details['ulinc_ulinc_campaign_id']), contact.get_short_ulinc_id(ulinc_config.ulinc_client_id))
-    status_res = requests.get(url=status_url, cookies=jar, verify=False)
-    if status_res.ok:
-        return "Ulinc contact updated"
-
 def insert_key_words(body, contact_first_name):
     if str(body).__contains__(r"{FirstName}"):
         body = str(body).replace(r"{FirstName}", contact_first_name)
