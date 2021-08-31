@@ -125,7 +125,7 @@ steps:
   entrypoint: bash
   args: ['-c', './bash_scripts/clean_app_versions.bash backend 3']
 
-timeout: '1600s'
+timeout: '2000s'
 
 availableSecrets:
   secretManager:
