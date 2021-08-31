@@ -1,4 +1,4 @@
-steps:
+steps: 
 # 0
 - name: codeimpossible/dos2unix
   args: ['dos2unix', './bash_scripts/set_env_vars.bash']
@@ -14,41 +14,69 @@ steps:
 # 4
 - name: codeimpossible/dos2unix
   args: ['dos2unix', './bash_scripts/make_sql.bash']
-
 # 5
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/update_function_models.bash']
+# 6
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/update_function_reqs.bash']
+# 7
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/deploy_functions.bash']
+# 8
+- name: codeimpossible/dos2unix
+  args: ['dos2unix', './bash_scripts/set_trigger_url_env_vars.bash']
+
+# 9
+# Update and copy to function requirements and model files
+- name: bash
+  args: ['-c', './bash_scripts/update_function_models.bash && ./bash_scripts/update_function_reqs.bash']
+
+# 10
 # Set environment variables and write to .env
 - name: bash
   args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-production $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY us-west3 $$APP_SECRET_KEY $$JANIUM_EMAIL_IDENTIFIER_KEY']
   secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET', 'APP_SECRET_KEY', 'JANIUM_EMAIL_IDENTIFIER_KEY']
 
-# 6
+# 11
+# Deploy functions
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args: ['-c', './bash_scripts/deploy_functions.bash us-central1 prod-vpc-connector']
+
+# 12
+- name: 'stedolan/jq'
+  entrypoint: bash
+  args: ['-c', './bash_scripts/set_trigger_url_env_vars.bash']
+
+# 13
 # Whitelist the build container's ip in the SQL configuration
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET set']
   secretEnv: ['DB_INSTANCE_ID_SECRET']
 
-# 7
+# 14
 # Create the sql file for the testing_db setup and teardown
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/make_sql.bash $$TESTING_DB_USER_SECRET $$TESTING_DB_PUBLIC_HOST_SECRET $$TESTING_DB_PASSWORD_SECRET setup']
   secretEnv: [TESTING_DB_USER_SECRET, TESTING_DB_PUBLIC_HOST_SECRET, TESTING_DB_PASSWORD_SECRET]
 
-# 8
+# 15
 # Run the testing_setup sql file
 - name: mysql:8
   entrypoint: bash
   args: ['-c', 'mysql -h $$TESTING_DB_PUBLIC_HOST_SECRET -uroot -p$$DB_ROOT_PASSWORD < ./testing_setup.sql']
   secretEnv: [TESTING_DB_PUBLIC_HOST_SECRET, DB_ROOT_PASSWORD]
 
-# 9
+# 16
 # Install python dependencies
 - name: python
   entrypoint: pip
   args: ['install', '-r', 'requirements.txt', '--user']
 
-# 10
+# 17
 # Run tests. Build fails if any test fails
 - name: python
   entrypoint: python
@@ -56,21 +84,21 @@ steps:
   env:
   - 'FLASK_TESTING=1'
 
-# 11
+# 18
 # Create the sql file that tears down the testing db
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/make_sql.bash $$TESTING_DB_USER_SECRET $$TESTING_DB_PUBLIC_HOST_SECRET $$TESTING_DB_PASSWORD_SECRET teardown']
   secretEnv: [TESTING_DB_USER_SECRET, TESTING_DB_PUBLIC_HOST_SECRET, TESTING_DB_PASSWORD_SECRET]
 
-# 12
+# 19
 # Tear down the testing db
 - name: mysql:8
   entrypoint: bash
   args: ['-c', 'mysql -h $$TESTING_DB_PUBLIC_HOST_SECRET -uroot -p$$DB_ROOT_PASSWORD < ./testing_teardown.sql']
   secretEnv: [TESTING_DB_PUBLIC_HOST_SECRET, DB_ROOT_PASSWORD]
 
-# 13
+# 20
 # Run db migration on the staging db
 - name: python
   entrypoint: python
@@ -78,20 +106,20 @@ steps:
   env:
   - 'IS_BUILD=1'
 
-# 14
+# 21
 # Deploy the app to GAE
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
   args: ['-c', 'gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy ./production_app.yaml ./cron.yaml ./dispatch.yaml']
 
-# 15
+# 22
 # Reset the allowed networks in the cloud sql configuration
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args: ['-c', './bash_scripts/allow_build_ip.bash $$DB_INSTANCE_ID_SECRET reset']
   secretEnv: ['DB_INSTANCE_ID_SECRET']
 
-# 16
+# 23
 # Keep only the previous 3 version of the app
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
