@@ -153,7 +153,7 @@ def process_webhook(ulinc_config, contact_source, session):
                 contact_id,
                 2,
                 datetime.utcnow(),
-                item['message'],
+                str(item['message']),
                 None
             )
             session.add(new_message_action)
@@ -200,7 +200,7 @@ def process_webhook(ulinc_config, contact_source, session):
                 contact_id,
                 13 if is_m_origin else 23 if is_c_origin else 3,
                 datetime.utcnow(),
-                item['message'],
+                str(item['message']),
                 None
             )
             session.add(new_action)

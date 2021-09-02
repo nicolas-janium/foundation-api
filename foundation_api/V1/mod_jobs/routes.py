@@ -281,30 +281,21 @@ def data_enrichment_job():
                         payload = {
                             'contact_id': contact.contact_id,
                         }
+                        task = {
+                            "http_request": {  # Specify the type of request.
+                                "http_method": tasks_v2.HttpMethod.POST,
+                                "url": os.getenv('DATA_ENRICHMENT_TRIGGER_URL'),
+                                'body': json.dumps(payload).encode(),
+                                'headers': {
+                                    'Content-type': 'application/json'
+                                }
+                            }
+                        }
+                        queue = 'data-enrichment'
+                        parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
                         if os.getenv('FLASK_ENV') == 'production':
-                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='data-enrichment')
-                            task = {
-                                'app_engine_http_request': {
-                                    'http_method': tasks_v2.HttpMethod.POST,
-                                    'relative_uri': '/api/v1/tasks/data_enrichment',
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
-                        else:
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='data-enrichment')
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": "{}/api/v1/tasks/data_enrichment".format(os.getenv("BACKEND_API_URL")),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
-                                    }
-                                }
-                            }
+                            parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+
                         task_response = gc_tasks_client.create_task(parent=parent, task=task)
                         tasks.append({
                             "account_id": account.account_id,

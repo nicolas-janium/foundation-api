@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from nameparser import HumanName
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_, create_engine, engine)
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import backref, query, relationship, sessionmaker
 from sqlalchemy.sql import false, text, true
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.ext.declarative import declarative_base
@@ -32,7 +32,8 @@ def create_gcf_db_engine():
         password= os.getenv('DB_PASSWORD'),
         database= os.getenv('DB_NAME'),
         host= os.getenv('DB_HOST'),
-        port= os.getenv('DB_PORT', 3306)
+        port= os.getenv('DB_PORT', 3306),
+        query={'charset': 'utf8mb4'}
     )
     return create_engine(db_url)
 
@@ -761,29 +762,25 @@ class Janium_campaign(Base):
                             if step.janium_campaign_step_delay <= day_diff:
                                 if num_sent_li_messages < i + 1:
                                     if i == 0:
-                                        body = step.janium_campaign_step_body
+                                        janium_campaign_step_id = step.janium_campaign_step_id
                                         add_contact = True
                                         break
                                     else:
                                         if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
                                             if (networkdays(prev_li_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_li_steps[i-1].janium_campaign_step_delay):
-                                                body = step.janium_campaign_step_body
+                                                janium_campaign_step_id = step.janium_campaign_step_id
                                                 add_contact = True
                                                 break
 
                     if add_contact:
                         li_message_targets_list.append(
                             {
+                                "ulinc_config_id": self.janium_campaign_ulinc_config.ulinc_config_id,
                                 "janium_campaign_id": self.janium_campaign_id,
+                                "janium_campaign_step_id": janium_campaign_step_id,
+                                "ulinc_campaign_id": contact.ulinc_campaign_id,
                                 "contact_id": contact.contact_id,
-                                "contact_ulinc_id": contact.get_short_ulinc_id(self.janium_campaign_ulinc_config.ulinc_client_id),
-                                "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                                "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
-                                "message_body": body,
-                                "ulinc_ulinc_campaign_id": contact.ulinc_ulinc_campaign_id,
-                                "cookie_usr": self.janium_campaign_ulinc_config.cookie.cookie_json_value['usr'],
-                                "cookie_pwd": self.janium_campaign_ulinc_config.cookie.cookie_json_value['pwd'],
-                                "ulinc_client_id": self.janium_campaign_ulinc_config.ulinc_client_id
+                                "contact_first_name": contact.contact_info['ulinc']['first_name']
                             }
                         )
         # def is_boxerman(x):

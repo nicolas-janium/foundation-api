@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from nameparser import HumanName
 from sqlalchemy import (JSON, Boolean, Column, Computed, DateTime, ForeignKey,
                         Integer, String, Text, and_, create_engine, engine)
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import backref, query, relationship, sessionmaker
 from sqlalchemy.sql import false, text, true
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.ext.declarative import declarative_base
@@ -32,7 +32,8 @@ def create_gcf_db_engine():
         password= os.getenv('DB_PASSWORD'),
         database= os.getenv('DB_NAME'),
         host= os.getenv('DB_HOST'),
-        port= os.getenv('DB_PORT', 3306)
+        port= os.getenv('DB_PORT', 3306),
+        query={'charset': 'utf8mb4'}
     )
     return create_engine(db_url)
 

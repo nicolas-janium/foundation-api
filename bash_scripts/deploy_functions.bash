@@ -24,8 +24,8 @@ do
     fi
 
     echo "Adding IAM policy binding for ${func_name} function..."
-    gcloud functions add-iam-policy-binding ${func_name} --member=allUsers --role=roles/cloudfunctions.invoker
+    gcloud functions add-iam-policy-binding ${func_name} --member=allUsers --region=${1} --role=roles/cloudfunctions.invoker
 
     echo "Adding the trigger url for ${func_name} function to describe.json file..."
-    echo `gcloud functions describe ${func_name} --format=json` > ${func_folder}/describe.json
+    echo `gcloud functions describe ${func_name} --region=${1} --format=json` > ${func_folder}/describe.json
 done

@@ -16,6 +16,7 @@ SQLALCHEMY_DATABASE_URI = engine.url.URL.create(
     database= os.getenv('TESTING_DB_DATABASE'),
     host= os.getenv('TESTING_DB_PUBLIC_HOST'),
     port= os.getenv('TESTING_DB_PORT', 3306),
+    query={'charset': 'utf8mb4'}
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
