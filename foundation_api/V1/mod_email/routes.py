@@ -170,8 +170,12 @@ def create_ses_identity_dkim_tokens_route():
     """
     email_config_id = request.args.get('email_config_id')
     if email_config := db.session.query(Email_config).filter(Email_config.email_config_id == email_config_id).first():
-        tokens = create_ses_identiy_dkim_tokens(email_config.from_address)
-        return jsonify(tokens)
+        if tokens := create_ses_identiy_dkim_tokens(email_config.from_address):
+            email_config.is_ses_dkim_requested = True
+            flag_modified(email_config, 'is_ses_dkim_requested')
+            db.session.commit()
+            return jsonify(tokens)
+        return jsonify({"message": "Error while generating DKIM tokens"})
     return jsonify({"message": "Unknown email_config_id"})
 
 @mod_email.route('/is_ses_identity_dkim_verified', methods=['GET'])
