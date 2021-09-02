@@ -13,7 +13,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from foundation_api import check_json_header
 from foundation_api.V1.sa_db.model import (Action, Contact, Dte, Dte_sender,
-                                           Email_config, User, db)
+                                           Email_config, Email_server, User, db)
 from foundation_api.V1.utils.ses import (create_ses_identiy_dkim_tokens,
                                          is_ses_identity_dkim_verified,
                                          is_ses_identity_verified,
@@ -43,16 +43,13 @@ def create_email_config():
                 from_full_name = json_body['from_full_name']
                 from_address = json_body['from_address']
                 name = HumanName(full_name=from_full_name)
-                email_server = "8ce10791-240e-4cdc-a95c-c7e0876dc19a"
-                if json_body['is_gmail']:
-                    email_server = "936dce84-b50f-4b72-824f-b01989b20500"
                 new_email_config = Email_config(
                     str(uuid4()),
                     janium_account.account_id,
                     json_body['from_full_name'],
                     json_body['from_address'],
                     "{}.{}.{}@inbound.janium.io".format(str(name.first).lower(), str(name.last).lower(), str(str(from_address).split('@')[1]).split('.')[0]),
-                    email_server_id=email_server
+                    email_server_id=Email_server.gmail_id if json_body['is_gmail'] else Email_server.o365_id
                 )
                 db.session.add(new_email_config)
                 db.session.commit()

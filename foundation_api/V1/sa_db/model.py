@@ -1354,6 +1354,7 @@ class Dte_sender(db.Model):
 class Email_server(db.Model):
     __tablename__ = 'email_server'
     gmail_id = '936dce84-b50f-4b72-824f-b01989b20500'
+    o365_id = '8ce10791-240e-4cdc-a95c-c7e0876dc19a'
 
     def __init__(self, email_server_id, email_server_name, smtp_address, smtp_tls_port, smtp_ssl_port, imap_address, imap_ssl_port):
         self.email_server_id = email_server_id

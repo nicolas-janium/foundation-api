@@ -3,7 +3,7 @@ do
     folder_name="${func_folder%"${func_folder##*[!/]}"}"
     folder_name="${folder_name##*/}"
 
-    if [ ${func_name} == 'parse_email' ]
+    if [ "${func_name}" == 'parse_email' ]
     then
         func_name="${folder_name}_function"
     else
@@ -13,10 +13,10 @@ do
 
     echo "Deploying ${func_name} function..."
 
-    if [ ${func_name} == 'process-contact-source-task-handler' ]
+    if [ "${func_name}" == 'process-contact-source-task-handler' ]
     then
         gcloud functions deploy ${func_name} --region=${1} --entry-point=main --runtime=python38 --trigger-http --allow-unauthenticated --timeout=539 --env-vars-file=./functions/envs.yaml --source=${func_folder} --egress-settings=private-ranges-only --vpc-connector=${2} --memory=2048MB
-    elif [ ${func_name} == 'parse-email-task-handler' ]
+    elif [ "${func_name}" == 'parse-email-task-handler' ]
     then
         gcloud functions deploy ${func_name} --region=${1} --entry-point=main --runtime=python38 --trigger-http --allow-unauthenticated --timeout=539 --env-vars-file=./functions/envs.yaml --source=${func_folder} --egress-settings=private-ranges-only --vpc-connector=${2} --memory=512MB
     else

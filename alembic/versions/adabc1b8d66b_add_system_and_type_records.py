@@ -215,7 +215,7 @@ def upgrade():
     op.bulk_insert(email_server,
         [
             {'email_server_id': model.Email_server.gmail_id, 'email_server_name': 'gmail', 'smtp_address': 'smtp.gmail.com', 'smtp_ssl_port': 465, 'smtp_tls_port': 587, 'imap_address': 'imap.gmail.com', 'imap_ssl_port': 993},
-            {'email_server_id': str(uuid.uuid4()), 'email_server_name': 'office_365', 'smtp_address': 'smtp.office365.com', 'smtp_ssl_port': 465, 'smtp_tls_port': 587, 'imap_address': 'outlook.office365.com', 'imap_ssl_port': 993},
+            {'email_server_id': model.Email_server.o365_id, 'email_server_name': 'office_365', 'smtp_address': 'smtp.office365.com', 'smtp_ssl_port': 465, 'smtp_tls_port': 587, 'imap_address': 'outlook.office365.com', 'imap_ssl_port': 993},
             {'email_server_id': str(uuid.uuid4()), 'email_server_name': 'yahoo_small_business', 'smtp_address': 'smtp.bizmail.yahoo.com', 'smtp_ssl_port': 465, 'smtp_tls_port': 587, 'imap_address': 'imap.mail.yahoo.com', 'imap_ssl_port': 993}
         ]
     )
