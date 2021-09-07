@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import csv
-import io
+import json
 import logging
 from datetime import datetime
 from unittest.mock import Mock
 from uuid import uuid4
+import gc
 
 import Levenshtein as lev
-import requests
 from flask import Response
 from nameparser import HumanName
 from sqlalchemy.orm import defer, undefer
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql.expression import and_
-from urllib3.exceptions import InsecureRequestWarning
 
 import demoji_module as demoji
 from model import (Action, Contact, Contact_source, Ulinc_campaign,
@@ -210,7 +208,140 @@ def process_webhook(ulinc_config, contact_source, session):
             print('Unknown webhook response type')
         session.commit()
 
+# def process_csv(ulinc_config, ulinc_campaign, contact_source, session):
+#     for item in contact_source.contact_source_json:
+#         existing_contact = session.query(Contact).filter(Contact.ulinc_id == str(ulinc_config.ulinc_client_id + item['Contact ID'])).first()
+#         if item['Status'] == 'In Queue':
+#             if existing_contact:
+#                 if existing_action := existing_contact.actions.filter(Action.action_type_id == 18).first():
+#                     continue
+#                 else:
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 18, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 18, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Connect Req':
+#             if existing_contact:
+#                 if existing_action := existing_contact.actions.filter(Action.action_type_id == 19).first():
+#                     continue
+#                 else:
+#                     existing_contact_info = existing_contact.contact_info
+#                     existing_contact_info['li_profile_url'] = item['LinkedIn profile']
+#                     existing_contact.contact_info = existing_contact_info
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 19, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 19, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Connect Error':
+#             if existing_contact:
+#                 if existing_action := existing_contact.actions.filter(Action.action_type_id == 20).first():
+#                     continue
+#                 else:
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 20, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 20, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Later':
+#             if existing_contact:
+#                 if existing_action := existing_contact.actions.filter(Action.action_type_id == 21).first():
+#                     continue
+#                 else:
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 21, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 21, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'No Interest':
+#             if existing_contact:
+#                 if existing_action := existing_contact.actions.filter(Action.action_type_id == 11).first():
+#                     continue
+#                 else:
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 11, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 11, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Connected':
+#             if existing_contact:
+#                 if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id.in_([1])).first():
+#                     if stop_campaign_actions := existing_contact.actions.filter(Action.action_type_id.in_([2, 6, 11, 21])).order_by(Action.action_timestamp.desc()).all():
+#                         if continue_campaign_action := existing_contact.actions.filter(Action.action_type_id == 14).order_by(Action.action_timestamp.desc()).first():
+#                             if stop_campaign_actions[0].action_timestamp > continue_campaign_action.action_timestamp:
+#                                 new_action = Action(str(uuid4()), existing_contact.contact_id, 14, datetime.utcnow(), None)
+#                                 session.add(new_action)
+#                             else:
+#                                 continue
+#                         else:
+#                             new_action = Action(str(uuid4()), existing_contact.contact_id, 14, datetime.utcnow(), None)
+#                             session.add(new_action)
+#                     else:
+#                         continue
+#                 else:
+#                     new_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
+#                     session.add(new_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Replied':
+#             if existing_contact:
+#                 if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id == 1).first():
+#                     pass
+#                 else:
+#                     cnxn_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
+#                     session.add(cnxn_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
+#                 session.add(new_action)
+#         elif item['Status'] == 'Talking':
+#             if existing_contact:
+#                 if existing_cnxn_action := existing_contact.actions.filter(Action.action_type_id == 1).first():
+#                     pass
+#                 else:
+#                     cnxn_action = Action(str(uuid4()), existing_contact.contact_id, 1, datetime.utcnow(), None)
+#                     session.add(cnxn_action)
+#             else:
+#                 new_contact = create_new_contact(
+#                     item, ulinc_campaign.ulinc_campaign_id, contact_source.contact_source_id, ulinc_client_id=ulinc_config.ulinc_client_id
+#                 )
+#                 session.add(new_contact)
+#                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
+#                 session.add(new_action)
+#     session.commit()
+
 def process_csv(ulinc_config, ulinc_campaign, contact_source, session):
+    # contact_source_json_string = json.dumps(contact_source.contact_source_json)
+    # contact_source_json = json.loads(contact_source_json_string)
     for item in contact_source.contact_source_json:
         existing_contact = session.query(Contact).filter(Contact.ulinc_id == str(ulinc_config.ulinc_client_id + item['Contact ID'])).first()
         if item['Status'] == 'In Queue':
@@ -339,6 +470,9 @@ def process_csv(ulinc_config, ulinc_campaign, contact_source, session):
                 session.add(new_contact)
                 new_action = Action(str(uuid4()), new_contact.contact_id, 1, datetime.utcnow(), None)
                 session.add(new_action)
+        # session.commit()
+        del existing_contact
+        gc.collect()
     session.commit()
 
 def process_contact_source_function(ulinc_config, contact_source, session):
@@ -369,6 +503,7 @@ def main(request):
         if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first():
             if ulinc_config.is_working:
                 if contact_source := session.query(Contact_source).filter(Contact_source.contact_source_id == json_body['contact_source_id']).options(defer('contact_source_json')).first():
+                    # print(len(contact_source.contact_source_json))
                     if not contact_source.is_processed:
                         if process_contact_source_function(ulinc_config, contact_source, session):
                             return Response("Success", 200) # Task should not repeat
@@ -380,11 +515,25 @@ def main(request):
 
 
 if __name__ == '__main__':
+    import tracemalloc
+
     data = {
         "ulinc_config_id": "d0b9f557-942c-4d5f-b986-8ff935ebce81",
-        "contact_source_id": "e6fcfe00-d61b-4f55-b946-f76db032c7a7"
+        "contact_source_id": "1c821d1f-644e-47e1-8d9b-c76f4a0a241b"
     }
     req = Mock(get_json=Mock(return_value=data), args=data)
+
+    tracemalloc.start()
     func_res = main(req)
-    print(func_res.get_data())
-    print(func_res.status_code)
+
+    print(tracemalloc.get_traced_memory())
+    # snapshot = tracemalloc.take_snapshot()
+    # top_stats = s1.statistics('lineno')
+
+    # for stat in top_stats[:10]:
+    #     print(stat.size, stat.count, stat.traceback)
+    
+    tracemalloc.stop()
+
+    # print(func_res.get_data())
+    # print(func_res.status_code)
