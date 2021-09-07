@@ -2,6 +2,8 @@ from unittest.mock import Mock
 from uuid import uuid4
 import io
 import csv
+import math
+import json
 
 import requests
 from flask import Response
@@ -31,12 +33,12 @@ def poll_and_save_csv(ulinc_config, ulinc_campaign, session):
     res = requests.post(url='https://ulinc.co/{}/campaigns/{}/?do=campaigns&act=export'.format(ulinc_config.ulinc_client_id, ulinc_campaign.ulinc_ulinc_campaign_id), headers=header, data=data, cookies=jar)
     if res.ok:
         reader = csv.DictReader(io.StringIO(res.content.decode('utf-8')))
-        contact_source_id = str(uuid4())
         if csv_data := list(reader):
-            contact_source = Contact_source(contact_source_id, ulinc_config.ulinc_config_id, 4, csv_data)
-            session.add(contact_source)
+            for i in range(0, math.ceil(len(csv_data) / 100)):
+                sub_list = csv_data[i*100:(i*100) + 100]
+                contact_source = Contact_source(str(uuid4()), ulinc_config.ulinc_config_id, 4, sub_list)
+                session.add(contact_source)
             session.commit()
-            # return contact_source_id
             return True
         return True
     return None
