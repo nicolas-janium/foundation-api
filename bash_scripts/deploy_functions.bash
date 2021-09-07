@@ -15,7 +15,7 @@ do
 
     if [ "${func_name}" == 'process-contact-source-task-handler' ]
     then
-        gcloud functions deploy ${func_name} --region=${1} --entry-point=main --runtime=python38 --trigger-http --allow-unauthenticated --timeout=539 --env-vars-file=./functions/envs.yaml --source=${func_folder} --egress-settings=private-ranges-only --vpc-connector=${2} --memory=4096MB --max-instances=1000
+        gcloud functions deploy ${func_name} --region=${1} --entry-point=main --runtime=python38 --trigger-http --allow-unauthenticated --timeout=539 --env-vars-file=./functions/envs.yaml --source=${func_folder} --egress-settings=private-ranges-only --vpc-connector=${2} --memory=1024MB --max-instances=1000
     elif [ "${func_name}" == 'parse-email-task-handler' ]
     then
         gcloud functions deploy ${func_name} --region=${1} --entry-point=main --runtime=python38 --trigger-http --allow-unauthenticated --timeout=539 --env-vars-file=./functions/envs.yaml --source=${func_folder} --egress-settings=private-ranges-only --vpc-connector=${2} --memory=512MB --max-instances=1000
