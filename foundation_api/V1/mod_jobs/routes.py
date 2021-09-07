@@ -8,6 +8,7 @@ import os
 from pprint import pprint
 
 from flask import Blueprint, jsonify, request, make_response, current_app
+from google.cloud.tasks_v2.services.cloud_tasks.pagers import ListTasksAsyncPager
 from sqlalchemy import and_
 from sqlalchemy.orm import defer, undefer
 from google.cloud import tasks_v2
@@ -147,6 +148,7 @@ def process_contact_sources_job():
             Account.account_id != Account.unassigned_account_id
         )).all()
         tasks = []
+
         for account in accounts:
             for ulinc_config in account.ulinc_configs:
                 for i, contact_source in enumerate(ulinc_config.contact_sources.filter(Contact_source.is_processed == 0).options(defer('contact_source_json')).order_by(Contact_source.contact_source_type_id.asc()).all()):    
@@ -171,6 +173,15 @@ def process_contact_sources_job():
                         
                     else:
                         parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
+
+                    list_tasks_request = tasks_v2.ListTasksRequest()
+                    list_tasks_request.parent = parent
+                    list_tasks_request.response_view = 2
+                    existing_tasks = gc_tasks_client.list_tasks(list_tasks_request)
+                    existing_contact_source_ids = [json.loads(task.http_request.body)['contact_source_id'] for task in existing_tasks]
+
+                    if contact_source.contact_source_id in existing_contact_source_ids:
+                        continue
 
                     # Create Timestamp protobuf.
                     timestamp = timestamp_pb2.Timestamp()
