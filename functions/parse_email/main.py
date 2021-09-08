@@ -36,8 +36,9 @@ def main(request):
 
     is_from_outlook = True if 'outlook' in email_message.get('Message-ID') else False
     to_address = str(email_message.get('To'))
-    index = to_address.index('<')
-    to_address = to_address[index + 1: len(to_address) - 1]
+    if '<' in to_address:
+        index = to_address.index('<')
+        to_address = to_address[index + 1: len(to_address) - 1]
 
     forwarded_to_address = str(email_message.get('X-Forwarded-To'))
 
