@@ -16,7 +16,7 @@ def main(request):
     Required JSON keys: None
     """
     req_dict = request.form.to_dict()
-    pprint(req_dict)
+    # pprint(req_dict)
     email_message = email.message_from_string(req_dict['email'])
 
     body = ''
