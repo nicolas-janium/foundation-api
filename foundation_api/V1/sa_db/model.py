@@ -664,8 +664,6 @@ class Janium_campaign(db.Model):
 
                     pre_cnxn_steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 4]
                     for i, step in enumerate(pre_cnxn_steps):
-                        body = step.janium_campaign_step_body
-                        subject = step.janium_campaign_step_subject
                         if step.janium_campaign_step_delay <= day_diff:
                             if num_sent_emails < i + 1:
                                 if i == 0:
