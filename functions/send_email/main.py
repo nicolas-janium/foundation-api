@@ -1,5 +1,3 @@
-from sqlalchemy.sql.expression import insert
-from foundation_api.V1.sa_db.model import Janium_campaign_step
 import os
 from datetime import datetime
 from email.header import Header
@@ -11,8 +9,9 @@ import boto3
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup as Soup
 from flask import Response
+import minify_html
 
-from model import (Action, Contact, Email_config, create_gcf_db_engine,
+from model import (Action, Contact, Email_config, Janium_campaign_step, create_gcf_db_engine,
                    create_gcf_db_session)
 
 
@@ -94,7 +93,7 @@ def send_email_with_ses(email_config, janium_campaign_step, contact, session):
             contact.contact_id,
             4,
             datetime.utcnow(),
-            email_html,
+            minify_html.minify(email_html, minify_js=False),
             to_email_addr=contact.get_emails()[0],
             email_message_id=response['MessageId'],
             janium_campaign_step_id=janium_campaign_step.janium_campaign_step_id

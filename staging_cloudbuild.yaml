@@ -126,7 +126,7 @@ steps:
   args: ['-c', './bash_scripts/clean_app_versions.bash backend 3']
   secretEnv: ['DB_INSTANCE_ID_SECRET']
 
-timeout: '2000s'
+timeout: '2500s'
 
 availableSecrets:
   secretManager:
