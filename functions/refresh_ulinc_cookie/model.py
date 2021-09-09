@@ -477,7 +477,7 @@ class Janium_campaign(Base):
         contacts_list = []
         for ulinc_campaign in self.ulinc_campaigns:
             contacts_list += ulinc_campaign.get_contacts()
-        contact_list = sorted(contacts_list, key = lambda item: item['full_name'])
+        contact_list = sorted(contacts_list, key = lambda item: item['first_name'])
         return contact_list
     
     def get_dte_new_connections(self):
@@ -673,24 +673,34 @@ class Janium_campaign(Base):
                             if num_sent_emails < i + 1:
                                 if i == 0:
                                     add_contact = True
+                                    janium_campaign_step_id = step.janium_campaign_step_id
                                     break
                                 else:
                                     if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - pre_cnxn_steps[i-1].janium_campaign_step_delay):
                                         add_contact = True
+                                        janium_campaign_step_id = step.janium_campaign_step_id
                                         break
 
                 if add_contact:
                     email_targets_list.append(
                         {
+                            # "janium_campaign_id": self.janium_campaign_id,
+                            # "email_config_id": self.email_config_id,
+                            # "contact_id": contact.contact_id,
+                            # "contact_first_name": contact.contact_info['ulinc']['first_name'],
+                            # "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
+                            # "contact_email": emails[0],
+                            # "email_subject": subject,
+                            # "email_body": body,
+                            # "action": action.action_type_id,
+
+
                             "janium_campaign_id": self.janium_campaign_id,
                             "email_config_id": self.email_config_id,
+                            "janium_campaign_step_id": janium_campaign_step_id,
+                            "ulinc_campaign_id": contact.ulinc_campaign_id,
                             "contact_id": contact.contact_id,
-                            "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                            "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
-                            "contact_email": emails[0],
-                            "email_subject": subject,
-                            "email_body": body,
-                            "action": action.action_type_id
+                            "contact_first_name": contact.contact_info['ulinc']['first_name']
                         }
                     )
         # def is_boxerman(x):
@@ -978,14 +988,14 @@ class Ulinc_campaign(Base):
                 {
                     "contact_id": contact.contact_id,
                     "first_name": contact_info['first_name'],
-                    "scrubbed_first_name": None if "scrubbed_first_name" not in contact_info else contact_info['scrubbed_first_name'],
+                    "modified_first_name": None if "modified_first_name" not in contact_info else contact_info['modified_first_name'],
                     "last_name": contact_info['last_name'],
                     "full_name": str(contact_info['first_name'] + " " + contact_info['last_name']),
                     "title": contact_info['title'],
                     "company": contact_info['company'],
-                    "scrubbed_company": None if "scrubbed_company" not in contact_info else contact_info['scrubbed_company'],
+                    "modified_company": None if "modified_company" not in contact_info else contact_info['modified_company'],
                     "location": contact_info['location'],
-                    "scrubbed_location": None if "scrubbed_location" not in contact_info else contact_info['scrubbed_location'],
+                    "modified_location": None if "modified_location" not in contact_info else contact_info['modified_location'],
                     "email": contact_info['email'],
                     "phone": contact_info['phone'],
                     "li_profile_url": contact_info['li_profile_url'] if contact_info['li_profile_url'] else contact_info['li_salesnav_profile_url'],
@@ -1269,13 +1279,32 @@ class Contact(Base):
         ordered_list[1] = email_dict['ulinc_private_email']
         ordered_list[2] = email_dict['kendo_private_email']
         return list(filter(None, ordered_list))
+    
+    def create_key_words_dict(self):
+        first_name = self.contact_info['ulinc']['first_name']
+        if 'modified_first_name' in self.contact_info['ulinc']:
+            first_name = self.contact_info['ulinc']['modified_first_name']
+        
+        location = self.contact_info['ulinc']['location']
+        if 'modified_location' in self.contact_info['ulinc']:
+            location = self.contact_info['ulinc']['modified_location']
+
+        company = self.contact_info['ulinc']['company']
+        if 'modified_company' in self.contact_info['ulinc']:
+            company = self.contact_info['ulinc']['modified_company']
+        
+        return {
+            "FirstName": first_name,
+            "Company": company,
+            "Location": location
+        }
         
 
 
 class Action(Base):
     __tablename__ = 'action'
 
-    def __init__(self, action_id, contact_id, action_type_id, action_timestamp, action_message, to_email_addr=None, email_message_id=None):
+    def __init__(self, action_id, contact_id, action_type_id, action_timestamp, action_message, to_email_addr=None, email_message_id=None, janium_campaign_step_id=None):
         self.action_id = action_id
         self.contact_id = contact_id
         self.action_type_id = action_type_id
@@ -1283,6 +1312,7 @@ class Action(Base):
         self.action_message = action_message
         self.to_email_addr = to_email_addr
         self.email_message_id = email_message_id
+        self.janium_campaign_step_id = janium_campaign_step_id
 
     # Primary Keys
     action_id = Column(String(36), primary_key=True, nullable=False)
@@ -1296,6 +1326,7 @@ class Action(Base):
     action_message = Column(Text, nullable=True)
     to_email_addr = Column(String(64), nullable=True)
     email_message_id = Column(String(512), nullable=True)
+    janium_campaign_step_id = Column(String(36), nullable=True)
 
     # Table Metadata
     date_added = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
@@ -1354,6 +1385,7 @@ class Dte_sender(Base):
 class Email_server(Base):
     __tablename__ = 'email_server'
     gmail_id = '936dce84-b50f-4b72-824f-b01989b20500'
+    o365_id = '8ce10791-240e-4cdc-a95c-c7e0876dc19a'
 
     def __init__(self, email_server_id, email_server_name, smtp_address, smtp_tls_port, smtp_ssl_port, imap_address, imap_ssl_port):
         self.email_server_id = email_server_id

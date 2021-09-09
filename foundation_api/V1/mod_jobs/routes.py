@@ -340,34 +340,25 @@ def send_email():
                         timestamp = timestamp_pb2.Timestamp()
                         timestamp.FromDatetime(scheduled_timestamp)
 
-                        for target in janium_campaign.get_email_targets():
+                        for target_dict in janium_campaign.get_email_targets():
                             payload = {
-                                'email_target_details': target,
+                                target_dict
                             }
+
+                            task = {
+                                "http_request": {  # Specify the type of request.
+                                    "http_method": tasks_v2.HttpMethod.POST,
+                                    "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
+                                }
+                            }
+                            queue = 'send-email'
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
                             if os.getenv('FLASK_ENV') == 'production':
-                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_email')
-                                task = {
-                                    'app_engine_http_request': {
-                                        'http_method': tasks_v2.HttpMethod.POST,
-                                        'relative_uri': '/api/v1/tasks/send_email',
-                                        'body': json.dumps(payload).encode(),
-                                        'headers': {
-                                            'Content-type': 'application/json'
-                                        }
-                                    }
-                                }
-                            else:
-                                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_email')
-                                task = {
-                                    "http_request": {  # Specify the type of request.
-                                        "http_method": tasks_v2.HttpMethod.POST,
-                                        "url": "{}/api/v1/tasks/send_email".format(os.getenv("BACKEND_API_URL")),
-                                        'body': json.dumps(payload).encode(),
-                                        'headers': {
-                                            'Content-type': 'application/json'
-                                        }
-                                    }
-                                }
+                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
 
                             # Add the timestamp to the tasks.
                             task['schedule_time'] = timestamp
@@ -377,7 +368,7 @@ def send_email():
                                 "account_id": account.account_id,
                                 "ulinc_config_id": ulinc_config.ulinc_config_id,
                                 "janium_campaign_id": janium_campaign.janium_campaign_id,
-                                "email_target_details": target,
+                                "email_target_details": target_dict,
                                 "task_id": task_response.name,
                                 "scheduled_time": scheduled_timestamp
                             })
@@ -407,30 +398,20 @@ def send_li_message_job():
 
                         for target_dict in janium_campaign.get_li_message_targets():
                             payload = target_dict
+                            task = {
+                                "http_request": {  # Specify the type of request.
+                                    "http_method": tasks_v2.HttpMethod.POST,
+                                    "url": os.getenv('SEND_LI_MESSAGE_TRIGGER_URL'),
+                                    'body': json.dumps(payload).encode(),
+                                    'headers': {
+                                        'Content-type': 'application/json'
+                                    }
+                                }
+                            }
+                            queue = 'send-li-message'
+                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
                             if os.getenv('FLASK_ENV') == 'production':
-                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send_li_message')
-                                task = {
-                                    'app_engine_http_request': {
-                                        'http_method': tasks_v2.HttpMethod.POST,
-                                        'relative_uri': '/api/v1/tasks/send_li_message',
-                                        'body': json.dumps(payload).encode(),
-                                        'headers': {
-                                            'Content-type': 'application/json'
-                                        }
-                                    }
-                                }
-                            else:
-                                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send_li_message')
-                                task = {
-                                    "http_request": {  # Specify the type of request.
-                                        "http_method": tasks_v2.HttpMethod.POST,
-                                        "url": "{}/api/v1/tasks/send_li_message".format(os.getenv("BACKEND_API_URL")),
-                                        'body': json.dumps(payload).encode(),
-                                        'headers': {
-                                            'Content-type': 'application/json'
-                                        }
-                                    }
-                                }
+                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
 
                             # Add the timestamp to the tasks.
                             task['schedule_time'] = timestamp
@@ -440,7 +421,7 @@ def send_li_message_job():
                                 "account_id": account.account_id,
                                 "ulinc_config_id": ulinc_config.ulinc_config_id,
                                 "janium_campaign_id": janium_campaign.janium_campaign_id,
-                                "li_message_target_details": target,
+                                "li_message_target_details": target_dict,
                                 "task_id": task_response.name,
                                 "scheduled_time": scheduled_timestamp
                             })

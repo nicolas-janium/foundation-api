@@ -673,24 +673,34 @@ class Janium_campaign(db.Model):
                             if num_sent_emails < i + 1:
                                 if i == 0:
                                     add_contact = True
+                                    janium_campaign_step_id = step.janium_campaign_step_id
                                     break
                                 else:
                                     if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - pre_cnxn_steps[i-1].janium_campaign_step_delay):
                                         add_contact = True
+                                        janium_campaign_step_id = step.janium_campaign_step_id
                                         break
 
                 if add_contact:
                     email_targets_list.append(
                         {
+                            # "janium_campaign_id": self.janium_campaign_id,
+                            # "email_config_id": self.email_config_id,
+                            # "contact_id": contact.contact_id,
+                            # "contact_first_name": contact.contact_info['ulinc']['first_name'],
+                            # "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
+                            # "contact_email": emails[0],
+                            # "email_subject": subject,
+                            # "email_body": body,
+                            # "action": action.action_type_id,
+
+
                             "janium_campaign_id": self.janium_campaign_id,
                             "email_config_id": self.email_config_id,
+                            "janium_campaign_step_id": janium_campaign_step_id,
+                            "ulinc_campaign_id": contact.ulinc_campaign_id,
                             "contact_id": contact.contact_id,
-                            "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                            "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
-                            "contact_email": emails[0],
-                            "email_subject": subject,
-                            "email_body": body,
-                            "action": action.action_type_id
+                            "contact_first_name": contact.contact_info['ulinc']['first_name']
                         }
                     )
         # def is_boxerman(x):
@@ -1269,6 +1279,25 @@ class Contact(db.Model):
         ordered_list[1] = email_dict['ulinc_private_email']
         ordered_list[2] = email_dict['kendo_private_email']
         return list(filter(None, ordered_list))
+    
+    def create_key_words_dict(self):
+        first_name = self.contact_info['ulinc']['first_name']
+        if 'modified_first_name' in self.contact_info['ulinc']:
+            first_name = self.contact_info['ulinc']['modified_first_name']
+        
+        location = self.contact_info['ulinc']['location']
+        if 'modified_location' in self.contact_info['ulinc']:
+            location = self.contact_info['ulinc']['modified_location']
+
+        company = self.contact_info['ulinc']['company']
+        if 'modified_company' in self.contact_info['ulinc']:
+            company = self.contact_info['ulinc']['modified_company']
+        
+        return {
+            "FirstName": first_name,
+            "Company": company,
+            "Location": location
+        }
         
 
 
