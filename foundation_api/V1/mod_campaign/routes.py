@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from flask import Blueprint, json, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm.attributes import flag_modified
 
 from foundation_api import check_json_header
 from foundation_api.V1.sa_db.model import db
@@ -245,8 +246,7 @@ def update_ulinc_campaign():
                         }
                     )
         return jsonify(return_list)
-    else:
-        return make_response(jsonify({"message": "JSON body is missing"}), 400)
+    return make_response(jsonify({"message": "JSON body is missing"}), 400)
 
 
 @mod_campaign.route('/janium_campaign_contacts', methods=['GET'])
@@ -294,3 +294,27 @@ def get_janium_campaign_contacts():
             return make_response(jsonify({"message": "Missing page param"}), 400)
         return make_response(jsonify({"message": "Unknown janium_campaign_id value"}), 400)
     return make_response(jsonify({"message": "Missing janium_campaign_id param"}), 400)
+
+@mod_campaign.route('/modify_contacts', methods=['POST'])
+@jwt_required()
+def modify_janium_campaign_contacts():
+    """
+    Required JSON keys: list of JSON contact objects
+    """
+    user_id = get_jwt_identity()
+    if json_body := request.get_json():
+        for contact_item in json_body:
+            if contact := db.session.query(Contact).filter(Contact.contact_id == contact_item['contact_id']).first():
+                contact_info = contact.contact_info
+                contact_info['ulinc']['modified_first_name'] = contact_item['modified_first_name']
+                contact_info['ulinc']['modified_company'] = contact_item['modified_company']
+                contact_info['ulinc']['modified_location'] = contact_item['modified_location']
+                contact.contact_info = contact_info
+                flag_modified(contact, 'contact_info')
+                db.session.commit()
+            else:
+                return make_response(jsonify({"message": "Unknown contact_id value in JSON body"}), 400)
+        return jsonify({"message": "success"})
+    return make_response(jsonify({"message": "JSON body is missing"}), 400)
+
+    
