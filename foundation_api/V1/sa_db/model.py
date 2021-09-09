@@ -477,7 +477,7 @@ class Janium_campaign(db.Model):
         contacts_list = []
         for ulinc_campaign in self.ulinc_campaigns:
             contacts_list += ulinc_campaign.get_contacts()
-        contact_list = sorted(contacts_list, key = lambda item: item['full_name'])
+        contact_list = sorted(contacts_list, key = lambda item: item['first_name'])
         return contact_list
     
     def get_dte_new_connections(self):
@@ -978,14 +978,14 @@ class Ulinc_campaign(db.Model):
                 {
                     "contact_id": contact.contact_id,
                     "first_name": contact_info['first_name'],
-                    "scrubbed_first_name": None if "scrubbed_first_name" not in contact_info else contact_info['scrubbed_first_name'],
+                    "modified_first_name": None if "modified_first_name" not in contact_info else contact_info['modified_first_name'],
                     "last_name": contact_info['last_name'],
                     "full_name": str(contact_info['first_name'] + " " + contact_info['last_name']),
                     "title": contact_info['title'],
                     "company": contact_info['company'],
-                    "scrubbed_company": None if "scrubbed_company" not in contact_info else contact_info['scrubbed_company'],
+                    "modified_company": None if "modified_company" not in contact_info else contact_info['modified_company'],
                     "location": contact_info['location'],
-                    "scrubbed_location": None if "scrubbed_location" not in contact_info else contact_info['scrubbed_location'],
+                    "modified_location": None if "modified_location" not in contact_info else contact_info['modified_location'],
                     "email": contact_info['email'],
                     "phone": contact_info['phone'],
                     "li_profile_url": contact_info['li_profile_url'] if contact_info['li_profile_url'] else contact_info['li_salesnav_profile_url'],

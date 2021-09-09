@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from foundation_api import check_json_header
 from foundation_api.V1.sa_db.model import db
-from foundation_api.V1.sa_db.model import Janium_campaign, Ulinc_campaign, Janium_campaign_step, Ulinc_config, Account
+from foundation_api.V1.sa_db.model import Janium_campaign, Ulinc_campaign, Janium_campaign_step, Ulinc_config, Account, Contact
 from foundation_api.V1.utils.refresh_ulinc_data import refresh_ulinc_campaigns
 
 
@@ -249,31 +249,48 @@ def update_ulinc_campaign():
         return make_response(jsonify({"message": "JSON body is missing"}), 400)
 
 
-# @mod_campaign.route('/janium_campaign_contacts', methods=['GET'])
-# @jwt_required()
-# def get_janium_campaign_contacts():
-#     """
-#     Required query params: janium_campaign_id
-#     """
-#     janium_campaign_id = request.args.get('janium_campaign_id')
-#     user_id = get_jwt_identity()
-
-#     if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == janium_campaign_id).first():
-#         return_list = []
-#         for contact in janium_campaign.contacts:
-#             contact_info = contact.contact_info['ulinc']
-#             return_list.append(
-#                 {
-#                     "contact_id": contact.contact_id,
-#                     "full_name": str(contact_info['first_name'] + " " + contact_info['last_name']),
-#                     "title": contact_info['title'],
-#                     "company": contact_info['company'],
-#                     "location": contact_info['location'],
-#                     "email": contact_info['email'],
-#                     "phone": contact_info['phone'],
-#                     "li_profile_url": contact_info['li_profile_url'] if contact_info['li_profile_url'] else contact_info['li_salenav_profile_url']
-#                 }
-#             )
-#         return_list = sorted(return_list, key = lambda item: item['full_name'])
-#         return return_list
-#     return jsonify({"message": "Janium campaign not found"})
+@mod_campaign.route('/janium_campaign_contacts', methods=['GET'])
+@jwt_required()
+def get_janium_campaign_contacts():
+    """
+    Required query params: janium_campaign_id, page
+    """
+    user_id = get_jwt_identity()
+    if janium_campaign_id := request.args.get('janium_campaign_id'):
+        if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == janium_campaign_id).first():
+            if page_number := int(request.args.get('page')):
+                return_list = []
+                pagination_item = db.session.query(Contact, Ulinc_campaign).filter(Contact.ulinc_campaign_id == Ulinc_campaign.ulinc_campaign_id).filter(Ulinc_campaign.janium_campaign_id == janium_campaign_id).order_by(Contact.contact_info['ulinc']['first_name']).paginate(page=page_number, per_page=25, error_out=True)
+                for query_item in pagination_item.items:
+                    query_item_dict = query_item._asdict()
+                    contact = query_item_dict['Contact']
+                    contact_info = contact.contact_info['ulinc']
+                    return_list.append(
+                        {
+                            "contact_id": contact.contact_id,
+                            "first_name": contact_info['first_name'],
+                            "last_name": contact_info['last_name'],
+                            "title": contact_info['title'],
+                            "company": contact_info['company'],
+                            "location": contact_info['location'],
+                            "email": contact_info['email'],
+                            "phone": contact_info['phone'],
+                            "li_profile_url": contact_info['li_profile_url'] if contact_info['li_profile_url'] else contact_info['li_salesnav_profile_url']
+                        }
+                    )
+                return_list = sorted(return_list, key = lambda item: item['first_name'])
+                return jsonify(
+                    {
+                        "contacts": return_list,
+                        "pagination_info": {
+                            "has_prev_page": pagination_item.has_prev,
+                            "has_next_page": pagination_item.has_next,
+                            "current_page": page_number,
+                            "total_pages": pagination_item.pages,
+                            "items_per_page": pagination_item.per_page
+                        }
+                    }
+                )
+            return make_response(jsonify({"message": "Missing page param"}), 400)
+        return make_response(jsonify({"message": "Unknown janium_campaign_id value"}), 400)
+    return make_response(jsonify({"message": "Missing janium_campaign_id param"}), 400)

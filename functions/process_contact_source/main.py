@@ -340,8 +340,6 @@ def process_webhook(ulinc_config, contact_source, session):
 #     session.commit()
 
 def process_csv(ulinc_config, ulinc_campaign, contact_source, session):
-    # contact_source_json_string = json.dumps(contact_source.contact_source_json)
-    # contact_source_json = json.loads(contact_source_json_string)
     for item in contact_source.contact_source_json:
         existing_contact = session.query(Contact).filter(Contact.ulinc_id == str(ulinc_config.ulinc_client_id + item['Contact ID'])).first()
         if item['Status'] == 'In Queue':
@@ -519,21 +517,21 @@ if __name__ == '__main__':
 
     data = {
         "ulinc_config_id": "d0b9f557-942c-4d5f-b986-8ff935ebce81",
-        "contact_source_id": "1c821d1f-644e-47e1-8d9b-c76f4a0a241b"
+        "contact_source_id": "2b150a53-05a4-42c4-9668-19304e85a93f"
     }
     req = Mock(get_json=Mock(return_value=data), args=data)
 
-    tracemalloc.start()
+    # tracemalloc.start()
     func_res = main(req)
 
-    print(tracemalloc.get_traced_memory())
+    # print(tracemalloc.get_traced_memory())
     # snapshot = tracemalloc.take_snapshot()
     # top_stats = s1.statistics('lineno')
 
     # for stat in top_stats[:10]:
     #     print(stat.size, stat.count, stat.traceback)
     
-    tracemalloc.stop()
+    # tracemalloc.stop()
 
     # print(func_res.get_data())
     # print(func_res.status_code)
