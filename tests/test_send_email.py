@@ -56,8 +56,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     cnxn_action = Action(str(uuid4()), contact.contact_id, 1, datetime.utcnow() - timedelta(days=50), None)
     session.add(cnxn_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 1'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 1'
 
     session.delete(cnxn_action)
     session.commit()
@@ -71,8 +74,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=40), None)
     session.add(msg_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 2'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 2'
 
     session.delete(cnxn_action)
     session.delete(msg_action)
@@ -90,8 +96,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action2 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=30), None)
     session.add(msg_action2)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 3'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 3'
 
     session.delete(cnxn_action)
     session.delete(msg_action1)
@@ -113,8 +122,10 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action3 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=20), None)
     session.add(msg_action3)
 
+    targets = janium_campaign.get_email_targets()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 0
+    assert len(targets) == 0
 
     session.delete(cnxn_action)
     session.delete(msg_action1)
@@ -209,8 +220,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     con_action = Action(str(uuid4()), contact.contact_id, 14, (datetime.utcnow() - timedelta(days=40)) + timedelta(hours=2), None)
     session.add(con_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 2'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 2'
 
     session.delete(cnxn_action)
     session.delete(msg_action)
@@ -237,8 +251,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     con_action = Action(str(uuid4()), contact.contact_id, 14, (datetime.utcnow() - timedelta(days=30)) + timedelta(hours=2), None)
     session.add(con_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 3'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 3'
 
     session.delete(cnxn_action)
     session.delete(msg_action1)
@@ -286,8 +303,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     req_action = Action(str(uuid4()), contact.contact_id, 19, datetime.utcnow() - timedelta(days=50), None)
     session.add(req_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Pre-connection Email Body 1'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Pre-connection Email Body 1'
 
     session.delete(req_action)
     session.commit()
@@ -301,8 +321,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action1 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=40), None)
     session.add(msg_action1)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Pre-connection Email Body 2'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Pre-connection Email Body 2'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -320,8 +343,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action2 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=30), None)
     session.add(msg_action2)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Pre-connection Email Body 3'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Pre-connection Email Body 3'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -367,8 +393,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     con_action = Action(str(uuid4()), contact.contact_id, 14, (datetime.utcnow() - timedelta(days=40)) + timedelta(hours=2), None)
     session.add(con_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Pre-connection Email Body 2'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Pre-connection Email Body 2'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -394,8 +423,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     con_action = Action(str(uuid4()), contact.contact_id, 14, (datetime.utcnow() - timedelta(days=30)) + timedelta(hours=2), None)
     session.add(con_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Pre-connection Email Body 3'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Pre-connection Email Body 3'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -448,8 +480,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     cnxn_action = Action(str(uuid4()), contact.contact_id, 1, (datetime.utcnow() - timedelta(days=40)) + timedelta(hours=1), None)
     session.add(cnxn_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 1'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 1'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -471,8 +506,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     cnxn_action = Action(str(uuid4()), contact.contact_id, 1, (datetime.utcnow() - timedelta(days=30)) + timedelta(hours=1), None)
     session.add(cnxn_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 1'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 1'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -498,8 +536,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     cnxn_action = Action(str(uuid4()), contact.contact_id, 1, (datetime.utcnow() - timedelta(days=20)) + timedelta(hours=1), None)
     session.add(cnxn_action)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 1'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 1'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -523,8 +564,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action2 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=30), None)
     session.add(msg_action2)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 2'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 2'
 
     session.delete(req_action)
     session.delete(msg_action1)
@@ -551,8 +595,11 @@ def test_get_email_targets(test_app, auth, campaign, session):
     msg_action3 = Action(str(uuid4()), contact.contact_id, 4, datetime.utcnow() - timedelta(days=30), None)
     session.add(msg_action3)
 
+    targets = janium_campaign.get_email_targets()
+    janium_campaign_step = session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == targets[0]['janium_campaign_step_id']).first()
+
     session.commit()
-    assert len(janium_campaign.get_email_targets()) == 1 and janium_campaign.get_email_targets()[0]['email_body'] == 'Test Regular Email Body 3'
+    assert len(targets) == 1 and janium_campaign_step.janium_campaign_step_body == 'Test Regular Email Body 3'
 
     session.delete(req_action)
     session.delete(msg_action1)

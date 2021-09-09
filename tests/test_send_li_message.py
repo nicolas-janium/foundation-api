@@ -4,7 +4,7 @@ from foundation_api.V1.sa_db.model import Email_config, Janium_campaign, Ulinc_c
 import json
 from uuid import uuid4
 from datetime import datetime, timedelta
-
+ 
 
 def test_get_li_message_targets(test_app, auth, campaign, session):
     headers = {"Content-Type": "application/json", "X-Appengine-Cron": True}
