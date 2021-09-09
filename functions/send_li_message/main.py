@@ -13,11 +13,14 @@ from model import (Contact, Ulinc_config, Ulinc_campaign, Janium_campaign_step, 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
-def insert_key_words(body, contact_first_name):
-    if str(body).__contains__(r"{FirstName}"):
-        body = str(body).replace(r"{FirstName}", contact_first_name)
-    return body
+ 
+def insert_key_words(email_html, key_words_dict):
+    email_html = str(email_html)
+    for key in key_words_dict:
+        key_string = str('{' + key + '}')
+        if key_string in email_html:
+            email_html = email_html.replace(key_string, key_words_dict[key])
+    return email_html
 
 def send_li_message(ulinc_config, janium_campaign_step, ulinc_campaign, contact):
     req_session = requests.Session()
@@ -31,8 +34,10 @@ def send_li_message(ulinc_config, janium_campaign_step, ulinc_campaign, contact)
         "Accept": "application/json"
     }
 
+    key_words_dict = contact.create_key_words_dict()
+
     message = str(janium_campaign_step.janium_campaign_step_body)
-    message = insert_key_words(message, contact.contact_info['ulinc']['first_name'])
+    message = insert_key_words(message, key_words_dict=key_words_dict)
     soup = Soup(message, 'html.parser')
     final_message = ''
     for i, p in enumerate(soup.find_all('p')):
