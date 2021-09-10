@@ -645,6 +645,8 @@ class Janium_campaign(db.Model):
                         if step.janium_campaign_step_delay <= day_diff:
                             if num_sent_emails < i + 1:
                                 if i == 0:
+                                    ### To-do ###
+                                    # do not add_contact if prev step has not happened
                                     janium_campaign_step_id = step.janium_campaign_step_id
                                     add_contact = True
                                     break
