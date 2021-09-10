@@ -65,10 +65,10 @@ def main(request):
     with create_gcf_db_session(create_gcf_db_engine())() as session:
         gct_client = tasks_v2.CloudTasksClient()
         gct_parent = gct_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='update-ulinc-contact-status')
-        if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['li_message_target_details']['ulinc_config_id']).first():
-            if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['li_message_target_details']['janium_campaign_step_id']).first():
-                if ulinc_campaign := session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['li_message_target_details']['ulinc_campaign_id']).first():
-                    if contact := session.query(Contact).filter(Contact.contact_id == json_body['li_message_target_details']['contact_id']).first():
+        if ulinc_config := session.query(Ulinc_config).filter(Ulinc_config.ulinc_config_id == json_body['ulinc_config_id']).first():
+            if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
+                if ulinc_campaign := session.query(Ulinc_campaign).filter(Ulinc_campaign.ulinc_campaign_id == json_body['ulinc_campaign_id']).first():
+                    if contact := session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
                         if contact.is_messaging_task_valid():
                             send_li_message_res = send_li_message(ulinc_config, janium_campaign_step, ulinc_campaign, contact)
                             if send_li_message_res == 'Success':
@@ -100,13 +100,11 @@ def main(request):
 
 if __name__ == '__main__':
     data = {
-        "li_message_target_details": {
-            "ulinc_config_id": "d0b9f557-942c-4d5f-b986-8ff935ebce81",
-            "janium_campaign": "5598484a-2923-403f-bfdd-5a1e354792c7",
-            "janium_campaign_step_id": "7fc67976-953b-4c1d-8902-3035932b7287",
-            "ulinc_campaign_id": "08f1ffec-f040-40b3-a9cf-367be36f037a",
-            "contact_id": "00001317-1c52-40ba-a8eb-04be0998a180"
-        }
+        "ulinc_config_id": "d0b9f557-942c-4d5f-b986-8ff935ebce81",
+        "janium_campaign": "5598484a-2923-403f-bfdd-5a1e354792c7",
+        "janium_campaign_step_id": "7fc67976-953b-4c1d-8902-3035932b7287",
+        "ulinc_campaign_id": "08f1ffec-f040-40b3-a9cf-367be36f037a",
+        "contact_id": "00001317-1c52-40ba-a8eb-04be0998a180"
     }
     req = Mock(get_json=Mock(return_value=data), args=data)
     func_res = main(req)

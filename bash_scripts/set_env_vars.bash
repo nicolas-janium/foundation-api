@@ -45,3 +45,4 @@ echo "TESTING_DB_DATABASE: testing_db" >> ./functions/envs.yaml
 echo "TASK_QUEUE_LOCATION: ${10}" >> ./functions/envs.yaml
 echo "APP_SECRET_KEY: ${11}" >> ./functions/envs.yaml
 echo "JANIUM_EMAIL_IDENTIFIER_KEY: ${12}" >> ./functions/envs.yaml
+echo "UPDATE_ULINC_CONTACT_STATUS_TRIGGER_URL: https://us-west3-foundation-production.cloudfunctions.net/update-ulinc-contact-status-task-handler" >> ./functions/envs.yaml
