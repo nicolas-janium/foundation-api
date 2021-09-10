@@ -341,9 +341,7 @@ def send_email():
                         timestamp.FromDatetime(scheduled_timestamp)
 
                         for target_dict in janium_campaign.get_email_targets():
-                            payload = {
-                                target_dict
-                            }
+                            payload = target_dict
 
                             task = {
                                 "http_request": {  # Specify the type of request.
