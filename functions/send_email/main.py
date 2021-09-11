@@ -1,18 +1,38 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.header import Header
 from email.message import EmailMessage
 from unittest.mock import Mock
 from uuid import uuid4
+import json
 
 import boto3
+import minify_html
+import requests
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup as Soup
 from flask import Response
-import minify_html
+from google.cloud import tasks_v2
+from google.protobuf import timestamp_pb2
+from urllib3.exceptions import InsecureRequestWarning
 
-from model import (Action, Contact, Email_config, Janium_campaign_step, create_gcf_db_engine,
-                   create_gcf_db_session)
+from model import (Action, Contact, Contact_source, Email_config,
+                   Janium_campaign, Janium_campaign_step,
+                   create_gcf_db_engine, create_gcf_db_session)
+
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning) # pylint: disable=no-member
+
+
+def poll_and_save_webhook(ulinc_config, wh_url, wh_type, session):
+    res = requests.get(wh_url, verify=False)
+    if res.ok:
+        if res_json := res.json():
+            contact_source = Contact_source(str(uuid4()), ulinc_config.ulinc_config_id, wh_type, res_json)
+            session.add(contact_source)
+            session.commit()
+            return "Webhook response saved"
+        return "Webhook response empty"
+    return "Bad request"
 
 
 def add_preview_text(email_html, details):
@@ -110,15 +130,43 @@ def main(request):
     json_body = request.get_json(force=True)
     with create_gcf_db_session(create_gcf_db_engine())() as session:
         if email_config := session.query(Email_config).filter(Email_config.email_config_id == json_body['email_config_id']).first():
-            if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
-                if contact := session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
-                    if contact.is_messaging_task_valid():
-                        if send_email_with_ses(email_config, janium_campaign_step, contact, session):
-                            return Response('Success', 200)
-                        return Response('IDK', 200)
-                    return Response("Messaging task no longer valid", 200)
-                return Response("Unknown contact_id", 200)
-        return Response("Failure. Email config does not exist", 200) # Should not repeat        
+            if janium_campaign := session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
+                if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
+                    if contact := session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
+                        if contact.is_messaging_task_valid():
+                            ulinc_config = janium_campaign.janium_campaign_ulinc_config
+                            webhook_response = poll_and_save_webhook(ulinc_config, ulinc_config.new_message_webhook, 2, session)
+                            if webhook_response == 'Webhook response saved':
+                                gct_client = tasks_v2.CloudTasksClient()
+                                gct_parent = gct_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-email')
+                                payload = json_body
+                                task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
+                                    }
+                                }
+
+                                # Add the timestamp to the tasks.
+                                timestamp = timestamp_pb2.Timestamp()
+                                timestamp.FromDatetime(datetime.utcnow() + timedelta(minutes=15))
+                                task['schedule_time'] = timestamp
+
+                                task_response = gct_client.create_task(parent=gct_parent, task=task)
+                                return Response('New message webhook response was not empty. Created new task', 200)
+                            elif webhook_response == 'Webhook response empty':
+                                if send_email_with_ses(email_config, janium_campaign_step, contact, session):
+                                    return Response('Success', 200)
+                                return Response('IDK', 200)
+                            return Response('IDK', 200)
+                        return Response("Messaging task no longer valid", 200)
+                    return Response("Unknown contact_id", 200)
+                return Response("Unknown janium_campaign_id", 200)
+        return Response("Failure. Email config does not exist", 200) # Should not repeat
 
 
 if __name__ == '__main__':
