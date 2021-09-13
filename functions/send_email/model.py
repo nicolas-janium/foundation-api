@@ -645,15 +645,15 @@ class Janium_campaign(Base):
                         if step.janium_campaign_step_delay <= day_diff:
                             if num_sent_emails < i + 1:
                                 if i == 0:
-                                    body = step.janium_campaign_step_body
-                                    subject = step.janium_campaign_step_subject
+                                    ### To-do ###
+                                    # do not add_contact if prev step has not happened
+                                    janium_campaign_step_id = step.janium_campaign_step_id
                                     add_contact = True
                                     break
                                 else:
                                     if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
                                         if (networkdays(prev_email_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_email_steps[i-1].janium_campaign_step_delay):
-                                            body = step.janium_campaign_step_body
-                                            subject = step.janium_campaign_step_subject
+                                            janium_campaign_step_id = step.janium_campaign_step_id
                                             add_contact = True
                                             break
                 elif cnxn_req_action:                    
@@ -666,35 +666,21 @@ class Janium_campaign(Base):
 
                     pre_cnxn_steps = [step for step in campaign_steps if step.janium_campaign_step_type_id == 4]
                     for i, step in enumerate(pre_cnxn_steps):
-                        add_contact = False
-                        body = step.janium_campaign_step_body
-                        subject = step.janium_campaign_step_subject
                         if step.janium_campaign_step_delay <= day_diff:
                             if num_sent_emails < i + 1:
                                 if i == 0:
-                                    add_contact = True
                                     janium_campaign_step_id = step.janium_campaign_step_id
+                                    add_contact = True
                                     break
                                 else:
                                     if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - pre_cnxn_steps[i-1].janium_campaign_step_delay):
-                                        add_contact = True
                                         janium_campaign_step_id = step.janium_campaign_step_id
+                                        add_contact = True
                                         break
 
                 if add_contact:
                     email_targets_list.append(
                         {
-                            # "janium_campaign_id": self.janium_campaign_id,
-                            # "email_config_id": self.email_config_id,
-                            # "contact_id": contact.contact_id,
-                            # "contact_first_name": contact.contact_info['ulinc']['first_name'],
-                            # "contact_full_name": str(contact.contact_info['ulinc']['first_name'] + ' ' + contact.contact_info['ulinc']['last_name']),
-                            # "contact_email": emails[0],
-                            # "email_subject": subject,
-                            # "email_body": body,
-                            # "action": action.action_type_id,
-
-
                             "janium_campaign_id": self.janium_campaign_id,
                             "email_config_id": self.email_config_id,
                             "janium_campaign_step_id": janium_campaign_step_id,
