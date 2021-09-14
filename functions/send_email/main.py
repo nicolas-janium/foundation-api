@@ -37,21 +37,14 @@ def poll_and_save_webhook(ulinc_config, wh_url, wh_type, session):
 
 def create_reply_thread(janium_campaign, janium_campaign_step, contact, from_entity, session):
     email_html = janium_campaign_step.janium_campaign_step_body
-    main_soup = Soup(email_html, 'html.parser')
-    main_soup_html_tag = main_soup.find('html')
-    main_soup_div_tag = main_soup.find('div')
+    current_message_soup = Soup(email_html, 'html.parser')
+    current_message_html_tag = current_message_soup.find('html')
+    current_message_div_tag = current_message_html_tag.find('div')
 
-    # prev_step_ids = [
-    #     step.janium_campaign_step_id for step in janium_campaign.janium_campaign_steps\
-    #                                                             .filter(Janium_campaign_step.janium_campaign_step_delay < janium_campaign_step.janium_campaign_step_delay)\
-    #                                                             .order_by(Janium_campaign_step.janium_campaign_step_delay.asc())\
-    #                                                             .all()
-    # ]
-    # prev_email_actions = session.query(Action).filter(Action.contact_id == contact.contact_id)\
-    #                                           .filter(Action.janium_campaign_step_id.in_(prev_step_ids))\
-    #                                           .order_by(Action.action_timestamp.desc())\
-    #                                           .all()
-    
+    new_main_html_tag = current_message_soup.new_tag('html')
+    new_main_html_tag.insert(0, current_message_div_tag)
+    # print(new_main_html_tag)
+
     if prev_janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == janium_campaign_step.janium_campaign_id)\
                                                                        .filter(Janium_campaign_step.janium_campaign_step_type_id == janium_campaign_step.janium_campaign_step_type_id)\
                                                                        .filter(Janium_campaign_step.janium_campaign_step_delay < janium_campaign_step.janium_campaign_step_delay)\
@@ -61,38 +54,41 @@ def create_reply_thread(janium_campaign, janium_campaign_step, contact, from_ent
             soup = Soup(prev_email_action.action_message, 'html.parser')
 
             prev_action_html_tag = soup.find('html') # Main big html
-            prev_action_div_tag = prev_action_html_tag.find('div') # Main big div
 
-            num_divs = len(prev_action_div_tag.find_all('div', recursive=False))
-            print(num_divs)
+            for i, div_tag in enumerate(prev_action_html_tag.find_all('div', recursive=False)):
+                num_recursive_divs = len(div_tag.find_all('div', recursive=False))
+                if num_recursive_divs == 0:
+                    reply_div_tag = soup.new_tag('div') # New div to be made
 
-            prev_action_message_div_tag = prev_action_div_tag.find('div') # div tag containing the actual message text
-            reply_div_tag = soup.new_tag('div') # New div to be made 
+                    reply_header = """\
+                        <div>\
+                            <p>\
+                                <b>From:</b> {}<br>\
+                                <b>Date:</b> {}<br>\
+                                <b>To:</b> {}<br>\
+                                <b>Subject:</b> Re:{}\
+                            </p>\
+                        </div>\
+                    """.format(
+                        escape(from_entity),
+                        prev_email_action.action_timestamp.strftime(r'%A, %B %d, %Y at %I:%M %p'),
+                        escape('Nicolas Arnold <nic@janium.io>'),
+                        janium_campaign_step.janium_campaign_step_subject
+                    ).strip()
+                    reply_header_div_tag = Soup(reply_header, 'html.parser')
 
-            reply_header = """\
-                <div>\
-                    <p>\
-                        <b>From:</b> {}<br>\
-                        <b>Date:</b> {}<br>\
-                        <b>To:</b> {}<br>\
-                        <b>Subject:</b> Re:{}\
-                    </p>\
-                </div>\
-            """.format(
-                escape(from_entity),
-                prev_email_action.action_timestamp.strftime(r'%A, %B %d, %Y at %I:%M %p'),
-                escape('Nicolas Arnold <nic@janium.io>'),
-                janium_campaign_step.janium_campaign_step_subject
-            ).strip()
-            reply_header_div_tag = Soup(reply_header, 'html.parser')
+                    hr_tag = soup.new_tag('hr')
+                    hr_tag['color'] = "#B5C4DF"
+                    hr_tag['size'] = "1"
 
-            reply_div_tag.insert(0, prev_action_div_tag)
-            reply_div_tag.insert(0, reply_header_div_tag)
-            
-            main_soup_html_tag.insert(1000, reply_div_tag)
-    # return str(main_soup.prettify(formatter=None))
-    return main_soup
+                    reply_div_tag.insert(0, div_tag)
+                    reply_div_tag.insert(0, reply_header_div_tag)
+                    reply_div_tag.insert(0, hr_tag)
 
+                    new_main_html_tag.insert(1000, reply_div_tag)
+                else:
+                    new_main_html_tag.insert(1000, div_tag)
+    return new_main_html_tag
 
 
 def add_preview_text(email_html, details):
