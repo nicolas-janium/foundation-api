@@ -59,7 +59,13 @@ def create_reply_thread(janium_campaign, janium_campaign_step, contact, from_ent
                                                                        .first():
         if prev_email_action := session.query(Action).filter(Action.contact_id == contact.contact_id).filter(Action.janium_campaign_step_id == prev_janium_campaign_step.janium_campaign_step_id).first():
             soup = Soup(prev_email_action.action_message, 'html.parser')
-            prev_action_div_tag = soup.find('div') # Main big div
+
+            prev_action_html_tag = soup.find('html') # Main big html
+            prev_action_div_tag = prev_action_html_tag.find('div') # Main big div
+
+            num_divs = len(prev_action_div_tag.find_all('div', recursive=False))
+            print(num_divs)
+
             prev_action_message_div_tag = prev_action_div_tag.find('div') # div tag containing the actual message text
             reply_div_tag = soup.new_tag('div') # New div to be made 
 
