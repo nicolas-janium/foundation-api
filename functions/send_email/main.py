@@ -88,7 +88,8 @@ def create_reply_thread(janium_campaign, janium_campaign_step, contact, from_ent
                     new_main_html_tag.insert(1000, reply_div_tag)
                 else:
                     new_main_html_tag.insert(1000, div_tag)
-    return new_main_html_tag
+    # return new_main_html_tag
+    return str(new_main_html_tag)
 
 
 def add_preview_text(email_html, details):
@@ -119,10 +120,11 @@ def insert_key_words(email_html, key_words_dict):
 def add_janium_email_identifier(email_html):
     soup = Soup(email_html, 'html.parser')
     html_tag = soup.find('html')
-    div = soup.new_tag('div', attrs={'style': 'opacity:0'})
-    div.string = os.getenv('JANIUM_EMAIL_ID')
-    html_tag.insert(1000, div)
-    return str(soup.prettify(formatter=None))
+    div_tag = html_tag.find('div')
+    new_span_tag = soup.new_tag('span', attrs={'style': 'opacity:0;display:none;'})
+    new_span_tag.string = os.getenv('JANIUM_EMAIL_ID')
+    div_tag.insert(1000, new_span_tag)
+    return str(soup)
 
 def send_email_with_ses(email_config, janium_campaign, janium_campaign_step, contact, session):
     action_id = str(uuid4())
@@ -138,18 +140,15 @@ def send_email_with_ses(email_config, janium_campaign, janium_campaign_step, con
     main_email['From'] = str(Header('{} <{}>')).format(email_config.from_full_name, email_config.from_address)
 
     main_email['To'] = contact.get_emails()[0]
-    main_email.add_header('j_a_id', action_id)
-    main_email.add_header('j_e_id', os.getenv('JANIUM_EMAIL_ID'))
     main_email['MIME-Version'] = '1.0'
 
     if janium_campaign.is_reply_in_email_thread:
-        email_html = create_reply_thread(janium_campaign, janium_campaign_step, contact)
+        email_html = create_reply_thread(janium_campaign, janium_campaign_step, contact, main_email['From'], session) # returns string
     else:
         email_html = janium_campaign_step.janium_campaign_step_body
-    
-    # email_html = add_preview_text(email_html, details)
-    email_html = add_janium_email_identifier(email_html)
-    email_html = insert_key_words(email_html=email_html, key_words_dict=key_words_dict)
+
+    email_html = add_janium_email_identifier(email_html) # return string
+    email_html = insert_key_words(email_html=email_html, key_words_dict=key_words_dict) # Returns a string
 
     # main_email.add_alternative(html2text(email_html), 'plain')
     main_email.add_alternative(email_html, 'html')
@@ -173,7 +172,7 @@ def send_email_with_ses(email_config, janium_campaign, janium_campaign_step, con
             contact.contact_id,
             4,
             datetime.utcnow(),
-            minify_html.minify(email_html, minify_js=False),
+            str(email_html).strip(),
             to_email_addr=contact.get_emails()[0],
             email_message_id=response['MessageId'],
             janium_campaign_step_id=janium_campaign_step.janium_campaign_step_id
@@ -193,38 +192,39 @@ def main(request):
             if janium_campaign := session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
                 if janium_campaign_step := session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
                     if contact := session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
-                        return create_reply_thread(janium_campaign, janium_campaign_step, contact, 'Nic Arnold <nic@janium.io>', session)
-                        # if contact.is_messaging_task_valid():
-                        #     ulinc_config = janium_campaign.janium_campaign_ulinc_config
-                        #     webhook_response = poll_and_save_webhook(ulinc_config, ulinc_config.new_message_webhook, 2, session)
-                        #     if webhook_response == 'Webhook response saved':
-                        #         gct_client = tasks_v2.CloudTasksClient()
-                        #         gct_parent = gct_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-email')
-                        #         payload = json_body
-                        #         task = {
-                        #             "http_request": {  # Specify the type of request.
-                        #                 "http_method": tasks_v2.HttpMethod.POST,
-                        #                 "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
-                        #                 'body': json.dumps(payload).encode(),
-                        #                 'headers': {
-                        #                     'Content-type': 'application/json'
-                        #                 }
-                        #             }
-                        #         }
+                        # return create_reply_thread(janium_campaign, janium_campaign_step, contact, 'Nic Arnold <nic@janium.io>', session)
+                        if contact.is_messaging_task_valid():
+                            ulinc_config = janium_campaign.janium_campaign_ulinc_config
+                            webhook_response = poll_and_save_webhook(ulinc_config, ulinc_config.new_message_webhook, 2, session)
+                            # webhook_response = 'Webhook response empty'
+                            if webhook_response == 'Webhook response saved':
+                                gct_client = tasks_v2.CloudTasksClient()
+                                gct_parent = gct_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-email')
+                                payload = json_body
+                                task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
+                                    }
+                                }
 
-                        #         # Add the timestamp to the tasks.
-                        #         timestamp = timestamp_pb2.Timestamp()
-                        #         timestamp.FromDatetime(datetime.utcnow() + timedelta(minutes=15))
-                        #         task['schedule_time'] = timestamp
+                                # Add the timestamp to the tasks.
+                                timestamp = timestamp_pb2.Timestamp()
+                                timestamp.FromDatetime(datetime.utcnow() + timedelta(minutes=15))
+                                task['schedule_time'] = timestamp
 
-                        #         task_response = gct_client.create_task(parent=gct_parent, task=task)
-                        #         return Response('New message webhook response was not empty. Created new task', 200)
-                        #     elif webhook_response == 'Webhook response empty':
-                        #         if send_email_with_ses(email_config, janium_campaign, janium_campaign_step, contact, session):
-                        #             return Response('Success', 200)
-                        #         return Response('IDK', 200)
-                        #     return Response('IDK', 200)
-                        # return Response("Messaging task no longer valid", 200)
+                                task_response = gct_client.create_task(parent=gct_parent, task=task)
+                                return Response('New message webhook response was not empty. Created new task', 200)
+                            elif webhook_response == 'Webhook response empty':
+                                if send_email_with_ses(email_config, janium_campaign, janium_campaign_step, contact, session):
+                                    return Response('Success', 200)
+                                return Response('IDK', 200)
+                            return Response('IDK', 200)
+                        return Response("Messaging task no longer valid", 200)
                     return Response("Unknown contact_id", 200)
                 return Response("Unknown janium_campaign_id", 200)
         return Response("Failure. Email config does not exist", 200) # Should not repeat
@@ -240,16 +240,17 @@ if __name__ == '__main__':
     }
     req = Mock(get_json=Mock(return_value=data), args=data)
     func_res = main(req)
-    # print(func_res.get_data())
-    pprint(func_res)
-    # print(func_res.status_code)
+    print(func_res.get_data())
+    # pprint(func_res)
+    print(func_res.status_code)
 
     # key_words_dict = {
     #     "FirstName": "Tim",
     #     "Location": "SF",
     #     "Company": "Google"
     # }
-    # email_html = r"<html>Hello, {FirstName}, how is it in {Location} at {Company}?</html>"
+    # email_html = r"<html><div><p>Dear {FirstName} 1,</p><p>I would like to talk to you. How is it in {Location}? Are you tired of {Company} yet?. Let me know when you are free. Thanks</p><p>Best,<br/>Jason</p></div></html>"
+    # add_janium_email_identifier(email_html)
 
     # email_html = insert_key_words(email_html=email_html, key_words_dict=key_words_dict)
     # print(email_html)
