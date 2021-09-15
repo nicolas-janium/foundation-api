@@ -291,6 +291,7 @@ def data_enrichment_job():
                 for janium_campaign in ulinc_config.janium_campaigns:
                     contacts  = janium_campaign.get_data_enrichment_targets()
                     for contact in contacts:
+                        # print(contact.contact_id)
                         payload = {
                             'contact_id': contact.contact_id,
                         }
