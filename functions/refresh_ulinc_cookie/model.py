@@ -571,19 +571,20 @@ class Janium_campaign(Base):
     
     def get_data_enrichment_targets(self):
         targets =[]
-        if campaign_steps := self.janium_campaign_steps.filter(Janium_campaign_step.janium_campaign_step_type_id == 4).order_by(Janium_campaign_step.janium_campaign_step_delay).all():
-            contacts = []
-            for ulinc_campaign in self.ulinc_campaigns:
-                contacts += ulinc_campaign.get_data_enrichment_targets()
-            
-            for contact in contacts:
-                contact_dict = contact._asdict()
-                cnxn_req_action = contact_dict['Action']
-                contact = contact_dict['Contact']
+        contacts = []
+        for ulinc_campaign in self.ulinc_campaigns:
+            contacts += ulinc_campaign.get_data_enrichment_targets()
+
+        for contact in contacts:
+            contact_dict = contact._asdict()
+            action = contact_dict['Action']
+            contact = contact_dict['Contact']
+            contact_info = contact.contact_info
+            if contact_info['ulinc']['li_profile_url']:
                 if da_action := contact.actions.filter(Action.action_type_id == 22).first():
                     continue
                 else:
-                    if (networkdays(cnxn_req_action.action_timestamp, datetime.utcnow()) - 1) >= (campaign_steps[0].janium_campaign_step_delay - 1):
+                    if (networkdays(action.action_timestamp, datetime.utcnow()) - 1) >= 4:
                         targets.append(contact)
         return targets
 
@@ -1121,9 +1122,7 @@ class Ulinc_campaign(Base):
         ).filter(
             Action.contact_id == Contact.contact_id
         ).filter(
-            Action.action_type_id == 19
-        ).filter(
-            Contact.contact_info['ulinc']['li_profile_url'] != cast(text("'null'"), JSON)
+            Action.action_type_id.in_([19])
         ).filter(
             ~Contact.actions.any(Action.action_type_id.in_([1,2,6,11,15,7]))
         ).order_by(

@@ -32,20 +32,22 @@ def get_kendo_person(li_profile_id):
         return res.json()
 
     if res.text == 'Not Found':
-        return "Not found"
-    return "Bad request"
+        return "Kendo not found"
+    return "Kendo bad request"
 
 def data_enrichment_function(contact, session):
     contact_info = contact.contact_info
     li_profile_url = contact_info['ulinc']['li_profile_url']
     li_profile_id = get_li_profile_id(li_profile_url)
     kendo_person = get_kendo_person(li_profile_id)
-    if kendo_person == 'Not found':
+    if kendo_person == 'Kendo not found':
+        new_action = Action(str(uuid4()), contact.contact_id, 22, datetime.utcnow(), json.dumps(kendo_person))
+        session.add(new_action)
+        session.commit()
         return "Kendo not found"
-    elif kendo_person == 'Bad request':
+    elif kendo_person == 'Kendo bad request':
         return "Kendo bad request"
     else:
-        action_id = str(uuid4())
         # if 'work_email' in kendo_person:
         #     if work_email := kendo_person['work_email']:
         #         work_email_dict = {
@@ -71,7 +73,7 @@ def data_enrichment_function(contact, session):
         contact_info['kendo'] = kendo_person
         contact.contact_info = contact_info
         flag_modified(contact, 'contact_info')
-        new_action = Action(action_id, contact.contact_id, 22, datetime.utcnow(), json.dumps(kendo_person))
+        new_action = Action(str(uuid4()), contact.contact_id, 22, datetime.utcnow(), json.dumps(kendo_person))
         session.add(new_action)
         session.commit()
         return "Kendo found"
