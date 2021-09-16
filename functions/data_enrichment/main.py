@@ -27,6 +27,7 @@ def validate_kendo_email(email_addr):
 
 def get_kendo_person(li_profile_id):
     url = "https://kendoemailapp.com/emailbylinkedin?apikey={}&linkedin={}".format(os.getenv('KENDO_API_KEY'), li_profile_id)
+    print(url)
     res = requests.get(url=url)
     if res.ok:
         return res.json()

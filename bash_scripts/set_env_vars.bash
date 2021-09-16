@@ -21,6 +21,7 @@ echo "TESTING_DB_DATABASE=testing_db" >> .env
 echo "TASK_QUEUE_LOCATION=${10}" >> .env
 echo "APP_SECRET_KEY=${11}" >> .env
 echo "JANIUM_EMAIL_IDENTIFIER_KEY=${12}" >> .env
+echo "KENDO_API_KEY: ${13}" >> .env
 
 
 
@@ -45,6 +46,7 @@ echo "TESTING_DB_DATABASE: testing_db" >> ./functions/envs.yaml
 echo "TASK_QUEUE_LOCATION: ${10}" >> ./functions/envs.yaml
 echo "APP_SECRET_KEY: ${11}" >> ./functions/envs.yaml
 echo "JANIUM_EMAIL_IDENTIFIER_KEY: ${12}" >> ./functions/envs.yaml
+echo "KENDO_API_KEY: ${13}" >> ./functions/envs.yaml
 echo "UPDATE_ULINC_CONTACT_STATUS_TRIGGER_URL: https://us-west3-foundation-production.cloudfunctions.net/update-ulinc-contact-status-task-handler" >> ./functions/envs.yaml
 echo "SEND_EMAIL_TRIGGER_URL: https://us-west3-foundation-production.cloudfunctions.net/send-email-task-handler" >> ./functions/envs.yaml
 echo "SEND_LI_MESSAGE_TRIGGER_URL: https://us-west3-foundation-production.cloudfunctions.net/send-li-message-task-handler" >> ./functions/envs.yaml

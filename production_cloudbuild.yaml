@@ -35,8 +35,8 @@ steps:
 # 10
 # Set environment variables and write to .env
 - name: bash
-  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-production $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY us-west3 $$APP_SECRET_KEY $$JANIUM_EMAIL_IDENTIFIER_KEY']
-  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET', 'APP_SECRET_KEY', 'JANIUM_EMAIL_IDENTIFIER_KEY']
+  args: ['-c', './bash_scripts/set_env_vars.bash $$DB_USER_SECRET $$DB_PASSWORD_SECRET $$DB_HOST_SECRET $$DB_PUBLIC_HOST_SECRET $$DB_NAME_SECRET $$SENDGRID_API_KEY_SECRET foundation-production $$SES_ACCESS_KEY_ID $$SES_SECRET_ACCESS_KEY us-west3 $$APP_SECRET_KEY $$JANIUM_EMAIL_IDENTIFIER_KEY $$KENDO_API_KEY']
+  secretEnv: ['DB_PASSWORD_SECRET', 'DB_HOST_SECRET', 'DB_PUBLIC_HOST_SECRET', 'DB_USER_SECRET', 'DB_NAME_SECRET', 'SENDGRID_API_KEY_SECRET', 'SES_ACCESS_KEY_ID', 'SES_SECRET_ACCESS_KEY', 'TESTING_DB_PASSWORD_SECRET', 'TESTING_DB_USER_SECRET', 'TESTING_DB_PUBLIC_HOST_SECRET', 'TESTING_DB_DATABASE_SECRET', 'APP_SECRET_KEY', 'JANIUM_EMAIL_IDENTIFIER_KEY', 'KENDO_API_KEY']
 
 # 11
 # Deploy functions
@@ -159,5 +159,7 @@ availableSecrets:
     env: 'APP_SECRET_KEY'
   - versionName: projects/foundation-production/secrets/janium-email-identifier-key/versions/latest
     env: 'JANIUM_EMAIL_IDENTIFIER_KEY'
+  - versionName: projects/foundation-production/secrets/kendo-api-key/versions/latest
+    env: 'KENDO_API_KEY'
   - versionName: projects/foundation-production/secrets/db_root_password/versions/latest
     env: 'DB_ROOT_PASSWORD'
