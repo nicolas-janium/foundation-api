@@ -3,6 +3,7 @@ from datetime import datetime
 from email.header import Header
 from unittest.mock import Mock
 from uuid import uuid4
+import json
 
 import requests
 from sqlalchemy.orm.attributes import flag_modified
@@ -25,18 +26,25 @@ def validate_kendo_email(email_addr):
     return None
 
 def get_kendo_person(li_profile_id):
-    url = "https://kendoemailapp.com/profilebylinkedin?apikey={}&linkedin={}".format(os.getenv('KENDO_API_KEY'), li_profile_id)
+    url = "https://kendoemailapp.com/emailbylinkedin?apikey={}&linkedin={}".format(os.getenv('KENDO_API_KEY'), li_profile_id)
     res = requests.get(url=url)
     if res.ok:
         return res.json()
-    return None
+
+    if res.text == 'Not Found':
+        return "Not found"
+    return "Bad request"
 
 def data_enrichment_function(contact, session):
     contact_info = contact.contact_info
     li_profile_url = contact_info['ulinc']['li_profile_url']
     li_profile_id = get_li_profile_id(li_profile_url)
     kendo_person = get_kendo_person(li_profile_id)
-    if kendo_person:
+    if kendo_person == 'Not found':
+        return "Kendo not found"
+    elif kendo_person == 'Bad request':
+        return "Kendo bad request"
+    else:
         action_id = str(uuid4())
         # if 'work_email' in kendo_person:
         #     if work_email := kendo_person['work_email']:
@@ -60,31 +68,35 @@ def data_enrichment_function(contact, session):
         #         contact_info['kendo'] = kendo_person
         #         contact.contact_info = contact_info
         #         flag_modified(contact, 'contact_info')
-        if 'kendo' not in contact_info:
-            contact_info['kendo'] = kendo_person
-            contact.contact_info = contact_info
-            flag_modified(contact, 'contact_info')
-            new_action = Action(action_id, contact.contact_id, 22, datetime.utcnow(), None)
-            session.add(new_action)
-            session.commit()
-            return True
-        else:
-            return True
-    return None
+        contact_info['kendo'] = kendo_person
+        contact.contact_info = contact_info
+        flag_modified(contact, 'contact_info')
+        new_action = Action(action_id, contact.contact_id, 22, datetime.utcnow(), json.dumps(kendo_person))
+        session.add(new_action)
+        session.commit()
+        return "Kendo found"
 
 def main(request):
     json_body = request.get_json(force=True)
     with create_gcf_db_session(create_gcf_db_engine())() as session:
         if contact := session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
-            if data_enrichment_function(contact, session):
-                return Response('Success', 200)
-            return Response('Bad request', 200)
+            data_enrichment_function_res = data_enrichment_function(contact, session)
+            if data_enrichment_function_res == 'Kendo found':
+                print("Kendo found for contact {}".format(contact.contact_id))
+                return Response('Kendo found', 200)
+            elif data_enrichment_function_res == 'Kendo not found':
+                print("Kendo not found for contact {}".format(contact.contact_id))
+                return Response('Kendo not found', 200)
+            elif data_enrichment_function_res == 'Kendo bad request':
+                print("Kendo bad request for contact {}".format(contact.contact_id))
+                return Response('Kendo bad request', 200)
+            return Response('Unknown error or kendo status for contact {}'.format(contact.contact_id))
         return Response('Unknown contact_id', 200)
 
 
 if __name__ == '__main__':
     data = {
-        'contact_id': '00001317-1c52-40ba-a8eb-04be0998a180'
+        'contact_id': '0093d012-c5a7-48ca-92e8-2aca71c9f0ed'
     }
     req = Mock(get_json=Mock(return_value=data), args=data)
     func_res = main(req)
