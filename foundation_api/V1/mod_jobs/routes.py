@@ -16,6 +16,7 @@ from google.protobuf import timestamp_pb2
 
 from foundation_api.V1.sa_db.model import Contact_source, get_db_session
 from foundation_api.V1.sa_db.model import Account, Ulinc_config, Cookie
+from foundation_api.V1.utils.google_tasks import get_tasks
 
 
 logger = logging.getLogger('api_jobs')
@@ -331,46 +332,72 @@ def send_email():
             Account.account_id != Account.unassigned_account_id
         )).all()
 
+        send_email_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-email')
+        send_li_message_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-li-message')
+        if os.getenv('FLASK_ENV') == 'production':
+            send_email_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-email')
+            send_li_message_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-li-message')
+
+        # send_li_message_parent = gc_tasks_client.queue_path('foundation-production', 'us-west3', queue='send-li-message')
+        # send_email_parent = gc_tasks_client.queue_path('foundation-production', 'us-west3', queue='send-email')
+
+        send_li_message_tasks = get_tasks(gc_tasks_client, send_li_message_parent)
+        send_email_tasks = get_tasks(gc_tasks_client, send_email_parent)
+        total_message_tasks = send_li_message_tasks + send_email_tasks
+        email_timestamp_list = [task.schedule_time for task in send_email_tasks]
+
+        total_message_contact_id_list = [json.loads(task.http_request.body)['contact_id'] for task in total_message_tasks]
+
         tasks = []
         for account in accounts:
             for ulinc_config in account.ulinc_configs:
                 for janium_campaign in ulinc_config.janium_campaigns:
                     for target_dict in janium_campaign.get_email_targets():
-                        # Generate the timestamp to be used in task
-                        if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
-                            # Create Timestamp protobuf
-                            timestamp = timestamp_pb2.Timestamp()
-                            timestamp.FromDatetime(scheduled_timestamp)
-                            payload = target_dict
+                        if target_dict['contact_id'] not in total_message_contact_id_list: # If contact has existing outbound message task, skip
+                            # Generate the timestamp to be used in task
+                            # Ensure that tasks are at least 3 min apart
+                            for i in range(1000):
+                                scheduled_timestamp = janium_campaign.generate_random_timestamp_in_queue_interval()
+                                for j in email_timestamp_list:
+                                    timestamp_diff = abs(int((scheduled_timestamp - j).total_seconds()))
+                                    if timestamp_diff < 2800:
+                                        scheduled_timestamp = None
+                                        break
+                                    else:
+                                        continue
+                                if scheduled_timestamp:
+                                    break
 
-                            task = {
-                                "http_request": {  # Specify the type of request.
-                                    "http_method": tasks_v2.HttpMethod.POST,
-                                    "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
-                                    'body': json.dumps(payload).encode(),
-                                    'headers': {
-                                        'Content-type': 'application/json'
+                            if scheduled_timestamp:
+                                # Create Timestamp protobuf
+                                timestamp = timestamp_pb2.Timestamp()
+                                timestamp.FromDatetime(scheduled_timestamp)
+                                payload = target_dict
+
+                                send_email_task = {
+                                    "http_request": {  # Specify the type of request.
+                                        "http_method": tasks_v2.HttpMethod.POST,
+                                        "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
+                                        'body': json.dumps(payload).encode(),
+                                        'headers': {
+                                            'Content-type': 'application/json'
+                                        }
                                     }
                                 }
-                            }
-                            queue = 'send-email'
-                            parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
-                            if os.getenv('FLASK_ENV') == 'production':
-                                parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
 
-                            # Add the timestamp to the tasks.
-                            task['schedule_time'] = timestamp
+                                # Add the timestamp to the tasks.
+                                send_email_task['schedule_time'] = timestamp
 
-                            task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                            tasks.append({
-                                "account_id": account.account_id,
-                                "ulinc_config_id": ulinc_config.ulinc_config_id,
-                                "janium_campaign_id": janium_campaign.janium_campaign_id,
-                                "email_target_details": target_dict,
-                                "task_id": task_response.name,
-                                "scheduled_time": scheduled_timestamp
-                            })
-                            # break
+                                task_response = gc_tasks_client.create_task(parent=send_email_parent, task=send_email_task)
+                                tasks.append({
+                                    "account_id": account.account_id,
+                                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                                    "janium_campaign_id": janium_campaign.janium_campaign_id,
+                                    "email_target_details": target_dict,
+                                    "task_id": task_response.name,
+                                    "scheduled_time": scheduled_timestamp
+                                })
+                                # break
     return jsonify(tasks)
 
 @mod_jobs.route('/send_li_message', methods=['GET'])
@@ -384,46 +411,69 @@ def send_li_message_job():
             Account.account_id != Account.unassigned_account_id
         )).all()
 
+        send_email_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-email')
+        send_li_message_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-li-message')
+        if os.getenv('FLASK_ENV') == 'production':
+            send_email_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-email')
+            send_li_message_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-li-message')
+
+        # send_li_message_parent = gc_tasks_client.queue_path('foundation-production', 'us-west3', queue='send-li-message')
+        # send_email_parent = gc_tasks_client.queue_path('foundation-production', 'us-west3', queue='send-email')
+
+        send_li_message_tasks = get_tasks(gc_tasks_client, send_li_message_parent)
+        send_email_tasks = get_tasks(gc_tasks_client, send_email_parent)
+        total_message_tasks = send_li_message_tasks + send_email_tasks
+        li_message_timestamp_list = [task.schedule_time for task in send_li_message_tasks]
+
+        total_message_contact_id_list = [json.loads(task.http_request.body)['contact_id'] for task in total_message_tasks]
+
         tasks = []
         for account in accounts:
             for ulinc_config in account.ulinc_configs:
                 if ulinc_config.ulinc_is_active and ulinc_config.is_working:
                     for janium_campaign in ulinc_config.janium_campaigns:
                         for target_dict in janium_campaign.get_li_message_targets():
-                            # Generate the timestamp to be used in task
-                            if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
-                                # Create Timestamp protobuf
-                                timestamp = timestamp_pb2.Timestamp()
-                                timestamp.FromDatetime(scheduled_timestamp)
-                                payload = target_dict
-                                task = {
-                                    "http_request": {  # Specify the type of request.
-                                        "http_method": tasks_v2.HttpMethod.POST,
-                                        "url": os.getenv('SEND_LI_MESSAGE_TRIGGER_URL'),
-                                        'body': json.dumps(payload).encode(),
-                                        'headers': {
-                                            'Content-type': 'application/json'
+                            if target_dict['contact_id'] not in total_message_contact_id_list: # If contact has existing outbound message task, skip
+                                for i in range(1000):
+                                    scheduled_timestamp = janium_campaign.generate_random_timestamp_in_queue_interval()
+                                    for j in li_message_timestamp_list:
+                                        timestamp_diff = abs(int((scheduled_timestamp - j).total_seconds()))
+                                        if timestamp_diff < 2800:
+                                            scheduled_timestamp = None
+                                            break
+                                        else:
+                                            continue
+                                    if scheduled_timestamp:
+                                        break
+                                # Generate the timestamp to be used in task
+                                if scheduled_timestamp := janium_campaign.generate_random_timestamp_in_queue_interval():
+                                    # Create Timestamp protobuf
+                                    timestamp = timestamp_pb2.Timestamp()
+                                    timestamp.FromDatetime(scheduled_timestamp)
+                                    payload = target_dict
+                                    send_li_message_task = {
+                                        "http_request": {  # Specify the type of request.
+                                            "http_method": tasks_v2.HttpMethod.POST,
+                                            "url": os.getenv('SEND_LI_MESSAGE_TRIGGER_URL'),
+                                            'body': json.dumps(payload).encode(),
+                                            'headers': {
+                                                'Content-type': 'application/json'
+                                            }
                                         }
                                     }
-                                }
-                                queue = 'send-li-message'
-                                parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue=queue)
-                                if os.getenv('FLASK_ENV') == 'production':
-                                    parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue=queue)
+                                    # Add the timestamp to the tasks.
+                                    send_li_message_task['schedule_time'] = timestamp
 
-                                # Add the timestamp to the tasks.
-                                task['schedule_time'] = timestamp
-
-                                task_response = gc_tasks_client.create_task(parent=parent, task=task)
-                                tasks.append({
-                                    "account_id": account.account_id,
-                                    "ulinc_config_id": ulinc_config.ulinc_config_id,
-                                    "janium_campaign_id": janium_campaign.janium_campaign_id,
-                                    "li_message_target_details": target_dict,
-                                    "task_id": task_response.name,
-                                    "scheduled_time": scheduled_timestamp
-                                })
-                                # break
+                                    task_response = gc_tasks_client.create_task(parent=send_li_message_parent, task=send_li_message_task)
+                                    tasks.append({
+                                        "account_id": account.account_id,
+                                        "ulinc_config_id": ulinc_config.ulinc_config_id,
+                                        "janium_campaign_id": janium_campaign.janium_campaign_id,
+                                        "li_message_target_details": target_dict,
+                                        "task_id": task_response.name,
+                                        "scheduled_time": scheduled_timestamp
+                                    })
+                                    # break
     return jsonify(tasks)
 
 @mod_jobs.route('/send_dte', methods=['GET'])

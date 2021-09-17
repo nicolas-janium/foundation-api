@@ -36,3 +36,11 @@ def create_url_task(url, relative_uri_path, payload):
 
 def send_task(client, parent, task):
     return client.create_task(parent=parent, task=task)
+
+def get_tasks(client, parent):
+    list_tasks_request = tasks_v2.ListTasksRequest()
+    list_tasks_request.parent = parent
+    list_tasks_request.response_view = 2
+    tasks = client.list_tasks(list_tasks_request)
+    return [task for task in tasks]
+    return [json.loads(task.http_request.body) for task in tasks]

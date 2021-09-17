@@ -2,6 +2,8 @@ import random
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 import os
+import math
+import pytz
 
 import pytz
 import requests
@@ -412,14 +414,19 @@ class Janium_campaign(db.Model):
 
     def generate_random_timestamp_in_queue_interval(self):
         now = datetime.utcnow()
+        now = pytz.utc.localize(now)
+        scheduled_timestamp = now
         queue_start_time = datetime(now.year, now.month, now.day, self.queue_start_time.hour, self.queue_start_time.minute, 00)
+        queue_start_time = pytz.utc.localize(queue_start_time)
         queue_end_time = datetime(now.year, now.month, now.day, self.queue_end_time.hour, self.queue_end_time.minute, 00)
+        queue_end_time = pytz.utc.localize(queue_end_time)
         if queue_end_time > now:
             if queue_start_time > now:
                 sec_to_add = random.randint(int((queue_start_time - now).total_seconds()), int((queue_end_time - now).total_seconds()))
             else:
                 sec_to_add = random.randint(1, int((queue_end_time - now).total_seconds()))
-            return now + timedelta(seconds=sec_to_add)
+            scheduled_timestamp = scheduled_timestamp + timedelta(seconds=sec_to_add)
+            return scheduled_timestamp
         else:
             return None
 
@@ -646,11 +653,17 @@ class Janium_campaign(db.Model):
                         if step.janium_campaign_step_delay <= day_diff:
                             if num_sent_emails < i + 1:
                                 if i == 0:
-                                    ### To-do ###
-                                    # do not add_contact if prev step has not happened
-                                    janium_campaign_step_id = step.janium_campaign_step_id
-                                    add_contact = True
-                                    break
+                                    if prev_actions:
+                                        if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
+                                            janium_campaign_step_id = step.janium_campaign_step_id
+                                            add_contact = True
+                                            break
+                                        else:
+                                            continue
+                                    else:
+                                        janium_campaign_step_id = step.janium_campaign_step_id
+                                        add_contact = True
+                                        break
                                 else:
                                     if (networkdays(prev_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_steps[step_index-1].janium_campaign_step_delay):
                                         if (networkdays(prev_email_actions[0].action_timestamp, datetime.utcnow()) - 1) >= (step.janium_campaign_step_delay - post_cnxn_email_steps[i-1].janium_campaign_step_delay):
@@ -1253,9 +1266,9 @@ class Contact(db.Model):
         }
         if 'kendo' in contact_info:
             if 'private_email' in contact_info['kendo']:
-                email_dict['kendo_private_email'] = contact_info['kendo']['private_email']['value']
+                email_dict['kendo_private_email'] = contact_info['kendo']['private_email']
             elif 'work_email' in contact_info['kendo']:
-                email_dict['kendo_work_email'] = contact_info['kendo']['work_email']['value']
+                email_dict['kendo_work_email'] = contact_info['kendo']['work_email']
         if 'ulinc' in contact_info:
             email_dict['ulinc_private_email'] = contact_info['ulinc']['email']
         
