@@ -121,7 +121,7 @@ def add_janium_email_identifier(email_html):
     soup = Soup(email_html, 'html.parser')
     html_tag = soup.find('html')
     div_tag = html_tag.find('div')
-    new_span_tag = soup.new_tag('span', attrs={'style': 'opacity:0;display:none;'})
+    new_span_tag = soup.new_tag('span', attrs={'style': 'display:none;'})
     new_span_tag.string = os.getenv('JANIUM_EMAIL_ID')
     div_tag.insert(1000, new_span_tag)
     return str(soup)
