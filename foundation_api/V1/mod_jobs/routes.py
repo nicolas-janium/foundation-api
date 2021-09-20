@@ -67,7 +67,7 @@ def poll_ulinc_webhooks_job():
                         task = {
                             "http_request": {  # Specify the type of request.
                                 "http_method": tasks_v2.HttpMethod.POST,
-                                "url": os.getenv('POLL_ULINC_WEBHOOK_TRIGGER_URL'),
+                                "url": os.getenv('POLL_ULINC_WEBHOOK_TASK_HANDLER_URL'),
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -115,7 +115,7 @@ def poll_ulinc_csv_job():
                         task = {
                             "http_request": {  # Specify the type of request.
                                 "http_method": tasks_v2.HttpMethod.POST,
-                                "url": os.getenv('POLL_ULINC_CSV_TRIGGER_URL'),
+                                "url": os.getenv('POLL_ULINC_CSV_TASK_HANDLER_URL'),
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -161,7 +161,7 @@ def process_contact_sources_job():
                     task = {
                         "http_request": {  # Specify the type of request.
                             "http_method": tasks_v2.HttpMethod.POST,
-                            "url": os.getenv('PROCESS_CONTACT_SOURCE_TRIGGER_URL'),
+                            "url": os.getenv('PROCESS_CONTACT_SOURCE_TASK_HANDLER_URL'),
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
@@ -217,7 +217,7 @@ def refresh_ulinc_cookie_route():
                     task = {
                         "http_request": {  # Specify the type of request.
                             "http_method": tasks_v2.HttpMethod.POST,
-                            "url": os.getenv('REFRESH_ULINC_COOKIE_TRIGGER_URL'),
+                            "url": os.getenv('REFRESH_ULINC_COOKIE_TASK_HANDLER_URL'),
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
@@ -256,7 +256,7 @@ def refresh_ulinc_campaigns_route():
                     task = {
                         "http_request": {  # Specify the type of request.
                             "http_method": tasks_v2.HttpMethod.POST,
-                            "url": os.getenv('REFRESH_ULINC_CAMPAIGNS_TRIGGER_URL'),
+                            "url": os.getenv('REFRESH_ULINC_CAMPAIGNS_TASK_HANDLER_URL'),
                             'body': json.dumps(payload).encode(),
                             'headers': {
                                 'Content-type': 'application/json'
@@ -299,7 +299,7 @@ def data_enrichment_job():
                         task = {
                             "http_request": {  # Specify the type of request.
                                 "http_method": tasks_v2.HttpMethod.POST,
-                                "url": os.getenv('DATA_ENRICHMENT_TRIGGER_URL'),
+                                "url": os.getenv('DATA_ENRICHMENT_TASK_HANDLER_URL'),
                                 'body': json.dumps(payload).encode(),
                                 'headers': {
                                     'Content-type': 'application/json'
@@ -377,7 +377,7 @@ def send_email():
                                 send_email_task = {
                                     "http_request": {  # Specify the type of request.
                                         "http_method": tasks_v2.HttpMethod.POST,
-                                        "url": os.getenv('SEND_EMAIL_TRIGGER_URL'),
+                                        "url": os.getenv('SEND_EMAIL_TASK_HANDLER_URL'),
                                         'body': json.dumps(payload).encode(),
                                         'headers': {
                                             'Content-type': 'application/json'
@@ -454,7 +454,7 @@ def send_li_message_job():
                                     send_li_message_task = {
                                         "http_request": {  # Specify the type of request.
                                             "http_method": tasks_v2.HttpMethod.POST,
-                                            "url": os.getenv('SEND_LI_MESSAGE_TRIGGER_URL'),
+                                            "url": os.getenv('SEND_LI_MESSAGE_TASK_HANDLER_URL'),
                                             'body': json.dumps(payload).encode(),
                                             'headers': {
                                                 'Content-type': 'application/json'

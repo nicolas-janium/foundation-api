@@ -42,7 +42,7 @@ steps:
 # Deploy functions
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
-  args: ['-c', './bash_scripts/deploy_functions.bash us-west3 prod-vpc-connector']
+  args: ['-c', './bash_scripts/deploy_functions.bash us-west3 prod-vpc-connector foundation-production']
 
 timeout: '1600s'
 
