@@ -1,4 +1,4 @@
-echo "FLASK_APP=foundation_api" > .env
+echo "FLASK_APP=foundation_api" >> .env
 echo "FLASK_ENV=production" >> .env
 
 # echo "IS_BUILD=1" >> .env
@@ -25,7 +25,7 @@ echo "KENDO_API_KEY: ${13}" >> .env
 
 
 
-echo "FLASK_APP: foundation_api" > ./functions/envs.yaml
+echo "FLASK_APP: foundation_api" >> ./functions/envs.yaml
 echo "FLASK_ENV: production" >> ./functions/envs.yaml
 
 echo "DB_USER: $1" >> ./functions/envs.yaml
