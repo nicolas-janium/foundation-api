@@ -39,6 +39,26 @@ cron:
     max_backoff_seconds: 10
     max_doublings: 2
 
+- description: "Refresh Ulinc Cookie"
+  url: /api/v1/jobs/refresh_ulinc_cookie
+  schedule: every 18 hours
+  timezone: US/Mountain
+  retry_parameters:
+    job_retry_limit: 0 # Max is 5 and min is 0
+    min_backoff_seconds: 5
+    max_backoff_seconds: 10
+    max_doublings: 2
+
+- description: "Refresh Ulinc Campaigns"
+  url: /api/v1/jobs/refresh_ulinc_campaigns
+  schedule: every 18 hours
+  timezone: US/Mountain
+  retry_parameters:
+    job_retry_limit: 0 # Max is 5 and min is 0
+    min_backoff_seconds: 5
+    max_backoff_seconds: 10
+    max_doublings: 2
+
 - description: "Data Enrichment"
   url: /api/v1/jobs/data_enrichment
   # schedule: every 6 hours from 02:00 to 21:00
