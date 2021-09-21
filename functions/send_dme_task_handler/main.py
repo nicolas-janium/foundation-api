@@ -129,8 +129,8 @@ def send_email_with_ses(df_html):
     main_email['Subject'] = 'Janium Production DME'
     main_email['From'] = str(Header('{} <{}>')).format('Janium Support', 'support@janium.io')
 
-    # main_email['To'] = ['nic@janium.io', 'jason@janium.io']
-    main_email['To'] = ['nic@janium.io']
+    main_email['To'] = ['nic@janium.io', 'jason@janium.io']
+    # main_email['To'] = ['nic@janium.io']
     main_email['MIME-Version'] = '1.0'
 
 
