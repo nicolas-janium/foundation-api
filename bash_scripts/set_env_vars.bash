@@ -1,4 +1,4 @@
-echo "FLASK_APP=foundation_api" >> .env
+echo "FLASK_APP=foundation_api" > .env
 echo "FLASK_ENV=production" >> .env
 
 # echo "IS_BUILD=1" >> .env
@@ -21,11 +21,11 @@ echo "TESTING_DB_DATABASE=testing_db" >> .env
 echo "TASK_QUEUE_LOCATION=${10}" >> .env
 echo "APP_SECRET_KEY=${11}" >> .env
 echo "JANIUM_EMAIL_IDENTIFIER_KEY=${12}" >> .env
-echo "KENDO_API_KEY: ${13}" >> .env
+echo "KENDO_API_KEY=${13}" >> .env
 
 
 
-echo "FLASK_APP: foundation_api" >> ./functions/envs.yaml
+echo "FLASK_APP: foundation_api" > ./functions/envs.yaml
 echo "FLASK_ENV: production" >> ./functions/envs.yaml
 
 echo "DB_USER: $1" >> ./functions/envs.yaml

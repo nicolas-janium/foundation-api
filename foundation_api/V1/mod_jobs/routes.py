@@ -504,7 +504,7 @@ def send_dme_function():
         "http_request": {  # Specify the type of request.
             "http_method": tasks_v2.HttpMethod.POST,
             "url": os.getenv('SEND_DME_TASK_HANDLER_URL'),
-            'body': {},
+            'body': json.dumps({"body": "nothing"}).encode(),
             'headers': {
                 'Content-type': 'application/json'
             }
