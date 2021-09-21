@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup as Soup
 from sqlalchemy.sql import text
 from urllib3.exceptions import InsecureRequestWarning
 
-from model import (Account, Ulinc_config, create_gcf_db_engine,
+from model import (Account, Ulinc_config, Dte, Dte_sender, create_gcf_db_engine,
                    create_gcf_db_session)
 
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning) # pylint: disable=no-member
@@ -105,6 +105,9 @@ def get_ulinc_data(ulinc_config, session):
             {
                 "User": ulinc_config.ulinc_config_account.account_user.full_name,
                 "Ulinc LI Email": ulinc_config.ulinc_li_email,
+                "IPA": ulinc_config.ulinc_config_account.is_payment_active(),
+                "DTE Name": ulinc_config.ulinc_config_account.dte.dte_name if ulinc_config.ulinc_config_account.is_receiving_dte else None,
+                "DTE Sender": ulinc_config.ulinc_config_account.dte_sender.dte_sender_full_name if ulinc_config.ulinc_config_account.is_receiving_dte else None,
                 "UIQ": [int(get_ulinc_tasks_count(ulinc_config))],
                 "CRD": [stat_df.at[1,1]],
                 "CRW": [stat_df.at[1,4]],
@@ -173,7 +176,7 @@ def main(request):
         accounts = session.query(Account).filter(Account.account_id != Account.unassigned_account_id).all()
 
         columns = [
-            'User', 'Ulinc LI Email', 'UIQ',
+            'User', 'Ulinc LI Email', 'IPA', 'DTE Name', 'DTE Sender', 'UIQ',
             'CRD', 'CRW', 'CRM',
             'CD', 'CW', 'CM',
             'LSD', 'LSW', 'LSM',
@@ -211,68 +214,77 @@ def main(request):
                         border-bottom: black 1px solid;
                         padding: 5px;
                     }
-                    .stat_table tr td:nth-child(n+1):nth-last-child(n+21) {
+
+                    .stat_table tr td:nth-child(n+1):nth-last-child(n+24) {
                         background: #FFC09F;
                     }
 
-                    .stat_table tr td:nth-child(n+4):nth-last-child(n+18) {
+                    .stat_table tr td:nth-child(n+4):nth-last-child(n+21) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+7):nth-last-child(n+15) {
+                    .stat_table tr td:nth-child(n+7):nth-last-child(n+18) {
                         background: #99CDD5;
                     }
 
-                    .stat_table tr td:nth-child(n+10):nth-last-child(n+12) {
+                    .stat_table tr td:nth-child(n+10):nth-last-child(n+15) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+13):nth-last-child(n+9) {
+                    .stat_table tr td:nth-child(n+13):nth-last-child(n+12) {
                         background: #99CDD5;
                     }
 
-                    .stat_table tr td:nth-child(n+16):nth-last-child(n+6) {
+                    .stat_table tr td:nth-child(n+16):nth-last-child(n+9) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+19):nth-last-child(n+3) {
+                    .stat_table tr td:nth-child(n+19):nth-last-child(n+6) {
                         background: #99CDD5;
                     }
 
-                    .stat_table tr td:nth-child(n+22):nth-last-child(n+1) {
+                    .stat_table tr td:nth-child(n+22):nth-last-child(n+4) {
                         background: #B6DBE2;
                     }
-                    
-                    .stat_table th:nth-child(n+1):nth-last-child(n+21) {
+
+                    .stat_table tr td:nth-child(n+25):nth-last-child(n+1) {
+                        background: #99CDD5;
+                    }
+
+                    .stat_table th:nth-child(n+1):nth-last-child(n+24) {
                         background: #FFC09F;
                     }
 
-                    .stat_table th:nth-child(n+4):nth-last-child(n+18) {
+                    .stat_table th:nth-child(n+4):nth-last-child(n+21) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+7):nth-last-child(n+15) {
+                    .stat_table th:nth-child(n+7):nth-last-child(n+18) {
                         background: #99CDD5;
                     }
 
-                    .stat_table th:nth-child(n+10):nth-last-child(n+12) {
+                    .stat_table th:nth-child(n+10):nth-last-child(n+15) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+13):nth-last-child(n+9) {
+                    .stat_table th:nth-child(n+13):nth-last-child(n+12) {
                         background: #99CDD5;
                     }
 
-                    .stat_table th:nth-child(n+16):nth-last-child(n+6) {
+                    .stat_table th:nth-child(n+16):nth-last-child(n+9) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+19):nth-last-child(n+3) {
+                    .stat_table th:nth-child(n+19):nth-last-child(n+6) {
                         background: #99CDD5;
                     }
 
-                    .stat_table th:nth-child(n+22):nth-last-child(n+1) {
+                    .stat_table th:nth-child(n+22):nth-last-child(n+4) {
                         background: #B6DBE2;
+                    }
+
+                    .stat_table th:nth-child(n+25):nth-last-child(n+1) {
+                        background: #99CDD5;
                     }
                 </style>
             </head>

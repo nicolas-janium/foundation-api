@@ -82,7 +82,7 @@ cron:
 
 - description: "Send DME"
   url: /api/v1/jobs/send_dme
-  schedule: every monday,tuesday,wednesday,thursday,friday 07:00
+  schedule: every monday,tuesday,wednesday,thursday,friday 19:00
   timezone: US/Mountain
   retry_parameters:
     job_retry_limit: 0 # Max is 5 and min is 0
