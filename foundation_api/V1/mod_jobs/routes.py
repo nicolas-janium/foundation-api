@@ -478,7 +478,7 @@ def send_li_message_job():
 
 @mod_jobs.route('/send_dte', methods=['GET'])
 @check_cron_header
-def send_dte():
+def send_dte_function():
     with get_db_session() as session:
         accounts = session.query(Account).filter(and_(
             and_(Account.effective_start_date < datetime.utcnow(), Account.effective_end_date > datetime.utcnow()),
@@ -492,3 +492,25 @@ def send_dte():
             pass
         
     return jsonify(tasks)
+
+@mod_jobs.route('/send_dme', methods=['GET'])
+@check_cron_header
+def send_dme_function():
+    send_dme_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-dme')
+    if os.getenv('FLASK_ENV') == 'production':
+        send_dme_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-dme')
+    
+    send_dme_task = {
+        "http_request": {  # Specify the type of request.
+            "http_method": tasks_v2.HttpMethod.POST,
+            "url": os.getenv('SEND_DME_TASK_HANDLER_URL'),
+            'body': {},
+            'headers': {
+                'Content-type': 'application/json'
+            }
+        }
+    }
+
+    task_response = gc_tasks_client.create_task(parent=send_dme_parent, task=send_dme_task)
+
+    return jsonify({'message': 'Sent to task handler'})

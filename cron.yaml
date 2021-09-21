@@ -89,3 +89,13 @@ cron:
     min_backoff_seconds: 5
     max_backoff_seconds: 10
     max_doublings: 2
+
+- description: "Send DME"
+  url: /api/v1/jobs/send_dme
+  schedule: every monday,tuesday,wednesday,thursday,friday 07:00
+  timezone: US/Mountain
+  retry_parameters:
+    job_retry_limit: 0 # Max is 5 and min is 0
+    min_backoff_seconds: 5
+    max_backoff_seconds: 10
+    max_doublings: 2

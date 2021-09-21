@@ -79,7 +79,7 @@ class User(Base):
     asOfStartTime = Column(DateTime, server_default=text("(UTC_TIMESTAMP)"))
     asOfEndTime = Column(DateTime, server_default=text("(DATE_ADD(UTC_TIMESTAMP, INTERVAL 5000 YEAR))"))
 
-    account = relationship('Account', uselist=False, lazy=True)
+    account = relationship('Account', backref=backref('account_user', uselist=False), uselist=False, lazy=True)
     credentials = relationship('Credentials', backref=backref('credentials_user', uselist=False), uselist=False)
 
 class Account(Base):
