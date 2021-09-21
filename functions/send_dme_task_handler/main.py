@@ -71,7 +71,10 @@ def get_ulinc_data(ulinc_config, session):
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 4 then 1 else 0 end), 0) as ES1M,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1D,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1W,
-                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1M
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1M,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 22 then 1 else 0 end), 0) as DE1D,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 22 then 1 else 0 end), 0) as DE1W,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 22 then 1 else 0 end), 0) as DE1M
             from action act
             inner join contact co on co.contact_id = act.contact_id
             inner join ulinc_campaign uca on co.ulinc_campaign_id = uca.ulinc_campaign_id
@@ -93,6 +96,9 @@ def get_ulinc_data(ulinc_config, session):
             er1d = int(row[9])
             er1w = int(row[10])
             er1m = int(row[11])
+            de1d = int(row[12])
+            de1w = int(row[13])
+            de1m = int(row[14])
 
 
         df = pd.DataFrame(
@@ -117,7 +123,10 @@ def get_ulinc_data(ulinc_config, session):
                 "ESM": [es1m],
                 "ERD": [er1d],
                 "ERW": [er1w],
-                "ERM": [er1m]
+                "ERM": [er1m],
+                "DED": [de1d],
+                "DEW": [de1w],
+                "DEM": [de1m]
             }
         )
         return df
@@ -146,6 +155,7 @@ def send_email_with_ses(df_html):
         response = client.send_raw_email(
             Source=main_email['From'],
             Destinations=['nic@janium.io', 'jason@janium.io'],
+            # Destinations=['nic@janium.io'],
             RawMessage={
                 "Data": main_email.as_string()
             }
@@ -169,7 +179,8 @@ def main(request):
             'LSD', 'LSW', 'LSM',
             'LRD', 'LRW', 'LRM',
             'ESD', 'ESW', 'ESM',
-            'ERD', 'ERW', 'ERM'
+            'ERD', 'ERW', 'ERM',
+            'DED', 'DEW', 'DEM'
         ]
 
         main_df = pd.DataFrame(columns=columns)
@@ -193,67 +204,75 @@ def main(request):
                         text-align: left;
                     }
                     .stat_table td{
-                        padding: 7px;
+                        padding: 5px;
                         text-align: left;
                     }
                     .stat_table th{
                         border-bottom: black 1px solid;
-                        padding: 7px;
+                        padding: 5px;
                     }
-                    .stat_table tr td:nth-child(n+1):nth-last-child(n+18) {
+                    .stat_table tr td:nth-child(n+1):nth-last-child(n+21) {
                         background: #FFC09F;
                     }
 
-                    .stat_table tr td:nth-child(n+4):nth-last-child(n+15) {
+                    .stat_table tr td:nth-child(n+4):nth-last-child(n+18) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+7):nth-last-child(n+12) {
+                    .stat_table tr td:nth-child(n+7):nth-last-child(n+15) {
                         background: #99CDD5;
                     }
 
-                    .stat_table tr td:nth-child(n+10):nth-last-child(n+9) {
+                    .stat_table tr td:nth-child(n+10):nth-last-child(n+12) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+13):nth-last-child(n+6) {
+                    .stat_table tr td:nth-child(n+13):nth-last-child(n+9) {
                         background: #99CDD5;
                     }
 
-                    .stat_table tr td:nth-child(n+16):nth-last-child(n+3) {
+                    .stat_table tr td:nth-child(n+16):nth-last-child(n+6) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table tr td:nth-child(n+19):nth-last-child(n+1) {
+                    .stat_table tr td:nth-child(n+19):nth-last-child(n+3) {
                         background: #99CDD5;
+                    }
+
+                    .stat_table tr td:nth-child(n+22):nth-last-child(n+1) {
+                        background: #B6DBE2;
                     }
                     
-                    .stat_table th:nth-child(n+1):nth-last-child(n+18) {
+                    .stat_table th:nth-child(n+1):nth-last-child(n+21) {
                         background: #FFC09F;
                     }
 
-                    .stat_table th:nth-child(n+4):nth-last-child(n+15) {
+                    .stat_table th:nth-child(n+4):nth-last-child(n+18) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+7):nth-last-child(n+12) {
+                    .stat_table th:nth-child(n+7):nth-last-child(n+15) {
                         background: #99CDD5;
                     }
 
-                    .stat_table th:nth-child(n+10):nth-last-child(n+9) {
+                    .stat_table th:nth-child(n+10):nth-last-child(n+12) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+13):nth-last-child(n+6) {
+                    .stat_table th:nth-child(n+13):nth-last-child(n+9) {
                         background: #99CDD5;
                     }
 
-                    .stat_table th:nth-child(n+16):nth-last-child(n+3) {
+                    .stat_table th:nth-child(n+16):nth-last-child(n+6) {
                         background: #B6DBE2;
                     }
 
-                    .stat_table th:nth-child(n+19):nth-last-child(n+1) {
+                    .stat_table th:nth-child(n+19):nth-last-child(n+3) {
                         background: #99CDD5;
+                    }
+
+                    .stat_table th:nth-child(n+22):nth-last-child(n+1) {
+                        background: #B6DBE2;
                     }
                 </style>
             </head>
