@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, request, current_app, make_response
+from flask import Blueprint, jsonify, request, make_response, redirect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from foundation_api import check_json_header
@@ -134,30 +134,47 @@ def get_ulinc_config():
         return make_response(jsonify({"message": "Unknown ulinc_config_id value"}), 400)
     return make_response(jsonify({"message": "Missing ulinc_config_id param"}), 400)
 
-@mod_home.route('/dte_click', methods=['POST'])
-@jwt_required()
-@check_json_header
+@mod_home.route('/dte_click', methods=['GET'])
+# @jwt_required()
 def dte_click():
     """
-    Required JSON keys: click_type (new_connection, dq, continue), contact_id
+    Required JSON keys: click_type (new_connection, new_message, voicemail, dq, continue), contact_id
     """
-    user_id = get_jwt_identity()
+    # user_id = get_jwt_identity()
     if json_body := request.get_json():
-        if contact := db.session.query(Contact).filter(Contact.contact_id == json_body['contact_id']).first():
-            if json_body['click_type'] in ['nc_visit', 'nm_visit', 'vm_visit', 'dq', 'continue']:
-                if json_body['click_type'] == 'nc_visit':
-                    new_action = Action(str(uuid4()), contact.contact_id, 8, datetime.utcnow(), None)
-                elif json_body['click_type'] == 'nm_visit':
-                    new_action = Action(str(uuid4()), contact.contact_id, 9, datetime.utcnow(), None)
-                elif json_body['click_type'] == 'vm_visit':
-                    new_action = Action(str(uuid4()), contact.contact_id, 10, datetime.utcnow(), None)
-                elif json_body['click_type'] == 'dq':
-                    new_action = Action(str(uuid4()), contact.contact_id, 11, datetime.utcnow(), None)
-                elif json_body['click_type'] == 'continue':
-                    new_action = Action(str(uuid4()), contact.contact_id, 14, datetime.utcnow(), None)
+        click_type = json_body['click_type']
+        contact_id = json_body['contact_id']
+        redirect_url = None
+        if 'redirect_url' in json_body:
+            redirect_url = json_body['redirect_url']
+    else:
+        click_type = request.args.get('click_type')
+        contact_id = request.args.get('contact_id')
+        redirect_url = request.args.get('redirect_url')
+    if contact := db.session.query(Contact).filter(Contact.contact_id == contact_id).first():
+        if click_type in ['new_connection', 'new_message', 'voicemail', 'dq', 'continue']:
+            if click_type == 'new_connection':
+                action_type_id = 8
+            elif click_type == 'new_message':
+                action_type_id = 9
+            elif click_type == 'voicemail':
+                action_type_id = 10
+            elif click_type == 'dq':
+                action_type_id = 11
+            elif click_type == 'continue':
+                action_type_id = 14
+            
+            if existing_action := contact.actions.filter(Action.action_type_id == action_type_id).first():
+                pass
+            else:
+                new_action = Action(str(uuid4()), contact.contact_id, action_type_id, datetime.utcnow(), None)
                 db.session.add(new_action)
                 db.session.commit()
-                return jsonify({"message": "success"})
-            return make_response(jsonify({"message": "Unknown click_type"}), 400)
-        return make_response(jsonify({"message": "Unknown contact_id"}), 400)
-    return make_response(jsonify({"message": "JSON body is missing"}), 400)
+
+            if redirect_url:
+                return redirect(redirect_url)
+
+            return jsonify({"message": "success"})
+        return make_response(jsonify({"message": "Unknown click_type"}), 400)
+    return make_response(jsonify({"message": "Unknown contact_id"}), 400)
+

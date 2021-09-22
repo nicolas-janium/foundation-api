@@ -22,6 +22,8 @@ echo "TASK_QUEUE_LOCATION=${10}" >> .env
 echo "APP_SECRET_KEY=${11}" >> .env
 echo "JANIUM_EMAIL_IDENTIFIER_KEY=${12}" >> .env
 echo "KENDO_API_KEY=${13}" >> .env
+echo "BACKEND_API_URL=https://${7}.wm.r.appspot.com/api/v1/" >> .env
+
 
 
 
@@ -47,3 +49,4 @@ echo "TASK_QUEUE_LOCATION: ${10}" >> ./functions/envs.yaml
 echo "APP_SECRET_KEY: ${11}" >> ./functions/envs.yaml
 echo "JANIUM_EMAIL_IDENTIFIER_KEY: ${12}" >> ./functions/envs.yaml
 echo "KENDO_API_KEY: ${13}" >> ./functions/envs.yaml
+echo "BACKEND_API_URL: https://${7}.wm.r.appspot.com/api/v1/" >> ./functions/envs.yaml

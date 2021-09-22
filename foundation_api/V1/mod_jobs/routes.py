@@ -487,10 +487,35 @@ def send_dte_function():
             Account.account_id != Account.unassigned_account_id
         )).all()
 
+        send_dte_parent = gc_tasks_client.queue_path('foundation-staging-305217', 'us-central1', queue='send-dte')
+        if os.getenv('FLASK_ENV') == 'production':
+            send_dte_parent = gc_tasks_client.queue_path(os.getenv('PROJECT_ID'), os.getenv('TASK_QUEUE_LOCATION'), queue='send-dte')
+        
         tasks = []
         for account in accounts:
-            pass
-        
+            for ulinc_config in account.ulinc_configs:
+                payload = {
+                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                    "dte_id": account.dte_id,
+                    "dte_sender_id": account.dte_sender_id
+                }
+                send_dte_task = {
+                    "http_request": {  # Specify the type of request.
+                        "http_method": tasks_v2.HttpMethod.POST,
+                        "url": os.getenv('SEND_DTE_TASK_HANDLER_URL'),
+                        'body': json.dumps(payload).encode(),
+                        'headers': {
+                            'Content-type': 'application/json'
+                        }
+                    }
+                }
+
+                task_response = gc_tasks_client.create_task(parent=send_dte_parent, task=send_dte_task)
+                tasks.append({
+                    "account_id": account.account_id,
+                    "ulinc_config_id": ulinc_config.ulinc_config_id,
+                    "task_id": task_response.name
+                })
     return jsonify(tasks)
 
 @mod_jobs.route('/send_dme', methods=['GET'])

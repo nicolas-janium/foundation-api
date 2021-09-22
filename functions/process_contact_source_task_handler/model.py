@@ -269,22 +269,22 @@ class Ulinc_config(Base):
 
         return summary_data
     
-    def get_dte_new_connections(self):
+    def get_dte_new_connections(self, session=db.session):
         new_connections_list = []
         for ulinc_campaign in self.ulinc_campaigns:
-            new_connections_list += ulinc_campaign.get_dte_new_connections()
+            new_connections_list += ulinc_campaign.get_dte_new_connections(session)
         return new_connections_list[0:100]
     
-    def get_dte_new_messages(self):
+    def get_dte_new_messages(self, session=db.session):
         new_messages_list = []
         for ulinc_campaign in self.ulinc_campaigns:
-            new_messages_list += ulinc_campaign.get_dte_new_messages()
+            new_messages_list += ulinc_campaign.get_dte_new_messages(session)
         return new_messages_list[0:100]
     
-    def get_dte_vm_tasks(self):
+    def get_dte_vm_tasks(self, session=db.session):
         vm_tasks_list = []
         for ulinc_campaign in self.ulinc_campaigns:
-            vm_tasks_list += ulinc_campaign.get_dte_vm_tasks()
+            vm_tasks_list += ulinc_campaign.get_dte_vm_tasks(session)
         return vm_tasks_list[0:100]
 
 class Email_config(Base):
@@ -1004,10 +1004,10 @@ class Ulinc_campaign(Base):
             )
         return contacts_list
     
-    def get_dte_new_connections(self):
+    def get_dte_new_connections(self, session):
         new_connections_list = []
 
-        query_result = db.session.query(
+        query_result = session.query(
                 Contact, Action
             ).filter(
                 Contact.ulinc_campaign_id == self.ulinc_campaign_id
@@ -1035,18 +1035,19 @@ class Ulinc_campaign(Base):
                         "ulinc_campaign_name": self.ulinc_campaign_name,
                         "janium_campaign_id": self.parent_janium_campaign.janium_campaign_id,
                         "janium_campaign_name": self.parent_janium_campaign.janium_campaign_name,
-                        "connection_date": cnxn_action.action_timestamp,
+                        "action_timestamp": cnxn_action.action_timestamp,
                         "is_clicked": True if contact.actions.filter(Action.action_type_id == 8).first() else False,
                         "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+
                     }
                 )
-        return sorted(new_connections_list, key = lambda item: item['connection_date'], reverse=True)
+        return sorted(new_connections_list, key = lambda item: item['action_timestamp'], reverse=True)
     
-    def get_dte_new_messages(self):
+    def get_dte_new_messages(self, session):
         new_messages_list = []
         prev_contact_id = ''
 
-        query_result = db.session.query(
+        query_result = session.query(
                 Contact, Action
             ).filter(
                 Contact.ulinc_campaign_id == self.ulinc_campaign_id
@@ -1077,21 +1078,22 @@ class Ulinc_campaign(Base):
                         "ulinc_campaign_name": self.ulinc_campaign_name,
                         "janium_campaign_id": self.parent_janium_campaign.janium_campaign_id,
                         "janium_campaign_name": self.parent_janium_campaign.janium_campaign_name,
-                        "msg_timestamp": msg_action.action_timestamp,
-                        "msg_type": "email" if msg_action.action_type_id == 6 else "li_message",
+                        "action_timestamp": msg_action.action_timestamp,
+                        "message_source": "email" if msg_action.action_type_id == 6 else "li_message",
                         "is_clicked": True if contact.actions.filter(Action.action_type_id == 9).first() else False,
-                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False
+                        "is_dqd": True if contact.actions.filter(Action.action_type_id == 11).first() else False,
+                        "is_continue": True if contact.actions.filter(Action.action_type_id == 14).first() else False
                     }
                 )
-        return sorted(new_messages_list, key = lambda item: item['msg_timestamp'], reverse=True)
+        return sorted(new_messages_list, key = lambda item: item['action_timestamp'], reverse=True)
     
-    def get_dte_vm_tasks(self):
+    def get_dte_vm_tasks(self, session):
         vm_tasks_list = []
         janium_campaign = self.parent_janium_campaign
         if janium_campaign.janium_campaign_id != Janium_campaign.unassigned_janium_campaign_id:
             if janium_campaign_steps := janium_campaign.janium_campaign_steps.order_by(Janium_campaign_step.janium_campaign_step_delay.desc()).all():
                 if last_step := janium_campaign_steps[0]:
-                    query_result = db.session.query(
+                    query_result = session.query(
                         Contact, Action
                     ).filter(
                         Contact.ulinc_campaign_id == self.ulinc_campaign_id
