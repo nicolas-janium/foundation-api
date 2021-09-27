@@ -66,9 +66,12 @@ def get_ulinc_data(ulinc_config, session):
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 2 then 1 else 0 end), 0) as LR1D,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 2 then 1 else 0 end), 0) as LR1W,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 2 then 1 else 0 end), 0) as LR1M,
-                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 4 then 1 else 0 end), 0) as ES1D,
-                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 4 then 1 else 0 end), 0) as ES1W,
-                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 4 then 1 else 0 end), 0) as ES1M,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 2 then 1 else 0 end), 0) as ES1D,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 2 then 1 else 0 end), 0) as ES1W,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 2 then 1 else 0 end), 0) as ES1M,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 4 then 1 else 0 end), 0) as PES1D,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 4 then 1 else 0 end), 0) as PES1W,
+                IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 4 and jcs.janium_campaign_step_type_id = 4 then 1 else 0 end), 0) as PES1M,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 25 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1D,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1W,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 6 then 1 else 0 end), 0) as ER1M,
@@ -76,6 +79,7 @@ def get_ulinc_data(ulinc_config, session):
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 169 and act.action_type_id = 22 then 1 else 0 end), 0) as DE1W,
                 IFNULL(sum(case when timestampdiff(HOUR, act.action_timestamp, NOW()) < 721 and act.action_type_id = 22 then 1 else 0 end), 0) as DE1M
             from action act
+            inner join janium_campaign_step jcs on act.janium_campaign_step_id = jcs.janium_campaign_step_id
             inner join contact co on co.contact_id = act.contact_id
             inner join ulinc_campaign uca on co.ulinc_campaign_id = uca.ulinc_campaign_id
             inner join ulinc_config uc on uc.ulinc_config_id = uc.ulinc_config_id
@@ -93,12 +97,15 @@ def get_ulinc_data(ulinc_config, session):
             es1d = int(row[6])
             es1w = int(row[7])
             es1m = int(row[8])
-            er1d = int(row[9])
-            er1w = int(row[10])
-            er1m = int(row[11])
-            de1d = int(row[12])
-            de1w = int(row[13])
-            de1m = int(row[14])
+            pes1d = int(row[9])
+            pes1w = int(row[10])
+            pes1m = int(row[11])
+            er1d = int(row[12])
+            er1w = int(row[13])
+            er1m = int(row[14])
+            de1d = int(row[15])
+            de1w = int(row[16])
+            de1m = int(row[17])
 
 
         df = pd.DataFrame(
@@ -124,6 +131,9 @@ def get_ulinc_data(ulinc_config, session):
                 "ESD": [es1d],
                 "ESW": [es1w],
                 "ESM": [es1m],
+                "PESD": [pes1d],
+                "PESW": [pes1w],
+                "PESM": [pes1m],
                 "ERD": [er1d],
                 "ERW": [er1w],
                 "ERM": [er1m],
@@ -182,6 +192,7 @@ def main(request):
             'LSD', 'LSW', 'LSM',
             'LRD', 'LRW', 'LRM',
             'ESD', 'ESW', 'ESM',
+            'PESD', 'PESW', 'PESM',
             'ERD', 'ERW', 'ERM',
             'DED', 'DEW', 'DEM'
         ]
