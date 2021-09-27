@@ -116,55 +116,117 @@ def update_janium_campaign():
         return make_response(jsonify({"message": "Unknown janium_campaign_id value"}), 400)
     return make_response(jsonify({"message": "JSON body is missing"}), 400)
 
-@mod_campaign.route('/janium_campaign_step', methods=['POST'])
+# @mod_campaign.route('/janium_campaign_step', methods=['POST'])
+# @jwt_required()
+# @check_json_header
+# def create_janium_campaign_step():
+#     """
+#     Required JSON keys: janium_campaign_id, janium_campaign_step_type_id (li_message: 1, email: 2, pre_connection_email: 4, text: 3), janium_campaign_step_delay,
+#     janium_campaign_step_body, janium_campaign_step_subject (if type == email or type == pre_connection_email), 
+#     """
+#     user_id = get_jwt_identity()
+#     if json_body := request.get_json():
+#         if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == json_body['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == json_body['janium_campaign_step_delay']).filter(Janium_campaign_step.janium_campaign_step_type_id == json_body['janium_campaign_step_type_id']).first():
+#             return make_response(jsonify({"message": "Duplicate step (Delay and type)"}), 400)
+#         if json_body['janium_campaign_step_type_id'] not in [1,2,3,4]:
+#             return make_response(jsonify({"message": "Invalid janium_campaign_step_type_id value"}), 400)
+#         else:
+#             if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
+#                 new_step = Janium_campaign_step(
+#                     str(uuid4()),
+#                     json_body['janium_campaign_id'],
+#                     json_body['janium_campaign_step_type_id'],
+#                     json_body['janium_campaign_step_delay'],
+#                     json_body['janium_campaign_step_body'],
+#                     json_body['janium_campaign_step_subject'] if json_body['janium_campaign_step_type_id'] in [2,4] else None,
+#                     janium_campaign.queue_start_time,
+#                     janium_campaign.queue_end_time
+#                 )
+#                 db.session.add(new_step)
+#                 db.session.commit()
+#                 return jsonify({"message": "success"})
+#             return make_response(jsonify({"message": "Unknown janium_campaign_id value"}), 400)
+#     return make_response(jsonify({"message": "JSON body is missing"}), 400)
+
+# @mod_campaign.route('/janium_campaign_step', methods=['PUT'])
+# @jwt_required()
+# @check_json_header
+# def update_janium_campaign_step():
+#     """
+#     Required JSON keys: janium_campaign_step_id, janium_campaign_step_delay, janium_campaign_step_body,
+#                         janium_campaign_step_subject
+#     """
+#     user_id = get_jwt_identity()
+#     if json_body := request.get_json():
+#         if janium_campaign_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
+#             janium_campaign_step.janium_campaign_step_delay = json_body['janium_campaign_step_delay']
+#             janium_campaign_step.janium_campaign_step_body = json_body['janium_campaign_step_body']
+#             janium_campaign_step.janium_campaign_step_subject = json_body['janium_campaign_step_subject']
+#             db.session.commit()
+#             return jsonify({"message": "success"})
+#         return make_response(jsonify({"message": "Unknown janium_campaign_step_id value"}), 400)
+#     return make_response(jsonify({"message": "JSON body is missing"}), 400)
+
+@mod_campaign.route('/janium_campaign_steps', methods=['POST'])
 @jwt_required()
 @check_json_header
-def create_janium_campaign_step():
+def create_janium_campaign_steps():
     """
-    Required JSON keys: janium_campaign_id, janium_campaign_step_type_id (li_message: 1, email: 2, pre_connection_email: 4, text: 3), janium_campaign_step_delay,
-    janium_campaign_step_body, janium_campaign_step_subject (if type == email or type == pre_connection_email), 
+    Required JSON keys: [
+        janium_campaign_id,
+        janium_campaign_step_type_id (li_message: 1, email: 2, pre_connection_email: 4, text: 3),
+        janium_campaign_step_delay,
+        janium_campaign_step_body,
+        janium_campaign_step_subject (if type == email or type == pre_connection_email)
+    ]
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
-        if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == json_body['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == json_body['janium_campaign_step_delay']).filter(Janium_campaign_step.janium_campaign_step_type_id == json_body['janium_campaign_step_type_id']).first():
-            return make_response(jsonify({"message": "Duplicate step (Delay and type)"}), 400)
-        if json_body['janium_campaign_step_type_id'] not in [1,2,3,4]:
-            return make_response(jsonify({"message": "Invalid janium_campaign_step_type_id value"}), 400)
-        else:
-            if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body['janium_campaign_id']).first():
-                new_step = Janium_campaign_step(
-                    str(uuid4()),
-                    json_body['janium_campaign_id'],
-                    json_body['janium_campaign_step_type_id'],
-                    json_body['janium_campaign_step_delay'],
-                    json_body['janium_campaign_step_body'],
-                    json_body['janium_campaign_step_subject'] if json_body['janium_campaign_step_type_id'] in [2,4] else None,
-                    janium_campaign.queue_start_time,
-                    janium_campaign.queue_end_time
-                )
-                db.session.add(new_step)
+        if janium_campaign := db.session.query(Janium_campaign).filter(Janium_campaign.janium_campaign_id == json_body[0]['janium_campaign_id']).first():
+            for step in json_body:
+                if existing_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_id == step['janium_campaign_id']).filter(Janium_campaign_step.janium_campaign_step_delay == step['janium_campaign_step_delay']).filter(Janium_campaign_step.janium_campaign_step_type_id == step['janium_campaign_step_type_id']).first():
+                    continue
+                if step['janium_campaign_step_type_id'] not in [1,2,3,4]:
+                    continue
+                else:
+                    new_step = Janium_campaign_step(
+                        str(uuid4()),
+                        step['janium_campaign_id'],
+                        step['janium_campaign_step_type_id'],
+                        step['janium_campaign_step_delay'],
+                        step['janium_campaign_step_body'],
+                        step['janium_campaign_step_subject'] if step['janium_campaign_step_type_id'] in [2,4] else None,
+                        janium_campaign.queue_start_time,
+                        janium_campaign.queue_end_time
+                    )
+                    db.session.add(new_step)
                 db.session.commit()
-                return jsonify({"message": "success"})
-            return make_response(jsonify({"message": "Unknown janium_campaign_id value"}), 400)
+                return make_response(jsonify({"message": "success"}), 200)
+            return make_response(jsonify({"message": "success"}), 200)
+        return make_response(jsonify({"message": "Unknown janium_campaign_step_id value"}), 400)
     return make_response(jsonify({"message": "JSON body is missing"}), 400)
 
-@mod_campaign.route('/janium_campaign_step', methods=['PUT'])
+@mod_campaign.route('/janium_campaign_steps', methods=['PUT'])
 @jwt_required()
 @check_json_header
-def update_janium_campaign_step():
+def update_janium_campaign_steps():
     """
-    Required JSON keys: janium_campaign_step_id, janium_campaign_step_delay, janium_campaign_step_body,
-                        janium_campaign_step_subject
+    Required JSON keys: [
+        janium_campaign_step_id,
+        janium_campaign_step_delay,
+        janium_campaign_step_body,
+        janium_campaign_step_subject
+    ]
     """
     user_id = get_jwt_identity()
     if json_body := request.get_json():
-        if janium_campaign_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == json_body['janium_campaign_step_id']).first():
-            janium_campaign_step.janium_campaign_step_delay = json_body['janium_campaign_step_delay']
-            janium_campaign_step.janium_campaign_step_body = json_body['janium_campaign_step_body']
-            janium_campaign_step.janium_campaign_step_subject = json_body['janium_campaign_step_subject']
-            db.session.commit()
-            return jsonify({"message": "success"})
-        return make_response(jsonify({"message": "Unknown janium_campaign_step_id value"}), 400)
+        for step in json_body:
+            if janium_campaign_step := db.session.query(Janium_campaign_step).filter(Janium_campaign_step.janium_campaign_step_id == step['janium_campaign_step_id']).first():
+                janium_campaign_step.janium_campaign_step_delay = step['janium_campaign_step_delay']
+                janium_campaign_step.janium_campaign_step_body = step['janium_campaign_step_body']
+                janium_campaign_step.janium_campaign_step_subject = step['janium_campaign_step_subject']
+                db.session.commit()
+        return jsonify({"message": "success"})
     return make_response(jsonify({"message": "JSON body is missing"}), 400)
 
 @mod_campaign.route('/ulinc_campaigns', methods=['GET'])
